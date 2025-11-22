@@ -68,6 +68,13 @@ ponder.on('AIMM:MarketOnboarded', async ({ event, context }) => {
 ponder.on('AIMM:MarketConfigUpdated', async ({ event, context }) => {
   const { externalMarketId, platform, minPriceDiff, maxSpend, slippage } = event.args;
   const { db } = context;
+  console.log('MarketConfigUpdated event received:', {
+    externalMarketId,
+    platform,
+    minPriceDiff,
+    maxSpend,
+    slippage,
+  });
 
   const configId = `${externalMarketId}-${event.block.number}-${event.log.logIndex}`;
 
@@ -88,6 +95,12 @@ ponder.on('AIMM:MarketConfigUpdated', async ({ event, context }) => {
 ponder.on('AIMM:CurrentPricesUpdated', async ({ event, context }) => {
   const { externalMarketId, platform, extPriceA, extPriceB } = event.args;
   const { db } = context;
+  console.log('CurrentPricesUpdated event received:', {
+    externalMarketId,
+    platform,
+    extPriceA,
+    extPriceB,
+  });
 
   const priceUpdateId = `${externalMarketId}-external-${event.block.number}-${event.log.logIndex}`;
 
@@ -105,21 +118,24 @@ ponder.on('AIMM:CurrentPricesUpdated', async ({ event, context }) => {
   });
 
   // Update the persistent market record with latest external prices
-  await db
-    .update(market, { id: externalMarketId })
-    .set({
-      optionACurrentExternalPrice: extPriceA,
-      optionBCurrentExternalPrice: extPriceB,
-      lastExternalPriceUpdate: event.block.timestamp,
-      updatedAt: event.block.timestamp,
-    });
+  await db.update(market, { id: externalMarketId }).set({
+    optionACurrentExternalPrice: extPriceA,
+    optionBCurrentExternalPrice: extPriceB,
+    lastExternalPriceUpdate: event.block.timestamp,
+    updatedAt: event.block.timestamp,
+  });
 });
 
 // Fair Prices Updated Event
 ponder.on('AIMM:FairPricesUpdated', async ({ event, context }) => {
   const { externalMarketId, platform, fairPriceA, fairPriceB } = event.args;
   const { db } = context;
-
+  console.log('FairPricesUpdated event received:', {
+    externalMarketId,
+    platform,
+    fairPriceA,
+    fairPriceB,
+  });
   const priceUpdateId = `${externalMarketId}-fair-${event.block.number}-${event.log.logIndex}`;
 
   // Insert price update event record
@@ -136,14 +152,12 @@ ponder.on('AIMM:FairPricesUpdated', async ({ event, context }) => {
   });
 
   // Update the persistent market record with latest fair prices
-  await db
-    .update(market, { id: externalMarketId })
-    .set({
-      optionACurrentFairPrice: fairPriceA,
-      optionBCurrentFairPrice: fairPriceB,
-      lastFairPriceUpdate: event.block.timestamp,
-      updatedAt: event.block.timestamp,
-    });
+  await db.update(market, { id: externalMarketId }).set({
+    optionACurrentFairPrice: fairPriceA,
+    optionBCurrentFairPrice: fairPriceB,
+    lastFairPriceUpdate: event.block.timestamp,
+    updatedAt: event.block.timestamp,
+  });
 });
 
 // Market Status Changed Event
@@ -151,6 +165,11 @@ ponder.on('AIMM:MarketStatusChanged', async ({ event, context }) => {
   const { externalMarketId, platform, newStatus } = event.args;
   const { db } = context;
 
+  console.log('MarketStatusChanged event received:', {
+    externalMarketId,
+    platform,
+    newStatus,
+  });
   const statusChangeId = `${externalMarketId}-${event.block.number}-${event.log.logIndex}`;
 
   await db.insert(marketStatusChange).values({
@@ -176,6 +195,11 @@ ponder.on('AIMM:MarketStatusUpdated', async ({ event, context }) => {
   const { externalMarketId, platform, newStatus } = event.args;
   const { db } = context;
 
+  console.log('MarketStatusUpdated event received:', {
+    externalMarketId,
+    platform,
+    newStatus,
+  });
   const statusChangeId = `${externalMarketId}-updated-${event.block.number}-${event.log.logIndex}`;
 
   // Insert status change event record (using same table but with different ID prefix)
@@ -191,12 +215,10 @@ ponder.on('AIMM:MarketStatusUpdated', async ({ event, context }) => {
   });
 
   // Update the market status in the persistent market table
-  await db
-    .update(market, { id: externalMarketId })
-    .set({
-      status: Number(newStatus),
-      updatedAt: event.block.timestamp,
-    });
+  await db.update(market, { id: externalMarketId }).set({
+    status: Number(newStatus),
+    updatedAt: event.block.timestamp,
+  });
 });
 
 // Default Config Updated Event
@@ -204,6 +226,11 @@ ponder.on('AIMM:DefaultConfigUpdated', async ({ event, context }) => {
   const { driftPercentage, maxSpend, slippage } = event.args;
   const { db } = context;
 
+  console.log('DefaultConfigUpdated event received:', {
+    driftPercentage,
+    maxSpend,
+    slippage,
+  });
   const configId = `${event.block.number}-${event.log.logIndex}`;
 
   await db.insert(defaultConfigUpdate).values({

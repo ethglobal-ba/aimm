@@ -4,6 +4,7 @@ set -e  # Exit on any error
 # Configuration variables (script runs from project root)
 CONTRACT_TYPES_FILE="packages/common/src/types/__generated__/contract.types.ts"
 CONTRACT_TYPES_FILE_INDEXER="apps/indexer/src/contract.types.ts"
+CONTRACT_TYPES_FILE_SCRIPTS="scripts/src/contract.types.ts" #Don't want to add scripts to workspace this late in project
 
 
 # Contract types generation
@@ -50,3 +51,5 @@ rm -rf types
 
 echo "✨ All types generated and copied successfully!"
 echo "   📄 Contract types: $CONTRACT_TYPES_FILE"
+echo "   📄 Indexer contract types: $CONTRACT_TYPES_FILE_INDEXER"
+echo "   📄 Scripts contract types: $CONTRACT_TYPES_FILE_SCRIPTS"
