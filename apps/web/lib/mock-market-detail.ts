@@ -1,3 +1,6 @@
+// MOCK DATA: UI-only fake data for the market detail view (charts, order book, trades, runs).
+// Replace this with real data from the AIMM indexer / APIs / on-chain reads when wiring production.
+
 import type { AIRunStatus } from '@/types/market';
 
 export type SignalStrength = 'high' | 'medium' | 'low';
@@ -87,7 +90,7 @@ const baseRuns: AgentRun[] = [
       {
         id: 'sig-onchain',
         label: 'CDP Flow',
-        detail: 'Large deposits into Limitless vaults during last 10 minutes.',
+        detail: 'Large deposits into Limitless vaults during last 100 minutes.',
         source: 'cdp-sql',
         strength: 'high',
       },

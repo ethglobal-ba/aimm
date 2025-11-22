@@ -19,7 +19,6 @@ import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@w
 import { Label } from '@workspace/ui/components/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@workspace/ui/components/table';
 import { cn } from '@workspace/ui/lib/utils';
-import { mockMarkets } from '@/lib/mock-data';
 import type { Market } from '@/types/market';
 
 function formatPercentage(value: number): string {
@@ -45,12 +44,14 @@ function calculateMispricing(livePrice: number, aimmPrice: number): { absolute: 
 }
 
 interface MarketsTableProps {
+  markets: Market[];
   platformFilter?: string;
   statusFilter?: string;
   sortBy?: 'mispricing' | 'timeToClose' | 'volume';
 }
 
 export function MarketsTable({
+  markets,
   platformFilter = 'all',
   statusFilter = 'all',
   sortBy = 'mispricing',
@@ -59,7 +60,7 @@ export function MarketsTable({
   const [recomputingIds, setRecomputingIds] = useState<Set<string>>(new Set());
 
   const filteredAndSortedMarkets = useMemo(() => {
-    let filtered = mockMarkets;
+    let filtered = markets;
 
     if (platformFilter !== 'all') {
       filtered = filtered.filter(market => market.platform === platformFilter);
@@ -86,7 +87,7 @@ export function MarketsTable({
     });
 
     return sorted;
-  }, [platformFilter, statusFilter, sortBy]);
+  }, [markets, platformFilter, statusFilter, sortBy]);
 
   const handleRecompute = (marketId: string, e: React.MouseEvent) => {
     e.stopPropagation();

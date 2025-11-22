@@ -1,9 +1,12 @@
+// MOCK DATA: UI-only fake data for the markets table on the dashboard.
+// Replace this with real market data from the AIMM indexer / SDK when wiring production.
+
 import type { Market } from '@/types/market';
 
 export const mockMarkets: Market[] = [
   {
     id: '1',
-    title: 'Will Bitcoin reach $10,000 by end of 2025?',
+    title: 'Will Bitcoin reach $100,000 by end of 2025?',
     platform: 'limitless',
     symbol: 'BTC-100K-2025',
     livePrice: 0.62,

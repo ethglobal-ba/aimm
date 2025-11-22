@@ -239,6 +239,52 @@ Minimal but real:
 
 ---
 
+## 8. Frontend mocks & replacement checklist
+
+### Where mocks live (apps/web)
+
+- `lib/mock-data.ts`  
+  - **What it is**: hard-coded `mockMarkets: Market[]` powering the Markets Overview table and detail route lookup.
+  - **Used by**: `app/page.tsx` (via `MarketsTable`), `app/markets/[id]/page.tsx`.
+  - **Replace with**: real markets list from the AIMM indexer / backend (e.g. `GET /markets` or SDK hook).
+
+- `lib/mock-market-detail.ts`  
+  - **What it is**: seeded `MarketDetailData` (price history, runs, order book, trades) for the Market Detail screen.
+  - **Used by**: `app/markets/[id]/page.tsx`, `components/market-detail/market-detail-view.tsx`.
+  - **Replace with**: detail endpoint(s) from the backend (e.g. `GET /markets/:id`, `/history`, `/runs`).
+
+- `components/auth-gate.tsx`  
+  - **What it is**: localStorage-based simulation of an AIMM vault balance and onboarding.
+  - **Used by**: wraps the authenticated dashboard layout.
+  - **Replace with**: real on-chain read of vault balances and onboarding flow.
+
+### Conventions
+
+- Every mock module:
+  - Has `mock` in the filename or export name (e.g. `mock-data.ts`, `mock-market-detail.ts`, `mockMarkets`).
+  - Starts with a `// MOCK DATA: ...` header describing what it fakes and what should replace it.
+- Every component / route that depends on mocks includes a `// MOCK: ...` comment next to the key usage:
+  - Example: imports of `mockMarkets` / `getMarketDetailData` in `app/markets/[id]/page.tsx`.
+  - Example: the localStorage-based vault balance logic in `components/auth-gate.tsx`.
+
+You can reliably find all current mocks by grepping for `MOCK DATA:` and `// MOCK:` in `apps/web`.
+
+### Replacement checklist
+
+When wiring real data:
+
+1. **Search for mock modules**
+   - Find all usages of `mockMarkets` and `getMarketDetailData`.
+   - Replace them with real SDK hooks or typed API clients that call the AIMM backend / indexer.
+2. **Search for `// MOCK:` comments**
+   - For each occurrence, replace the mocked behavior with a real integration (API call, on-chain read, etc.).
+3. **Delete mock modules once replaced**
+   - Remove `lib/mock-data.ts` and `lib/mock-market-detail.ts` after all references are gone.
+4. **Tighten AuthGate**
+   - Replace the localStorage simulation with an actual vault balance check and onboarding flow.
+
+---
+
 ## 9. Nice‑to‑Have UX Bits (Time‑boxed)
 
 - Toasts for long‑running operations with live status.

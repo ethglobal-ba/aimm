@@ -1,18 +1,34 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Wallet01Icon } from 'hugeicons-react';
-import { AppKitButton } from '@/components/appkit-button';
+import { ArrowDown01Icon, Wallet01Icon } from 'hugeicons-react';
+import { useEvmAddress, useSignOut } from '@coinbase/cdp-hooks';
+import { ExportWalletModal } from '@coinbase/cdp-react';
+import { Button } from '@workspace/ui/components/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@workspace/ui/components/dropdown-menu';
 
 export function Header() {
   const pathname = usePathname();
+  const { evmAddress } = useEvmAddress();
+  const { signOut } = useSignOut();
+  const [isExportOpen, setIsExportOpen] = useState(false);
 
   const navItems = [
     { href: '/', label: 'Markets' },
     { href: '/overview', label: 'Overview' },
     { href: '/signals', label: 'Signals' },
   ];
+
+  const shortAddress = evmAddress ? `${evmAddress.slice(0, 6)}…${evmAddress.slice(-4)}` : null;
 
   return (
     <header className='border-border/40 bg-background/95 supports-backdrop-filter:bg-background/60 sticky top-0 z-50 w-full border-b backdrop-blur'>
@@ -41,9 +57,63 @@ export function Header() {
             })}
           </nav>
         </div>
-        <div className='flex items-center gap-3'>
-          <AppKitButton />
+        <div className='flex items-center gap-2'>
+          {shortAddress ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type='button'
+                  variant='ghost'
+                  size='sm'
+                  className='border-border/40 bg-muted/40 text-foreground hover:bg-muted font-mono text-[11px]'
+                >
+                  <span className='mr-2 inline-flex h-2 w-2 rounded-full bg-emerald-400' />
+                  {shortAddress}
+                  <ArrowDown01Icon className='text-muted-foreground ml-2 size-3' />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align='end' className='min-w-[220px]'>
+                <DropdownMenuLabel className='flex flex-col gap-1 text-xs'>
+                  <span className='text-muted-foreground'>Connected wallet</span>
+                  <span className='font-mono text-[11px]'>{evmAddress}</span>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className='text-xs'
+                  onSelect={() => {
+                    if (!evmAddress) return;
+                    void navigator.clipboard.writeText(evmAddress);
+                  }}
+                >
+                  Copy address
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className='text-xs'
+                  onSelect={() => {
+                    if (!evmAddress) return;
+                    setIsExportOpen(true);
+                  }}
+                >
+                  Export wallet
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  variant='destructive'
+                  className='text-xs'
+                  onSelect={event => {
+                    event.preventDefault();
+                    void signOut();
+                  }}
+                >
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
         </div>
+      </div>
+      <div className='hidden'>
+        {evmAddress ? <ExportWalletModal address={evmAddress} open={isExportOpen} setIsOpen={setIsExportOpen} /> : null}
       </div>
     </header>
   );
