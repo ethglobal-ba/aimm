@@ -1,4 +1,5 @@
-import { aimmAbi } from '@aimm/common';
+// import { aimmAbi } from '@aimm/common';
+import { aimmAbi } from './src/contract.types';
 import { createConfig } from 'ponder';
 
 export default createConfig({

@@ -3,6 +3,7 @@ set -e  # Exit on any error
 
 # Configuration variables (script runs from project root)
 CONTRACT_TYPES_FILE="packages/common/src/types/__generated__/contract.types.ts"
+CONTRACT_TYPES_FILE_INDEXER="apps/indexer/src/contract.types.ts"
 
 
 # Contract types generation
@@ -23,7 +24,8 @@ bunx @wagmi/cli generate
 # Move contract types to common package (wagmi creates types/generated.ts)
 echo "Moving contract types to $CONTRACT_TYPES_FILE..."
 mkdir -p ../packages/common/src/types/__generated__/
-mv types/generated.ts "../$CONTRACT_TYPES_FILE"
+cp types/generated.ts "../$CONTRACT_TYPES_FILE"
+cp types/generated.ts "../$CONTRACT_TYPES_FILE_INDEXER"
 
 # # Copy ABI files to apps in case they need them (common json import is glitchy)
 # echo "Copying TlonToken.json and TokenFactory.json to apps..."
