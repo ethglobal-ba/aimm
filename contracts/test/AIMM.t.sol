@@ -44,7 +44,7 @@ contract AIMMTest is Test {
     function test_OnboardMarket_Success() public {
         // Test successful market onboarding
         vm.expectEmit(true, true, false, true);
-        emit AIMM.MarketOnboarded("kalshi", EXTERNAL_ID, MARKET_NAME, OPTION_A, OPTION_B);
+        emit AIMM.MarketOnboarded("kalshi", EXTERNAL_ID, MARKET_NAME, OPTION_A, OPTION_B, 0, 0, 0);
 
         AIMM.OnboardMarketParams memory params = AIMM.OnboardMarketParams({
             externalMarketId: EXTERNAL_ID,
@@ -212,7 +212,7 @@ contract AIMMTest is Test {
         aimm.onboardMarket(params);
 
         vm.expectEmit(true, true, false, true);
-        emit AIMM.MarketStatusChanged("kalshi", EXTERNAL_ID, AIMM.MarketStatus.ClosedInternal);
+        emit AIMM.MarketStatusUpdated("kalshi", EXTERNAL_ID, AIMM.MarketStatus.ClosedInternal);
 
         aimm.updateMarketStatus(EXTERNAL_ID, AIMM.MarketStatus.ClosedInternal);
 

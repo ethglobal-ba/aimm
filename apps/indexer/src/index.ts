@@ -117,13 +117,20 @@ ponder.on('AIMM:CurrentPricesUpdated', async ({ event, context }) => {
     transactionHash: event.transaction.hash,
   });
 
-  // Update the persistent market record with latest external prices
-  await db.update(market, { id: externalMarketId }).set({
-    optionACurrentExternalPrice: extPriceA,
-    optionBCurrentExternalPrice: extPriceB,
-    lastExternalPriceUpdate: event.block.timestamp,
-    updatedAt: event.block.timestamp,
-  });
+  // Update the persistent market record with latest external prices (only if market exists)
+  try {
+    await db
+      .update(market, { id: externalMarketId })
+      .set({
+        optionACurrentExternalPrice: extPriceA,
+        optionBCurrentExternalPrice: extPriceB,
+        lastExternalPriceUpdate: event.block.timestamp,
+        updatedAt: event.block.timestamp,
+      });
+  } catch (error) {
+    // Market doesn't exist yet, skip the update
+    console.log(`Market ${externalMarketId} doesn't exist yet, skipping external price update`);
+  }
 });
 
 // Fair Prices Updated Event
@@ -151,13 +158,20 @@ ponder.on('AIMM:FairPricesUpdated', async ({ event, context }) => {
     transactionHash: event.transaction.hash,
   });
 
-  // Update the persistent market record with latest fair prices
-  await db.update(market, { id: externalMarketId }).set({
-    optionACurrentFairPrice: fairPriceA,
-    optionBCurrentFairPrice: fairPriceB,
-    lastFairPriceUpdate: event.block.timestamp,
-    updatedAt: event.block.timestamp,
-  });
+  // Update the persistent market record with latest fair prices (only if market exists)
+  try {
+    await db
+      .update(market, { id: externalMarketId })
+      .set({
+        optionACurrentFairPrice: fairPriceA,
+        optionBCurrentFairPrice: fairPriceB,
+        lastFairPriceUpdate: event.block.timestamp,
+        updatedAt: event.block.timestamp,
+      });
+  } catch (error) {
+    // Market doesn't exist yet, skip the update
+    console.log(`Market ${externalMarketId} doesn't exist yet, skipping fair price update`);
+  }
 });
 
 // Market Status Changed Event
@@ -183,11 +197,16 @@ ponder.on('AIMM:MarketStatusChanged', async ({ event, context }) => {
     transactionHash: event.transaction.hash,
   });
 
-  // Update the market status in the market table
-  await db.update(market, { id: externalMarketId }).set({
-    status: Number(newStatus),
-    updatedAt: event.block.timestamp,
-  });
+  // Update the market status in the market table (only if market exists)
+  try {
+    await db.update(market, { id: externalMarketId }).set({
+      status: Number(newStatus),
+      updatedAt: event.block.timestamp,
+    });
+  } catch (error) {
+    // Market doesn't exist yet, skip the update
+    console.log(`Market ${externalMarketId} doesn't exist yet, skipping status update`);
+  }
 });
 
 // Market Status Updated Event (New event from changeMarketStatus function)
@@ -214,11 +233,18 @@ ponder.on('AIMM:MarketStatusUpdated', async ({ event, context }) => {
     transactionHash: event.transaction.hash,
   });
 
-  // Update the market status in the persistent market table
-  await db.update(market, { id: externalMarketId }).set({
-    status: Number(newStatus),
-    updatedAt: event.block.timestamp,
-  });
+  // Update the market status in the persistent market table (only if market exists)
+  try {
+    await db
+      .update(market, { id: externalMarketId })
+      .set({
+        status: Number(newStatus),
+        updatedAt: event.block.timestamp,
+      });
+  } catch (error) {
+    // Market doesn't exist yet, skip the update
+    console.log(`Market ${externalMarketId} doesn't exist yet, skipping status update`);
+  }
 });
 
 // Default Config Updated Event
