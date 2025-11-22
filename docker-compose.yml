@@ -26,8 +26,8 @@ services:
 
   indexer:
     build:
-      context: ./apps/indexer
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./apps/indexer/Dockerfile
     ports:
       - "42069:42069" # Ponder default API port
     environment:
