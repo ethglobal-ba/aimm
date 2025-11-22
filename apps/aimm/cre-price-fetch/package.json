@@ -1,0 +1,20 @@
+{
+  "name": "typescript-por-template",
+  "version": "1.0.0",
+  "main": "dist/main.js",
+  "private": true,
+  "scripts": {
+    "postinstall": "bunx cre-setup",
+    "build": "tsc"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@chainlink/cre-sdk": "^1.0.0",
+    "viem": "2.34.0",
+    "zod": "3.25.76",
+    "@aimm/common": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "1.2.21"
+  }
+}

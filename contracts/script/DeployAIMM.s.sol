@@ -140,9 +140,10 @@ contract DeployAIMM is Script {
         vm.startBroadcast();
 
         // 1. Egypt President Market - Abdel Fattah el-Sisi
+        // FIXED: Ensuring correct parameter mapping
         aimm.onboardMarket(AIMM.OnboardMarketParams({
-            externalMarketId: "KXAFRICALEADEROUT-35-AFES", // external market ID
-            platform: "kalshi", // platform
+            externalMarketId: "KXAFRICALEADEROUT-35-AFES", // Kalshi ticker - this is what we'll use for API calls
+            platform: "kalshi", // Platform name
             marketName: "Will Abdel Fattah el-Sisi leave office next in this set?", // marketName
             optionAText: "Yes - Abdel Fattah el-Sisi leaves office first", // optionAText
             optionBText: "No - Abdel Fattah el-Sisi does not leave office first", // optionBText
@@ -209,6 +210,44 @@ contract DeployAIMM is Script {
         console.log("=== Kalshi Markets Onboarded Successfully ===");
         string[] memory marketIds = aimm.getAllMarketIds();
         console.log("Total markets onboarded:", marketIds.length);
+        
+        // VERIFICATION: Check that markets are stored correctly
+        _verifyMarketsOnboarded(aimm, marketIds);
+    }
+
+    /**
+     * @notice Verify that markets were onboarded with correct field mapping
+     */
+    function _verifyMarketsOnboarded(AIMM aimm, string[] memory marketIds) internal view {
+        console.log("\n=== Verifying Market Field Mapping ===");
+        
+        for (uint i = 0; i < marketIds.length && i < 2; i++) {
+            string memory marketId = marketIds[i];
+            console.log("Checking market ID:", marketId);
+            
+            try aimm.getMarket(marketId) returns (AIMM.ExternalMarket memory market) {
+                console.log("  External Market ID (key):", marketId);
+                console.log("  Platform (should be 'kalshi'):", market.platform);
+                console.log("  Market Name:", market.marketName);
+                
+                // Verify this is correct: platform should be "kalshi", marketId should be ticker
+                if (keccak256(abi.encodePacked(market.platform)) != keccak256(abi.encodePacked("kalshi"))) {
+                    console.log("  [WARNING] Platform is not 'kalshi', found:", market.platform);
+                    console.log("  [WARNING] This suggests parameter swapping occurred!");
+                }
+                
+                // Check if marketId looks like a Kalshi ticker (starts with 'KX')
+                if (bytes(marketId).length > 2) {
+                    if (bytes(marketId)[0] == 'K' && bytes(marketId)[1] == 'X') {
+                        console.log("  [OK] Market ID looks like valid Kalshi ticker");
+                    } else {
+                        console.log("  [WARNING] Market ID does not look like Kalshi ticker");
+                    }
+                }
+            } catch {
+                console.log("  [ERROR] Could not read market data");
+            }
+        }
     }
 
     /**

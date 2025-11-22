@@ -162,7 +162,9 @@ contract AIMMTest is Test {
         uint256 newSlippage = 200; // 2%
 
         vm.expectEmit(true, true, false, true);
-        emit AIMM.MarketConfigUpdated("kalshi", EXTERNAL_ID, newMinPriceDiff, newMaxSpend, newSlippage);
+        emit AIMM.MarketConfigUpdated(
+            "kalshi", EXTERNAL_ID, newMinPriceDiff, newMaxSpend, newSlippage
+        );
 
         aimm.updateMarketConfig(EXTERNAL_ID, newMinPriceDiff, newMaxSpend, newSlippage);
 
@@ -254,7 +256,8 @@ contract AIMMTest is Test {
             externalMarketId: EXTERNAL_ID,
             optionAPrice: 60 * 1e18, // 60% in wei
             optionBPrice: 40 * 1e18, // 40% in wei
-            volume: 100
+            volume: 100,
+            status: AIMM.MarketStatus.Active
         });
 
         bytes memory report = abi.encode(result);
@@ -265,7 +268,9 @@ contract AIMMTest is Test {
         );
 
         vm.expectEmit(true, true, false, true);
-        emit AIMM.CurrentPricesUpdated("kalshi", EXTERNAL_ID, result.optionAPrice, result.optionBPrice);
+        emit AIMM.CurrentPricesUpdated(
+            "kalshi", EXTERNAL_ID, result.optionAPrice, result.optionBPrice
+        );
 
         vm.expectEmit(true, false, false, true);
         emit AIMM.ResultUpdated(1, block.timestamp);
@@ -274,10 +279,21 @@ contract AIMMTest is Test {
 
         // Verify result was stored
         assertEq(aimm.resultCount(), 1);
-        (string memory workflowName, string memory platform, string memory externalMarketId, uint256 optionAPrice, uint256 optionBPrice, uint256 volume) = aimm.results(1);
+        (
+            string memory workflowName,
+            string memory platform,
+            string memory externalMarketId,
+            uint256 optionAPrice,
+            uint256 optionBPrice,
+            uint256 volume,
+            AIMM.MarketStatus status
+        ) = aimm.results(1);
         assertEq(optionAPrice, result.optionAPrice);
         assertEq(optionBPrice, result.optionBPrice);
-        assertEq(keccak256(abi.encodePacked(workflowName)), keccak256(abi.encodePacked("currentPriceFetch")));
+        assertEq(
+            keccak256(abi.encodePacked(workflowName)),
+            keccak256(abi.encodePacked("currentPriceFetch"))
+        );
 
         // Verify external prices were updated
         AIMM.ExternalMarket memory market = aimm.getMarket(EXTERNAL_ID);
@@ -304,15 +320,13 @@ contract AIMMTest is Test {
             externalMarketId: EXTERNAL_ID,
             optionAPrice: 55 * 1e18, // 55% fair price
             optionBPrice: 45 * 1e18, // 45% fair price
-            volume: 100
+            volume: 100,
+            status: AIMM.MarketStatus.Active
         });
 
         bytes memory report = abi.encode(result);
-        bytes memory metadata = abi.encodePacked(
-            bytes32("workflow123"),
-            bytes10("test12345"),
-            owner
-        );
+        bytes memory metadata =
+            abi.encodePacked(bytes32("workflow123"), bytes10("test12345"), owner);
 
         vm.expectEmit(true, true, false, true);
         emit AIMM.FairPricesUpdated("kalshi", EXTERNAL_ID, result.optionAPrice, result.optionBPrice);
@@ -344,15 +358,13 @@ contract AIMMTest is Test {
             externalMarketId: EXTERNAL_ID,
             optionAPrice: 0,
             optionBPrice: 0,
-            volume: 0
+            volume: 0,
+            status: AIMM.MarketStatus.Active
         });
 
         bytes memory report = abi.encode(result);
-        bytes memory metadata = abi.encodePacked(
-            bytes32("workflow123"),
-            bytes10("test12345"),
-            owner
-        );
+        bytes memory metadata =
+            abi.encodePacked(bytes32("workflow123"), bytes10("test12345"), owner);
 
         vm.expectEmit(true, true, false, true);
         emit AIMM.MarketStatusChanged("kalshi", EXTERNAL_ID, AIMM.MarketStatus.ClosedExternal);
@@ -424,7 +436,8 @@ contract AIMMTest is Test {
             externalMarketId: EXTERNAL_ID,
             optionAPrice: 50 * 1e18,
             optionBPrice: 50 * 1e18,
-            volume: 100
+            volume: 100,
+            status: AIMM.MarketStatus.Active
         });
 
         assertFalse(aimm.isResultAnomalous(firstResult));
@@ -462,7 +475,8 @@ contract AIMMTest is Test {
             externalMarketId: EXTERNAL_ID,
             optionAPrice: priceA,
             optionBPrice: priceB,
-            volume: 100
+            volume: 100,
+            status: AIMM.MarketStatus.Active
         });
         _processReport(result);
     }
@@ -474,18 +488,16 @@ contract AIMMTest is Test {
             externalMarketId: EXTERNAL_ID,
             optionAPrice: priceA,
             optionBPrice: priceB,
-            volume: 100
+            volume: 100,
+            status: AIMM.MarketStatus.Active
         });
         _processReport(result);
     }
 
     function _processReport(AIMM.WorkflowResult memory result) internal {
         bytes memory report = abi.encode(result);
-        bytes memory metadata = abi.encodePacked(
-            bytes32("workflow123"),
-            bytes10("test12345"),
-            owner
-        );
+        bytes memory metadata =
+            abi.encodePacked(bytes32("workflow123"), bytes10("test12345"), owner);
         aimm.onReport(metadata, report);
     }
 }

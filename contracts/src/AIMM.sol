@@ -23,6 +23,7 @@ contract AIMM is IReceiverTemplate {
         uint256 optionAPrice; // Price for option A
         uint256 optionBPrice; // Price for option B
         uint256 volume; // Trading volume
+        MarketStatus status; // Market status
     }
 
     // Default configuration for market automation triggers
@@ -106,9 +107,7 @@ contract AIMM is IReceiverTemplate {
         uint256 fairPriceB
     );
     event MarketStatusChanged(
-        string indexed platform,
-        string indexed externalMarketId,
-        MarketStatus newStatus
+        string indexed platform, string indexed externalMarketId, MarketStatus newStatus
     );
     event DefaultConfigUpdated(uint256 driftPercentage, uint256 maxSpend, uint256 slippage);
 
@@ -131,12 +130,16 @@ contract AIMM is IReceiverTemplate {
     }
 
     modifier marketNotExists(string memory externalMarketId) {
-        require(bytes(externalMarkets[externalMarketId].platform).length == 0, "Market already exists");
+        require(
+            bytes(externalMarkets[externalMarketId].platform).length == 0, "Market already exists"
+        );
         _;
     }
 
     modifier marketMustExist(string memory externalMarketId) {
-        require(bytes(externalMarkets[externalMarketId].platform).length > 0, "Market does not exist");
+        require(
+            bytes(externalMarkets[externalMarketId].platform).length > 0, "Market does not exist"
+        );
         _;
     }
 
@@ -144,9 +147,11 @@ contract AIMM is IReceiverTemplate {
      * @notice Onboard a new market into the system
      * @param params Struct containing all market parameters
      */
-    function onboardMarket(
-        OnboardMarketParams calldata params
-    ) public onlyOwner marketNotExists(params.externalMarketId) {
+    function onboardMarket(OnboardMarketParams calldata params)
+        public
+        onlyOwner
+        marketNotExists(params.externalMarketId)
+    {
         require(bytes(params.externalMarketId).length > 0, "External market ID cannot be empty");
         require(bytes(params.marketName).length > 0, "Market name cannot be empty");
 
@@ -170,7 +175,13 @@ contract AIMM is IReceiverTemplate {
 
         externalMarketIds.push(params.externalMarketId);
 
-        emit MarketOnboarded(params.platform, params.externalMarketId, params.marketName, params.optionAText, params.optionBText);
+        emit MarketOnboarded(
+            params.platform,
+            params.externalMarketId,
+            params.marketName,
+            params.optionAText,
+            params.optionBText
+        );
     }
 
     /**
@@ -180,13 +191,16 @@ contract AIMM is IReceiverTemplate {
      * @param optionBPrice New external price for option B
      * @param volume New trading volume
      */
-    function _updateExternalPrices(
+    function _updateExternalMarketData(
         string memory externalMarketId,
         uint256 optionAPrice,
         uint256 optionBPrice,
-        uint256 volume
+        uint256 volume,
+        MarketStatus status
     ) private {
-        require(bytes(externalMarkets[externalMarketId].platform).length > 0, "Market does not exist");
+        require(
+            bytes(externalMarkets[externalMarketId].platform).length > 0, "Market does not exist"
+        );
         ExternalMarket storage market = externalMarkets[externalMarketId];
         market.optionACurrentExternalPrice = optionAPrice;
         market.optionBCurrentExternalPrice = optionBPrice;
@@ -207,13 +221,17 @@ contract AIMM is IReceiverTemplate {
         uint256 optionAFairPrice,
         uint256 optionBFairPrice
     ) private {
-        require(bytes(externalMarkets[externalMarketId].platform).length > 0, "Market does not exist");
+        require(
+            bytes(externalMarkets[externalMarketId].platform).length > 0, "Market does not exist"
+        );
         ExternalMarket storage market = externalMarkets[externalMarketId];
         market.optionACurrentFairPrice = optionAFairPrice;
         market.optionBCurrentFairPrice = optionBFairPrice;
         market.lastFairPriceUpdate = block.timestamp;
 
-        emit FairPricesUpdated(market.platform, externalMarketId, optionAFairPrice, optionBFairPrice);
+        emit FairPricesUpdated(
+            market.platform, externalMarketId, optionAFairPrice, optionBFairPrice
+        );
     }
 
     /**
@@ -234,7 +252,9 @@ contract AIMM is IReceiverTemplate {
         market.maxSpendAmount = maxSpend;
         market.slippageToleranceBps = slippageBps;
 
-        emit MarketConfigUpdated(market.platform, externalMarketId, minPriceDiff, maxSpend, slippageBps);
+        emit MarketConfigUpdated(
+            market.platform, externalMarketId, minPriceDiff, maxSpend, slippageBps
+        );
     }
 
     /**
@@ -348,11 +368,19 @@ contract AIMM is IReceiverTemplate {
 
         // Handle different workflow types
         bytes32 workflowNameHash = keccak256(abi.encodePacked(calculatorResult.workflowName));
-        
+
         if (workflowNameHash == keccak256(abi.encodePacked("currentPriceFetch"))) {
-            _updateExternalPrices(externalMarketId, calculatorResult.optionAPrice, calculatorResult.optionBPrice, calculatorResult.volume);
+            _updateExternalMarketData(
+                externalMarketId,
+                calculatorResult.optionAPrice,
+                calculatorResult.optionBPrice,
+                calculatorResult.volume,
+                calculatorResult.status
+            );
         } else if (workflowNameHash == keccak256(abi.encodePacked("fairPriceFetch"))) {
-            _updateFairPrices(externalMarketId, calculatorResult.optionAPrice, calculatorResult.optionBPrice);
+            _updateFairPrices(
+                externalMarketId, calculatorResult.optionAPrice, calculatorResult.optionBPrice
+            );
         } else if (workflowNameHash == keccak256(abi.encodePacked("closeMarket"))) {
             _closeMarket(externalMarketId);
         }
@@ -367,11 +395,7 @@ contract AIMM is IReceiverTemplate {
         if (bytes(externalMarkets[externalMarketId].platform).length > 0) {
             ExternalMarket storage market = externalMarkets[externalMarketId];
             market.status = MarketStatus.ClosedExternal;
-            emit MarketStatusChanged(
-                market.platform,
-                externalMarketId,
-                MarketStatus.ClosedExternal
-            );
+            emit MarketStatusChanged(market.platform, externalMarketId, MarketStatus.ClosedExternal);
         }
     }
 
@@ -390,7 +414,7 @@ contract AIMM is IReceiverTemplate {
 
         // Business logic: Define an anomaly as a price change of more than 10x
         // This is just one example of a validation rule you could implement.
-        return _prospectiveResult.optionAPrice > (latestResult.optionAPrice * 10) ||
-               _prospectiveResult.optionBPrice > (latestResult.optionBPrice * 10);
+        return _prospectiveResult.optionAPrice > (latestResult.optionAPrice * 10)
+            || _prospectiveResult.optionBPrice > (latestResult.optionBPrice * 10);
     }
 }
