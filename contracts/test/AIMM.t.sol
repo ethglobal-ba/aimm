@@ -32,7 +32,8 @@ contract AIMMTest is Test {
 
     function test_Deployment() public {
         // Test that contract is deployed with correct default config
-        (uint256 driftPercentage, uint256 maxSpend, uint256 slippageTolerance) = aimm.defaultConfig();
+        (uint256 driftPercentage, uint256 maxSpend, uint256 slippageTolerance) =
+            aimm.defaultConfig();
 
         assertEq(driftPercentage, DEFAULT_DRIFT_PERCENTAGE);
         assertEq(maxSpend, DEFAULT_MAX_SPEND);
@@ -44,7 +45,18 @@ contract AIMMTest is Test {
     function test_OnboardMarket_Success() public {
         // Test successful market onboarding
         vm.expectEmit(true, true, false, true);
-        emit AIMM.MarketOnboarded("kalshi", EXTERNAL_ID, MARKET_NAME, "SUBTITLE123", "EVENT456", OPTION_A, OPTION_B);
+        emit AIMM.MarketOnboarded(
+            "kalshi",
+            EXTERNAL_ID,
+            MARKET_NAME,
+            "SUBTITLE123",
+            "EVENT456",
+            OPTION_A,
+            OPTION_B,
+            0,
+            0,
+            0
+        );
 
         AIMM.OnboardMarketParams memory params = AIMM.OnboardMarketParams({
             externalMarketId: EXTERNAL_ID,
@@ -71,7 +83,8 @@ contract AIMMTest is Test {
         assertEq(uint256(market.status), uint256(AIMM.MarketStatus.Inactive));
 
         // Verify market configuration (stored separately)
-        (uint256 minPriceDiff, uint256 maxSpend, uint256 slippageTolerance) = aimm.marketConfigs(EXTERNAL_ID);
+        (uint256 minPriceDiff, uint256 maxSpend, uint256 slippageTolerance) =
+            aimm.marketConfigs(EXTERNAL_ID);
         assertEq(minPriceDiff, DEFAULT_DRIFT_PERCENTAGE);
         assertEq(maxSpend, DEFAULT_MAX_SPEND);
         assertEq(slippageTolerance, DEFAULT_SLIPPAGE_TOLERANCE);
@@ -184,7 +197,8 @@ contract AIMMTest is Test {
         aimm.updateMarketConfig(EXTERNAL_ID, newMinPriceDiff, newMaxSpend, newSlippage);
 
         // Verify config was updated
-        (uint256 minPriceDiff, uint256 maxSpend, uint256 slippageTolerance) = aimm.marketConfigs(EXTERNAL_ID);
+        (uint256 minPriceDiff, uint256 maxSpend, uint256 slippageTolerance) =
+            aimm.marketConfigs(EXTERNAL_ID);
         assertEq(minPriceDiff, newMinPriceDiff);
         assertEq(maxSpend, newMaxSpend);
         assertEq(slippageTolerance, newSlippage);
@@ -249,7 +263,8 @@ contract AIMMTest is Test {
 
         aimm.updateDefaultConfig(newDrift, newMaxSpend, newSlippage);
 
-        (uint256 driftPercentage, uint256 maxSpend, uint256 slippageTolerance) = aimm.defaultConfig();
+        (uint256 driftPercentage, uint256 maxSpend, uint256 slippageTolerance) =
+            aimm.defaultConfig();
         assertEq(driftPercentage, newDrift);
         assertEq(maxSpend, newMaxSpend);
         assertEq(slippageTolerance, newSlippage);

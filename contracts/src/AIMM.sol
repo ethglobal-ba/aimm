@@ -97,8 +97,12 @@ contract AIMM is IReceiverTemplate {
         string subtitle,
         string eventTicker,
         string optionA,
-        string optionB
+        string optionB,
+        uint volume,
+        uint optionACurrentExternalPrice,
+        uint optionBCurrentExternalPrice
     );
+
     event MarketConfigUpdated(
         string indexed platform,
         string indexed externalMarketId,
@@ -202,7 +206,10 @@ contract AIMM is IReceiverTemplate {
             params.subtitle,
             params.eventTicker,
             params.optionAText,
-            params.optionBText
+            params.optionBText,
+            params.initialVolume,
+            params.optionACurrentExternalPrice,
+            params.optionBCurrentExternalPrice
         );
     }
 
