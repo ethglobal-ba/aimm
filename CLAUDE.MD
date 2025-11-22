@@ -10,6 +10,10 @@ Don't have enough time to get into the details, just writing some rules for Clau
 
 Test your changes don't create errors with `bun run lint`
 
+### CRE Stuffs
+
+cre-price-fetch: confirm your changes work with bun run build
+
 ### Typescript general
 
 Typescript rules:

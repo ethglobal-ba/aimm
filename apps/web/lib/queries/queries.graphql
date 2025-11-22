@@ -1,0 +1,11 @@
+query GetMarkets {
+  marketss {
+    items {
+      externalId
+      marketName
+      optionAText
+      optionBText
+      platform
+    }
+  }
+}

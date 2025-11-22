@@ -6,7 +6,8 @@
   "packageManager": "bun@1.2.19",
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "apps/aimm/*"
   ],
   "devDependencies": {
     "@types/bun": "latest",
@@ -27,6 +28,10 @@
   },
   "scripts": {
     "prepare": "husky",
-    "web:dev": "bun --filter web dev"
+    "web:dev": "bun --filter web dev",
+    "db:start": "docker compose up -d",
+    "db:watch": "docker compose up",
+    "db:stop": "docker compose stop",
+    "db:down": "docker compose down"
   }
 }
