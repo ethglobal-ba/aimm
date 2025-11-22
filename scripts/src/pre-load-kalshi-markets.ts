@@ -8,7 +8,7 @@ import { aimmAbi } from '../../packages/common/src/types/__generated__/contract.
 dotenv.config();
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
-const AIMM_CONTRACT_ADDRESS = '0x2bbC0f482D221fA67665cC10F93162425cbF8853' as Address;
+const AIMM_CONTRACT_ADDRESS = '0xe09e0bee97a644fa4d6e0a99e6d61c8ca1c521a1' as Address;
 const KALSHI_API_BASE = 'https://api.elections.kalshi.com/trade-api/v2';
 
 interface KalshiMarket {
@@ -38,7 +38,7 @@ async function getMarketsFromLast24Hours(): Promise<KalshiMarket[]> {
   const params = {
     status: 'open',
     mve_filter: 'exclude',
-    limit: 100, 
+    limit: 100,
     min_created_ts: minCreatedTs,
   };
   console.log('Kalshi markets fetch params:', params);

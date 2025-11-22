@@ -19,7 +19,7 @@ export default createConfig({
     AIMM: {
       chain: 'baseSepolia',
       abi: aimmAbi,
-      address: '0x2bbC0f482D221fA67665cC10F93162425cbF8853', // Latest contract deployment
+      address: '0xe09e0bee97a644fa4d6e0a99e6d61c8ca1c521a1', // Latest contract deployment
       startBlock: 34039584, // Block where latest contract was deployed
     },
   },

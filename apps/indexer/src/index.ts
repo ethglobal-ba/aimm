@@ -35,7 +35,7 @@ ponder.on('AIMM:MarketOnboarded', async ({ event, context }) => {
     blockNumber: event.block.number,
   });
 
-  const { platform, externalMarketId, marketName, optionA, optionB,  } = event.args;
+  const { platform, externalMarketId, marketName, optionA, optionB, subtitle, eventTicker } = event.args;
   const { db } = context;
 
   // Convert hex strings to readable strings
@@ -44,6 +44,8 @@ ponder.on('AIMM:MarketOnboarded', async ({ event, context }) => {
   const marketNameStr = hexToString(marketName);
   const optionAStr = hexToString(optionA);
   const optionBStr = hexToString(optionB);
+  const subtitleStr = hexToString(subtitle);
+  const eventTickerStr = hexToString(eventTicker);
 
   try {
     await db
@@ -55,6 +57,8 @@ ponder.on('AIMM:MarketOnboarded', async ({ event, context }) => {
         marketName: marketNameStr,
         optionAText: optionAStr,
         optionBText: optionBStr,
+        subtitle: subtitleStr,
+        eventTicker: eventTickerStr,
         status: 0, // Default to Inactive status (0)
         // Initialize prices as null
         optionACurrentExternalPrice: 0n,
@@ -116,6 +120,17 @@ ponder.on('AIMM:MarketConfigUpdated', async ({ event, context }) => {
     blockNumber: event.block.number,
     transactionHash: event.transaction.hash,
   });
+  try {
+    await db.update(market, { id: marketIdStr }).set({
+      minPriceDiff,
+      maxSpend,
+      slippage,
+      updatedAt: event.block.timestamp,
+    });
+  } catch (error) {
+    // Market doesn't exist yet, skip the update
+    console.log(`Market ${marketIdStr} doesn't exist yet, skipping fair price update`);
+  }
 });
 
 // Current Prices Updated Event (External)
@@ -151,14 +166,12 @@ ponder.on('AIMM:CurrentPricesUpdated', async ({ event, context }) => {
 
   // Update the persistent market record with latest external prices (only if market exists)
   try {
-    await db
-      .update(market, { id: marketIdStr })
-      .set({
-        optionACurrentExternalPrice: extPriceA,
-        optionBCurrentExternalPrice: extPriceB,
-        lastExternalPriceUpdate: event.block.timestamp,
-        updatedAt: event.block.timestamp,
-      });
+    await db.update(market, { id: marketIdStr }).set({
+      optionACurrentExternalPrice: extPriceA,
+      optionBCurrentExternalPrice: extPriceB,
+      lastExternalPriceUpdate: event.block.timestamp,
+      updatedAt: event.block.timestamp,
+    });
   } catch (error) {
     // Market doesn't exist yet, skip the update
     console.log(`Market ${marketIdStr} doesn't exist yet, skipping external price update`);
@@ -197,14 +210,12 @@ ponder.on('AIMM:FairPricesUpdated', async ({ event, context }) => {
 
   // Update the persistent market record with latest fair prices (only if market exists)
   try {
-    await db
-      .update(market, { id: marketIdStr })
-      .set({
-        optionACurrentFairPrice: fairPriceA,
-        optionBCurrentFairPrice: fairPriceB,
-        lastFairPriceUpdate: event.block.timestamp,
-        updatedAt: event.block.timestamp,
-      });
+    await db.update(market, { id: marketIdStr }).set({
+      optionACurrentFairPrice: fairPriceA,
+      optionBCurrentFairPrice: fairPriceB,
+      lastFairPriceUpdate: event.block.timestamp,
+      updatedAt: event.block.timestamp,
+    });
   } catch (error) {
     // Market doesn't exist yet, skip the update
     console.log(`Market ${marketIdStr} doesn't exist yet, skipping fair price update`);
@@ -280,12 +291,10 @@ ponder.on('AIMM:MarketStatusUpdated', async ({ event, context }) => {
 
   // Update the market status in the persistent market table (only if market exists)
   try {
-    await db
-      .update(market, { id: marketIdStr })
-      .set({
-        status: Number(newStatus),
-        updatedAt: event.block.timestamp,
-      });
+    await db.update(market, { id: marketIdStr }).set({
+      status: Number(newStatus),
+      updatedAt: event.block.timestamp,
+    });
   } catch (error) {
     // Market doesn't exist yet, skip the update
     console.log(`Market ${marketIdStr} doesn't exist yet, skipping status update`);
