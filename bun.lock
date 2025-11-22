@@ -51,6 +51,7 @@
       "name": "indexer",
       "version": "0.0.1",
       "dependencies": {
+        "@aimm/common": "workspace:*",
         "hono": "^4.5.0",
         "ponder": "^0.15.10",
         "viem": "^2.21.3",

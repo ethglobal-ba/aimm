@@ -1,3 +1,3 @@
-import { aimmAbi } from '../../../packages/common/src/types/__generated__/contract.types';
+import { aimmAbi } from '@aimm/common';
 
 export const AIMMABI = aimmAbi;

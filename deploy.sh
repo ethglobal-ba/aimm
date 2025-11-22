@@ -18,7 +18,6 @@ rsync -avz --exclude-from=.gitignore \
   . "$SERVER:$REMOTE_DIR/" \
   --exclude=".git/" \
   --exclude="node_modules/" \
-  --exclude="contracts/" \
 
 echo "Files transferred successfully!"
 
