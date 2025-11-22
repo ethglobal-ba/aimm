@@ -1,7 +1,7 @@
 import { onchainTable } from 'ponder';
 
 // Markets table
-export const markets = onchainTable('markets', t => ({
+export const market = onchainTable('market', t => ({
   id: t.text().primaryKey(), // marketId
   platform: t.text().notNull(),
   externalId: t.text().notNull(),
@@ -14,7 +14,7 @@ export const markets = onchainTable('markets', t => ({
 }));
 
 // Market configuration updates
-export const marketConfigs = onchainTable('market_configs', t => ({
+export const marketConfig = onchainTable('market_config', t => ({
   id: t.text().primaryKey(), // `${marketId}-${blockNumber}-${logIndex}`
   marketId: t.text().notNull(),
   platform: t.text().notNull(),
@@ -27,7 +27,7 @@ export const marketConfigs = onchainTable('market_configs', t => ({
 }));
 
 // Price updates (external)
-export const priceUpdates = onchainTable('price_updates', t => ({
+export const priceUpdate = onchainTable('price_update', t => ({
   id: t.text().primaryKey(), // `${marketId}-external-${blockNumber}-${logIndex}`
   marketId: t.text().notNull(),
   platform: t.text().notNull(),
@@ -40,7 +40,7 @@ export const priceUpdates = onchainTable('price_updates', t => ({
 }));
 
 // Market status changes
-export const marketStatusChanges = onchainTable('market_status_changes', t => ({
+export const marketStatusChange = onchainTable('market_status_change', t => ({
   id: t.text().primaryKey(), // `${marketId}-${blockNumber}-${logIndex}`
   marketId: t.text().notNull(),
   platform: t.text().notNull(),
@@ -52,7 +52,7 @@ export const marketStatusChanges = onchainTable('market_status_changes', t => ({
 }));
 
 // Default configuration updates
-export const defaultConfigUpdates = onchainTable('default_config_updates', t => ({
+export const defaultConfigUpdate = onchainTable('default_config_update', t => ({
   id: t.text().primaryKey(), // `${blockNumber}-${logIndex}`
   driftPercentage: t.bigint().notNull(),
   maxSpend: t.bigint().notNull(),
@@ -63,7 +63,7 @@ export const defaultConfigUpdates = onchainTable('default_config_updates', t => 
 }));
 
 // Workflow results
-export const workflowResults = onchainTable('workflow_results', t => ({
+export const workflowResult = onchainTable('workflow_result', t => ({
   id: t.text().primaryKey(), // `${resultId}`
   resultId: t.bigint().notNull(),
   finalResult: t.bigint().notNull(),
@@ -73,7 +73,7 @@ export const workflowResults = onchainTable('workflow_results', t => ({
 }));
 
 // Ownership transfers
-export const ownershipTransfers = onchainTable('ownership_transfers', t => ({
+export const ownershipTransfer = onchainTable('ownership_transfer', t => ({
   id: t.text().primaryKey(), // `${blockNumber}-${logIndex}`
   previousOwner: t.hex().notNull(),
   newOwner: t.hex().notNull(),

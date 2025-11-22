@@ -37,8 +37,13 @@ contract DeployAIMM is Script {
         console.log("AIMM deployed at:", address(aimm));
         console.log("Owner:", aimm.owner());
 
-        // Verify deployment
+        // Verify deployment first with original config
         _verifyDeployment(aimm, driftPercentagePoints, maxSpendAmount, slippageToleranceBps);
+
+        // Then emit all event types for indexer verification
+        vm.startBroadcast();
+        _emitAllEventTypes(aimm);
+        vm.stopBroadcast();
 
         return aimm;
     }
@@ -251,15 +256,101 @@ contract DeployAIMM is Script {
     }
 
     /**
+     * @notice Emit one of each event type for indexer verification
+     * @param aimm The deployed AIMM contract instance
+     */
+    function _emitAllEventTypes(AIMM aimm) internal {
+        console.log("\n=== Emitting All Event Types for Indexer Verification ===");
+
+        // 1. MarketOnboarded - Onboard a test market
+        console.log("Emitting MarketOnboarded event...");
+        aimm.onboardMarket(AIMM.OnboardMarketParams({
+            externalMarketId: "TEST-MARKET-001",
+            platform: "test",
+            marketName: "Test Market for Verification",
+            optionAText: "Option A",
+            optionBText: "Option B",
+            optionACurrentExternalPrice: 50000000, // 50 cents
+            optionBCurrentExternalPrice: 50000000, // 50 cents
+            initialVolume: 1000000000000000000 // 1 ETH volume
+        }));
+
+        // 2. MarketConfigUpdated - Update the test market config
+        console.log("Emitting MarketConfigUpdated event...");
+        aimm.updateMarketConfig(
+            "TEST-MARKET-001",
+            600, // 6% min price difference
+            20 ether, // 20 ETH max spend
+            150 // 1.5% slippage
+        );
+
+        // 3. MarketStatusChanged - Change the test market status
+        console.log("Emitting MarketStatusChanged event...");
+        aimm.updateMarketStatus("TEST-MARKET-001", AIMM.MarketStatus.ClosedInternal);
+
+        // 4. DefaultConfigUpdated - Update default configuration
+        console.log("Emitting DefaultConfigUpdated event...");
+        aimm.updateDefaultConfig(
+            700, // 7% drift percentage
+            25 ether, // 25 ETH max spend
+            200 // 2% slippage
+        );
+
+        // 5. CurrentPricesUpdated & 6. FairPricesUpdated & 7. ResultUpdated
+        // These are emitted by calling the receiver template with mock data
+        console.log("Emitting CurrentPricesUpdated, FairPricesUpdated, and ResultUpdated events...");
+
+        // Create a mock WorkflowResult for current prices
+        AIMM.WorkflowResult memory currentPriceResult = AIMM.WorkflowResult({
+            workflowName: "currentPriceFetch",
+            platform: "test",
+            externalMarketId: "TEST-MARKET-001",
+            optionAPrice: 60000000, // 60 cents
+            optionBPrice: 40000000, // 40 cents
+            volume: 2000000000000000000, // 2 ETH volume
+            status: AIMM.MarketStatus.Active
+        });
+
+        // Encode and submit the report (this will emit CurrentPricesUpdated and ResultUpdated)
+        bytes memory encodedCurrentPrice = abi.encode(currentPriceResult);
+        aimm.onReport("", encodedCurrentPrice);
+
+        // Create a mock WorkflowResult for fair prices
+        AIMM.WorkflowResult memory fairPriceResult = AIMM.WorkflowResult({
+            workflowName: "fairPriceFetch",
+            platform: "test",
+            externalMarketId: "TEST-MARKET-001",
+            optionAPrice: 55000000, // 55 cents fair price
+            optionBPrice: 45000000, // 45 cents fair price
+            volume: 0, // Volume not relevant for fair price
+            status: AIMM.MarketStatus.Active
+        });
+
+        // Encode and submit the report (this will emit FairPricesUpdated and ResultUpdated)
+        bytes memory encodedFairPrice = abi.encode(fairPriceResult);
+        aimm.onReport("", encodedFairPrice);
+
+        console.log("=== All Event Types Emitted Successfully ===");
+        console.log("Events emitted:");
+        console.log("  1. MarketOnboarded");
+        console.log("  2. MarketConfigUpdated");
+        console.log("  3. MarketStatusChanged");
+        console.log("  4. DefaultConfigUpdated");
+        console.log("  5. CurrentPricesUpdated");
+        console.log("  6. FairPricesUpdated");
+        console.log("  7. ResultUpdated (x2)");
+    }
+
+    /**
      * @notice Deploy AIMM and onboard Kalshi markets in one transaction
      */
     function deployWithKalshiMarkets() public returns (AIMM aimm) {
         // Deploy AIMM with default configuration
         aimm = run();
-        
+
         // Onboard Kalshi markets
         onboardKalshiMarkets(aimm);
-        
+
         return aimm;
     }
 }

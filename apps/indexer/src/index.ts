@@ -1,12 +1,12 @@
 import { ponder } from 'ponder:registry';
 import {
-  markets,
-  marketConfigs,
-  priceUpdates,
-  marketStatusChanges,
-  defaultConfigUpdates,
-  workflowResults,
-  ownershipTransfers,
+  market,
+  marketConfig,
+  priceUpdate,
+  marketStatusChange,
+  defaultConfigUpdate,
+  workflowResult,
+  ownershipTransfer,
 } from '../ponder.schema';
 
 // Market Onboarded Event
@@ -25,7 +25,7 @@ ponder.on('AIMM:MarketOnboarded', async ({ event, context }) => {
 
   try {
     await db
-      .insert(markets)
+      .insert(market)
       .values({
         id: externalMarketId,
         platform: platform,
@@ -63,7 +63,7 @@ ponder.on('AIMM:MarketConfigUpdated', async ({ event, context }) => {
 
   const configId = `${externalMarketId}-${event.block.number}-${event.log.logIndex}`;
 
-  await db.insert(marketConfigs).values({
+  await db.insert(marketConfig).values({
     id: configId,
     marketId: externalMarketId,
     platform,
@@ -83,7 +83,7 @@ ponder.on('AIMM:CurrentPricesUpdated', async ({ event, context }) => {
 
   const priceUpdateId = `${externalMarketId}-external-${event.block.number}-${event.log.logIndex}`;
 
-  await db.insert(priceUpdates).values({
+  await db.insert(priceUpdate).values({
     id: priceUpdateId,
     marketId: externalMarketId,
     platform,
@@ -103,7 +103,7 @@ ponder.on('AIMM:FairPricesUpdated', async ({ event, context }) => {
 
   const priceUpdateId = `${externalMarketId}-fair-${event.block.number}-${event.log.logIndex}`;
 
-  await db.insert(priceUpdates).values({
+  await db.insert(priceUpdate).values({
     id: priceUpdateId,
     marketId: externalMarketId,
     platform,
@@ -123,7 +123,7 @@ ponder.on('AIMM:MarketStatusChanged', async ({ event, context }) => {
 
   const statusChangeId = `${externalMarketId}-${event.block.number}-${event.log.logIndex}`;
 
-  await db.insert(marketStatusChanges).values({
+  await db.insert(marketStatusChange).values({
     id: statusChangeId,
     marketId: externalMarketId,
     platform,
@@ -134,14 +134,13 @@ ponder.on('AIMM:MarketStatusChanged', async ({ event, context }) => {
     transactionHash: event.transaction.hash,
   });
 
-  // Update the market status in the markets table
+  // Update the market status in the market table
   await db
-    .update(markets)
+    .update(market, { id: externalMarketId })
     .set({
       status: Number(newStatus),
       updatedAt: event.block.timestamp,
-    })
-    .where({ id: externalMarketId });
+    });
 });
 
 // Default Config Updated Event
@@ -151,7 +150,7 @@ ponder.on('AIMM:DefaultConfigUpdated', async ({ event, context }) => {
 
   const configId = `${event.block.number}-${event.log.logIndex}`;
 
-  await db.insert(defaultConfigUpdates).values({
+  await db.insert(defaultConfigUpdate).values({
     id: configId,
     driftPercentage,
     maxSpend,
@@ -168,7 +167,7 @@ ponder.on('AIMM:ResultUpdated', async ({ event, context }) => {
   const { db } = context;
 
   await db
-    .insert(workflowResults)
+    .insert(workflowResult)
     .values({
       id: resultId.toString(),
       resultId,
@@ -195,7 +194,7 @@ ponder.on('AIMM:OwnershipTransferred', async ({ event, context }) => {
 
   const transferId = `${event.block.number}-${event.log.logIndex}`;
 
-  await db.insert(ownershipTransfers).values({
+  await db.insert(ownershipTransfer).values({
     id: transferId,
     previousOwner,
     newOwner,
