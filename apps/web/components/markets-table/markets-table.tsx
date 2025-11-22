@@ -1,52 +1,30 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import Link from 'next/link';
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { RefreshIcon } from 'hugeicons-react';
 import { Badge } from '@workspace/ui/components/badge';
-import { Button } from '@workspace/ui/components/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@workspace/ui/components/dialog';
-import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@workspace/ui/components/input-group';
-import { Label } from '@workspace/ui/components/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@workspace/ui/components/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@workspace/ui/components/table';
 import { cn } from '@workspace/ui/lib/utils';
-import type { Market } from '@/types/market';
-
-function formatPercentage(value: number): string {
-  return `${(value * 100).toFixed(1)}%`;
-}
-
-function formatTimeAgo(date: Date): string {
-  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  const minutes = Math.floor(seconds / 60);
-
-  if (minutes < 1) return `${seconds} secs ago`;
-  if (minutes < 60) return `${minutes} min${minutes !== 1 ? 's' : ''} ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
-  const days = Math.floor(hours / 24);
-  return `${days} day${days !== 1 ? 's' : ''} ago`;
-}
-
-function calculateMispricing(livePrice: number, aimmPrice: number): { absolute: number; relative: number } {
-  const absolute = aimmPrice - livePrice;
-  const relative = (absolute / livePrice) * 100;
-  return { absolute, relative };
-}
+import {
+  calculateMispricing,
+  formatPercentage,
+  formatTimeAgo,
+  getAimmStatusLabel,
+  getStatusDotClass,
+} from '@/lib/market-utils';
+import type { Market, MarketAimmStatus } from '@/types/market';
+import { useMarketsStatus } from '@/components/markets-status-context';
 
 interface MarketsTableProps {
   markets: Market[];
   platformFilter?: string;
-  statusFilter?: string;
+  /**
+   * AIMM status filter coming from the overview page.
+   * - 'all' → include all AIMM statuses
+   * - otherwise → match a specific MarketAimmStatus
+   */
+  statusFilter?: 'all' | MarketAimmStatus;
   sortBy?: 'mispricing' | 'timeToClose' | 'volume';
 }
 
@@ -57,50 +35,46 @@ export function MarketsTable({
   sortBy = 'mispricing',
 }: MarketsTableProps) {
   const router = useRouter();
-  const [recomputingIds, setRecomputingIds] = useState<Set<string>>(new Set());
+  const { getStatus: getAimmStatusOverride, setStatus: setAimmStatus } = useMarketsStatus();
 
   const filteredAndSortedMarkets = useMemo(() => {
-    let filtered = markets;
+    const withResolvedAimmStatus = markets.map(market => {
+      const override = getAimmStatusOverride(market.id);
+      const resolved: MarketAimmStatus = override ?? market.aimmStatus ?? 'ACTIVE';
+      return {
+        market,
+        aimmStatus: resolved,
+      };
+    });
+
+    let filtered = withResolvedAimmStatus;
 
     if (platformFilter !== 'all') {
-      filtered = filtered.filter(market => market.platform === platformFilter);
+      filtered = filtered.filter(entry => entry.market.platform === platformFilter);
     }
 
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(market => market.status === statusFilter);
+    if (statusFilter && statusFilter !== 'all') {
+      filtered = filtered.filter(entry => entry.aimmStatus === statusFilter);
     }
 
     const sorted = [...filtered].sort((a, b) => {
       switch (sortBy) {
         case 'mispricing': {
-          const aMispricing = Math.abs(calculateMispricing(a.livePrice, a.aimmFairPrice).relative);
-          const bMispricing = Math.abs(calculateMispricing(b.livePrice, b.aimmFairPrice).relative);
+          const aMispricing = Math.abs(calculateMispricing(a.market.livePrice, a.market.aimmFairPrice).relative);
+          const bMispricing = Math.abs(calculateMispricing(b.market.livePrice, b.market.aimmFairPrice).relative);
           return bMispricing - aMispricing;
         }
         case 'timeToClose':
-          return a.timeToClose.getTime() - b.timeToClose.getTime();
+          return a.market.timeToClose.getTime() - b.market.timeToClose.getTime();
         case 'volume':
-          return b.volume24h - a.volume24h;
+          return b.market.volume24h - a.market.volume24h;
         default:
           return 0;
       }
     });
 
     return sorted;
-  }, [markets, platformFilter, statusFilter, sortBy]);
-
-  const handleRecompute = (marketId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setRecomputingIds(prev => new Set(prev).add(marketId));
-
-    setTimeout(() => {
-      setRecomputingIds(prev => {
-        const next = new Set(prev);
-        next.delete(marketId);
-        return next;
-      });
-    }, 2000);
-  };
+  }, [getAimmStatusOverride, markets, platformFilter, sortBy, statusFilter]);
 
   return (
     <div className='w-full overflow-x-auto'>
@@ -110,18 +84,16 @@ export function MarketsTable({
             <TableHead className='w-[300px]'>Market</TableHead>
             <TableHead className='text-right'>Live Price</TableHead>
             <TableHead className='text-right'>AIMM Fair</TableHead>
-            <TableHead className='text-center'>Confidence</TableHead>
             <TableHead className='text-right'>Mispricing (Δ)</TableHead>
             <TableHead>Position</TableHead>
             <TableHead>Last Run</TableHead>
-            <TableHead className='text-right'>Actions</TableHead>
+            <TableHead>AIMM Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredAndSortedMarkets.map(market => {
+          {filteredAndSortedMarkets.map(entry => {
+            const { market, aimmStatus } = entry;
             const mispricing = calculateMispricing(market.livePrice, market.aimmFairPrice);
-            const isRecomputing = recomputingIds.has(market.id);
-            const confidence = 85; // Mock confidence
 
             return (
               <TableRow
@@ -150,17 +122,6 @@ export function MarketsTable({
 
                 <TableCell className='text-right font-mono font-medium text-blue-400' suppressHydrationWarning>
                   {formatPercentage(market.aimmFairPrice)}
-                </TableCell>
-
-                <TableCell className='text-center'>
-                  <div className='flex flex-col items-center gap-1'>
-                    <span className='text-muted-foreground font-mono text-[10px]' suppressHydrationWarning>
-                      {confidence}%
-                    </span>
-                    <div className='bg-muted h-1 w-16 overflow-hidden rounded-full'>
-                      <div className='h-full bg-blue-500' style={{ width: `${confidence}%` }} />
-                    </div>
-                  </div>
                 </TableCell>
 
                 <TableCell className='text-right'>
@@ -209,44 +170,75 @@ export function MarketsTable({
 
                 <TableCell>
                   <div className='flex items-center gap-2'>
-                    <div
-                      className={cn(
-                        'h-1.5 w-1.5 rounded-full',
-                        market.aiRunStatus === 'success'
-                          ? 'bg-green-500'
-                          : market.aiRunStatus === 'stale'
-                            ? 'bg-amber-500'
-                            : 'bg-blue-500'
-                      )}
-                    />
+                    <div className={cn('h-1.5 w-1.5 rounded-full', getStatusDotClass(market.aiRunStatus))} />
                     <span className='text-muted-foreground text-xs' suppressHydrationWarning>
                       {formatTimeAgo(market.lastAIRun)}
                     </span>
                   </div>
                 </TableCell>
 
-                <TableCell className='text-right'>
-                  <div className='flex items-center justify-end gap-2' onClick={e => e.stopPropagation()}>
-                    <AutomationConfigDialog market={market} />
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='text-muted-foreground hover:text-foreground h-7 px-2 text-xs font-medium'
-                      onClick={e => handleRecompute(market.id, e)}
-                      disabled={isRecomputing || market.aiRunStatus === 'running'}
+                <TableCell>
+                  <Select
+                    value={aimmStatus}
+                    onValueChange={value => {
+                      const nextStatus = value as MarketAimmStatus;
+                      setAimmStatus(market.id, nextStatus);
+                    }}
+                  >
+                    <SelectTrigger
+                      className={cn(
+                        'h-8 w-[140px] border px-2.5 text-xs font-medium transition-colors',
+                        aimmStatus === 'ACTIVE'
+                          ? 'border-green-500/30 bg-green-500/10 text-green-300 hover:bg-green-500/15'
+                          : aimmStatus === 'INACTIVE'
+                            ? 'border-muted bg-muted/30 text-muted-foreground hover:bg-muted/40'
+                            : 'border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/15'
+                      )}
+                      onClick={event => event.stopPropagation()}
                     >
-                      <RefreshIcon className={cn('mr-1.5 h-3 w-3', isRecomputing && 'animate-spin')} />
-                      Run
-                    </Button>
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      className='border-border text-muted-foreground hover:text-foreground hover:bg-muted h-7 bg-transparent px-3 text-xs font-medium'
-                      asChild
-                    >
-                      <Link href={`/markets/${market.id}`}>Trade</Link>
-                    </Button>
-                  </div>
+                      <SelectValue>
+                        <span className='flex items-center gap-1.5'>
+                          <span
+                            className={cn(
+                              'h-1.5 w-1.5 rounded-full',
+                              aimmStatus === 'ACTIVE'
+                                ? 'bg-green-400'
+                                : aimmStatus === 'INACTIVE'
+                                  ? 'bg-muted-foreground'
+                                  : 'bg-amber-400'
+                            )}
+                          />
+                          {getAimmStatusLabel(aimmStatus)}
+                        </span>
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value='ACTIVE' className='text-xs'>
+                        <span className='flex items-center gap-2'>
+                          <span className='h-1.5 w-1.5 rounded-full bg-green-400' />
+                          Active
+                        </span>
+                      </SelectItem>
+                      <SelectItem value='INACTIVE' className='text-xs'>
+                        <span className='flex items-center gap-2'>
+                          <span className='bg-muted-foreground h-1.5 w-1.5 rounded-full' />
+                          Inactive
+                        </span>
+                      </SelectItem>
+                      <SelectItem value='EXTERNALLY_CLOSED' className='text-xs'>
+                        <span className='flex items-center gap-2'>
+                          <span className='h-1.5 w-1.5 rounded-full bg-amber-400' />
+                          Externally closed
+                        </span>
+                      </SelectItem>
+                      <SelectItem value='INTERNALLY_CLOSED' className='text-xs'>
+                        <span className='flex items-center gap-2'>
+                          <span className='h-1.5 w-1.5 rounded-full bg-amber-400' />
+                          Internally closed
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </TableCell>
               </TableRow>
             );
@@ -254,126 +246,5 @@ export function MarketsTable({
         </TableBody>
       </Table>
     </div>
-  );
-}
-
-interface AutomationConfigDialogProps {
-  market: Market;
-}
-
-function AutomationConfigDialog({ market }: AutomationConfigDialogProps) {
-  const [driftThresholdPts, setDriftThresholdPts] = useState<number>(5);
-  const [maxSpendUsd, setMaxSpendUsd] = useState<number>(25000);
-  const [slippagePts, setSlippagePts] = useState<number>(1);
-
-  return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          type='button'
-          variant='ghost'
-          size='sm'
-          className='text-muted-foreground hover:text-foreground h-7 px-2 text-xs font-medium'
-        >
-          Config
-        </Button>
-      </DialogTrigger>
-      <DialogContent className='sm:max-w-md'>
-        <DialogHeader>
-          <DialogTitle className='text-sm font-medium'>Automation – {market.symbol}</DialogTitle>
-          <DialogDescription className='text-xs'>
-            Tune when the agent is allowed to place orders on this market. These values are demo-only for now.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className='mt-4 space-y-4'>
-          <div className='grid grid-cols-1 gap-4 text-sm'>
-            <div className='space-y-1'>
-              <Label htmlFor={`drift-${market.id}`} className='text-xs'>
-                Drift threshold
-              </Label>
-              <InputGroup>
-                <InputGroupAddon>
-                  <InputGroupText className='text-[11px]'>Trigger when</InputGroupText>
-                </InputGroupAddon>
-                <InputGroupInput
-                  id={`drift-${market.id}`}
-                  type='number'
-                  min={0}
-                  step={0.1}
-                  value={driftThresholdPts.toString()}
-                  onChange={event => {
-                    const value = Number(event.target.value);
-                    setDriftThresholdPts(Number.isNaN(value) ? 0 : value);
-                  }}
-                  className='text-right text-sm'
-                />
-                <InputGroupAddon align='inline-end'>
-                  <InputGroupText className='text-[11px]'>pts mispricing</InputGroupText>
-                </InputGroupAddon>
-              </InputGroup>
-            </div>
-
-            <div className='space-y-1'>
-              <Label htmlFor={`max-spend-${market.id}`} className='text-xs'>
-                Max spend per rebalance
-              </Label>
-              <InputGroup>
-                <InputGroupAddon>
-                  <InputGroupText className='text-[11px]'>$</InputGroupText>
-                </InputGroupAddon>
-                <InputGroupInput
-                  id={`max-spend-${market.id}`}
-                  type='number'
-                  min={0}
-                  step={100}
-                  value={maxSpendUsd.toString()}
-                  onChange={event => {
-                    const value = Number(event.target.value);
-                    setMaxSpendUsd(Number.isNaN(value) ? 0 : value);
-                  }}
-                  className='text-right text-sm'
-                />
-                <InputGroupAddon align='inline-end'>
-                  <InputGroupText className='text-[11px]'>per rebalance</InputGroupText>
-                </InputGroupAddon>
-              </InputGroup>
-            </div>
-
-            <div className='space-y-1'>
-              <Label htmlFor={`slippage-${market.id}`} className='text-xs'>
-                Slippage tolerance
-              </Label>
-              <InputGroup>
-                <InputGroupAddon>
-                  <InputGroupText className='text-[11px]'>Allow up to</InputGroupText>
-                </InputGroupAddon>
-                <InputGroupInput
-                  id={`slippage-${market.id}`}
-                  type='number'
-                  min={0}
-                  step={0.05}
-                  value={slippagePts.toString()}
-                  onChange={event => {
-                    const value = Number(event.target.value);
-                    setSlippagePts(Number.isNaN(value) ? 0 : value);
-                  }}
-                  className='text-right text-sm'
-                />
-                <InputGroupAddon align='inline-end'>
-                  <InputGroupText className='text-[11px]'>pts</InputGroupText>
-                </InputGroupAddon>
-              </InputGroup>
-            </div>
-          </div>
-        </div>
-
-        <DialogFooter className='mt-4'>
-          <Button type='button' variant='outline' size='sm'>
-            Done
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

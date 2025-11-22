@@ -3,6 +3,14 @@
 
 import type { Market } from '@/types/market';
 
+/**
+ * MOCK DATA: UI-only fake data for the markets table on the dashboard.
+ *
+ * The AIMM-specific status field (`aimmStatus`) on each entry is used as the
+ * initial value for the activation controls in the overview table and market
+ * detail page. It is not persisted and will be replaced by real data from the
+ * AIMM indexer / SDK.
+ */
 export const mockMarkets: Market[] = [
   {
     id: '1',
@@ -12,6 +20,7 @@ export const mockMarkets: Market[] = [
     livePrice: 0.62,
     aimmFairPrice: 0.71,
     status: 'open',
+    aimmStatus: 'ACTIVE',
     agentPosition: '+750 YES',
     lastAction: 'Rebalanced 3m ago',
     lastActionTimestamp: new Date(Date.now() - 3 * 60 * 1000),
@@ -28,6 +37,7 @@ export const mockMarkets: Market[] = [
     livePrice: 0.45,
     aimmFairPrice: 0.38,
     status: 'open',
+    aimmStatus: 'ACTIVE',
     agentPosition: '-500 NO',
     lastAction: 'Rebalanced 1h ago',
     lastActionTimestamp: new Date(Date.now() - 60 * 60 * 1000),
@@ -44,6 +54,7 @@ export const mockMarkets: Market[] = [
     livePrice: 0.58,
     aimmFairPrice: 0.52,
     status: 'open',
+    aimmStatus: 'INACTIVE',
     agentPosition: null,
     lastAction: 'No position',
     lastActionTimestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
@@ -60,6 +71,7 @@ export const mockMarkets: Market[] = [
     livePrice: 0.72,
     aimmFairPrice: 0.68,
     status: 'open',
+    aimmStatus: 'ACTIVE',
     agentPosition: '+200 YES',
     lastAction: 'Rebalanced 15m ago',
     lastActionTimestamp: new Date(Date.now() - 15 * 60 * 1000),
@@ -76,6 +88,7 @@ export const mockMarkets: Market[] = [
     livePrice: 0.33,
     aimmFairPrice: 0.48,
     status: 'open',
+    aimmStatus: 'ACTIVE',
     agentPosition: '+1200 YES',
     lastAction: 'Rebalanced 2h ago',
     lastActionTimestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
@@ -92,6 +105,7 @@ export const mockMarkets: Market[] = [
     livePrice: 0.15,
     aimmFairPrice: 0.12,
     status: 'open',
+    aimmStatus: 'INACTIVE',
     agentPosition: null,
     lastAction: 'No position',
     lastActionTimestamp: new Date(Date.now() - 48 * 60 * 60 * 1000),
@@ -108,6 +122,7 @@ export const mockMarkets: Market[] = [
     livePrice: 0.81,
     aimmFairPrice: 0.79,
     status: 'suspended',
+    aimmStatus: 'EXTERNALLY_CLOSED',
     agentPosition: '+300 YES',
     lastAction: 'Rebalanced 6h ago',
     lastActionTimestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
@@ -124,6 +139,7 @@ export const mockMarkets: Market[] = [
     livePrice: 0.28,
     aimmFairPrice: 0.25,
     status: 'open',
+    aimmStatus: 'INACTIVE',
     agentPosition: null,
     lastAction: 'No position',
     lastActionTimestamp: new Date(Date.now() - 12 * 60 * 60 * 1000),
@@ -140,6 +156,7 @@ export const mockMarkets: Market[] = [
     livePrice: 0.56,
     aimmFairPrice: 0.61,
     status: 'open',
+    aimmStatus: 'ACTIVE',
     agentPosition: '+450 YES',
     lastAction: 'Rebalanced 30m ago',
     lastActionTimestamp: new Date(Date.now() - 30 * 60 * 1000),
@@ -156,6 +173,7 @@ export const mockMarkets: Market[] = [
     livePrice: 0.42,
     aimmFairPrice: 0.39,
     status: 'open',
+    aimmStatus: 'INTERNALLY_CLOSED',
     agentPosition: null,
     lastAction: 'Computing price',
     lastActionTimestamp: new Date(Date.now() - 1 * 60 * 1000),

@@ -215,7 +215,7 @@ export function formatPosition(position: string | null): {
   }
 
   const [, sign, sizeStr, side] = match;
-  const size = parseInt(sizeStr);
+  const size = parseInt(sizeStr ?? '0');
   const actualSide = side as 'YES' | 'NO';
 
   const prefix = sign === '-' ? '-' : '+';

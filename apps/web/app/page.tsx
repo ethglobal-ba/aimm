@@ -8,14 +8,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ToggleGroup, ToggleGroupItem } from '@workspace/ui/components/toggle-group';
 import { MarketsTable } from '@/components/markets-table';
 import { MarketsOnboarding } from '@/components/markets-onboarding';
+import { LiveAgentActions } from '@/components/live-agent-actions';
+import { PortfolioBalance } from '@/components/portfolio-balance';
 import { useMarkets } from '@workspace/aimm-sdk';
-import { mockMarkets } from '@/lib/mock-data';
-import type { Market } from '@/types/market';
+import type { Market, MarketAimmStatus } from '@/types/market';
 import { useDemoOnboarding } from '@/components/demo-onboarding-context';
+import { mockMarkets } from '@/lib/mock-data';
 
 export default function Home() {
   const [platformFilter, setPlatformFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('open');
+  type AimmStatusFilter = 'all' | MarketAimmStatus;
+  const [statusFilter, setStatusFilter] = useState<AimmStatusFilter>('ACTIVE');
   const [sortBy, setSortBy] = useState<'mispricing' | 'timeToClose' | 'volume'>('mispricing');
   const { isDemoOnboardingMode } = useDemoOnboarding();
 
@@ -26,15 +29,19 @@ export default function Home() {
   const shouldShowOnboarding =
     isDemoOnboardingMode || (!isMarketsLoading && !marketsError && marketsFromContract.length === 0);
 
-  // MOCK FALLBACK: if the AIMM contract cannot be read (e.g. local dev without RPC),
-  // we fall back to static mock markets so the dashboard remains demonstrable.
-  const tableMarkets: Market[] = hasContractMarkets && !isDemoOnboardingMode ? marketsFromContract : mockMarkets;
+  /**
+   * MOCK: While the AIMM contracts / indexer wiring is still in flux, the
+   * overview table is driven from `mockMarkets`. When real contract markets
+   * are available and stable, this should be switched to prefer
+   * `marketsFromContract` and only fall back to mocks.
+   */
+  const tableMarkets: Market[] = mockMarkets;
 
   const subtitle = isDemoOnboardingMode
-    ? 'Demo onboarding mode – using mock markets regardless of on-chain state.'
+    ? 'Demo onboarding mode – configure which markets AIMM should manage.'
     : hasContractMarkets
       ? `Monitoring ${marketsFromContract.length} on-chain markets.`
-      : 'Monitoring demo markets – contract data is unavailable or not yet configured.';
+      : 'No on-chain markets are available yet. Configure AIMM and indexer to begin monitoring.';
 
   return (
     <div className='bg-background mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col p-6'>
@@ -90,16 +97,17 @@ export default function Home() {
             </ToggleGroup>
           </div>
 
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger size='sm' className='h-8 w-[150px] gap-2 bg-transparent text-xs'>
+          <Select value={statusFilter} onValueChange={value => setStatusFilter(value as AimmStatusFilter)}>
+            <SelectTrigger size='sm' className='h-8 w-[170px] gap-2 bg-transparent text-xs'>
               <FilterIcon className='text-muted-foreground h-3.5 w-3.5' />
-              <SelectValue placeholder='Status' />
+              <SelectValue placeholder='AIMM status' />
             </SelectTrigger>
             <SelectContent position='popper' align='end' sideOffset={4}>
-              <SelectItem value='all'>All Status</SelectItem>
-              <SelectItem value='open'>Open</SelectItem>
-              <SelectItem value='suspended'>Suspended</SelectItem>
-              <SelectItem value='closed'>Closed</SelectItem>
+              <SelectItem value='all'>All AIMM statuses</SelectItem>
+              <SelectItem value='ACTIVE'>Active only</SelectItem>
+              <SelectItem value='INACTIVE'>Inactive only</SelectItem>
+              <SelectItem value='EXTERNALLY_CLOSED'>Externally closed</SelectItem>
+              <SelectItem value='INTERNALLY_CLOSED'>Internally closed</SelectItem>
             </SelectContent>
           </Select>
 
@@ -117,34 +125,52 @@ export default function Home() {
         </div>
       </div>
 
-      <Card className='border-border bg-card/50 flex flex-1 flex-col overflow-hidden'>
-        <CardContent className='flex-1 overflow-auto p-0'>
-          {shouldShowOnboarding ? (
-            <MarketsOnboarding />
-          ) : (
-            <MarketsTable
-              markets={tableMarkets}
-              platformFilter={platformFilter}
-              statusFilter={statusFilter}
-              sortBy={sortBy}
-            />
-          )}
-        </CardContent>
+      <div className='flex min-h-0 flex-1 gap-4'>
+        {/* Left: Markets table card (~70% width) */}
+        <Card className='border-border bg-card/50 flex min-w-0 flex-1 flex-col overflow-hidden'>
+          <CardContent className='flex-1 overflow-auto p-0'>
+            {shouldShowOnboarding ? (
+              <MarketsOnboarding />
+            ) : (
+              <MarketsTable
+                markets={tableMarkets}
+                platformFilter={platformFilter}
+                statusFilter={statusFilter}
+                sortBy={sortBy}
+              />
+            )}
+          </CardContent>
 
-        <CardFooter className='border-border text-muted-foreground bg-muted/20 flex items-center justify-between border-t p-3 text-xs'>
-          <span>
-            Showing {tableMarkets.length} {hasContractMarkets && !isDemoOnboardingMode ? 'on-chain' : 'demo'} markets
-          </span>
-          <div className='flex items-center gap-2'>
-            <Button variant='ghost' size='sm' disabled className='h-7 text-xs'>
-              Previous
-            </Button>
-            <Button variant='ghost' size='sm' disabled className='h-7 text-xs'>
-              Next
-            </Button>
-          </div>
-        </CardFooter>
-      </Card>
+          <CardFooter className='border-border text-muted-foreground bg-muted/20 flex items-center justify-between border-t p-3 text-xs'>
+            <span>Showing {tableMarkets.length} on-chain markets</span>
+            <div className='flex items-center gap-2'>
+              <Button variant='ghost' size='sm' disabled className='h-7 text-xs'>
+                Previous
+              </Button>
+              <Button variant='ghost' size='sm' disabled className='h-7 text-xs'>
+                Next
+              </Button>
+            </div>
+          </CardFooter>
+        </Card>
+
+        {/* Right: Balance and Live Agent Actions cards */}
+        <div className='flex w-[340px] shrink-0 flex-col gap-4'>
+          {/* Portfolio Balance card */}
+          <Card className='border-border bg-card/50 overflow-hidden'>
+            <CardContent className='p-0'>
+              <PortfolioBalance />
+            </CardContent>
+          </Card>
+
+          {/* Live Agent Actions card */}
+          <Card className='border-border bg-card/50 flex flex-1 overflow-hidden'>
+            <CardContent className='flex h-full flex-col p-0'>
+              <LiveAgentActions />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

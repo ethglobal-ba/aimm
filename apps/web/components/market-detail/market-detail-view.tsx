@@ -20,6 +20,8 @@ import { Label } from '@workspace/ui/components/label';
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@workspace/ui/components/input-group';
 import { ScrollArea } from '@workspace/ui/components/scroll-area';
 import { Separator } from '@workspace/ui/components/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@workspace/ui/components/select';
+import { cn } from '@workspace/ui/lib/utils';
 import {
   ChartContainer,
   ChartLegend,
@@ -29,10 +31,27 @@ import {
 } from '@workspace/ui/components/chart';
 import { Line, LineChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 
-import type { Market } from '@/types/market';
+import type { Market, MarketAimmStatus } from '@/types/market';
 // MOCK: MarketDetailData and related types currently come from seeded mock data in `@/lib/mock-market-detail`.
 // When wiring real data, swap this to use the AIMM indexer / backend API response types instead.
 import type { AgentRun, MarketDetailData, OrderBookLevel, TradeEvent } from '@/lib/mock-market-detail';
+import {
+  calculateMispricing,
+  formatCompactUsd,
+  formatPercentage,
+  formatRelativeTime,
+  formatSize,
+  formatTimeRemaining,
+  formatTimestamp,
+  formatUsd,
+  getAimmStatusLabel,
+  getPositionBadgeClass,
+  getSignalClass,
+  getStatusBadgeClass,
+  getStatusDotClass,
+} from '@/lib/market-utils';
+import { useUpdateMarketAutomationConfig } from '@workspace/aimm-sdk';
+import { useMarketsStatus } from '@/components/markets-status-context';
 
 const platformLabels: Record<Market['platform'], string> = {
   limitless: 'Limitless',
@@ -98,6 +117,13 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps) {
   const [slippagePts, setSlippagePts] = useState<number>(automationPresets.balanced.slippagePts);
   const recomputeTimers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const rebalanceTimers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  const {
+    updateConfig: updateAutomationConfig,
+    isPending: isSavingAutomation,
+    isConfirming: isConfirmingAutomation,
+    isConfirmed: isAutomationSaved,
+    error: automationError,
+  } = useUpdateMarketAutomationConfig(market.id);
 
   useEffect(() => {
     return () => {
@@ -106,12 +132,18 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps) {
     };
   }, []);
 
+  const { getStatus: getAimmStatusOverride, setStatus: setAimmStatus } = useMarketsStatus();
+
   const mispricing = useMemo(
     () => calculateMispricing(market.livePrice, market.aimmFairPrice),
     [market.livePrice, market.aimmFairPrice]
   );
 
   const latestRun = detail.runs[0];
+  const aimmStatus: MarketAimmStatus = useMemo(() => {
+    const override = getAimmStatusOverride(market.id);
+    return override ?? market.aimmStatus ?? 'ACTIVE';
+  }, [getAimmStatusOverride, market.aimmStatus, market.id]);
   const statusBadgeClass = getStatusBadgeClass(market.status);
   const platformLabel = platformLabels[market.platform];
   const externalUrl = `${platformLinks[market.platform]}/markets/${market.symbol.toLowerCase()}`;
@@ -229,6 +261,66 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps) {
             </div>
 
             <div className='flex flex-wrap items-center gap-3'>
+              <Select
+                value={aimmStatus}
+                onValueChange={value => {
+                  const nextStatus = value as MarketAimmStatus;
+                  setAimmStatus(market.id, nextStatus);
+                }}
+              >
+                <SelectTrigger
+                  className={cn(
+                    'h-9 w-[150px] border px-3 text-xs font-medium transition-colors',
+                    aimmStatus === 'ACTIVE'
+                      ? 'border-green-500/30 bg-green-500/10 text-green-300 hover:bg-green-500/15'
+                      : aimmStatus === 'INACTIVE'
+                        ? 'border-muted bg-muted/30 text-muted-foreground hover:bg-muted/40'
+                        : 'border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/15'
+                  )}
+                >
+                  <SelectValue>
+                    <span className='flex items-center gap-2'>
+                      <span
+                        className={cn(
+                          'h-2 w-2 rounded-full',
+                          aimmStatus === 'ACTIVE'
+                            ? 'bg-green-400'
+                            : aimmStatus === 'INACTIVE'
+                              ? 'bg-muted-foreground'
+                              : 'bg-amber-400'
+                        )}
+                      />
+                      {getAimmStatusLabel(aimmStatus)}
+                    </span>
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='ACTIVE' className='text-xs'>
+                    <span className='flex items-center gap-2'>
+                      <span className='h-2 w-2 rounded-full bg-green-400' />
+                      Active
+                    </span>
+                  </SelectItem>
+                  <SelectItem value='INACTIVE' className='text-xs'>
+                    <span className='flex items-center gap-2'>
+                      <span className='h-2 w-2 rounded-full bg-muted-foreground' />
+                      Inactive
+                    </span>
+                  </SelectItem>
+                  <SelectItem value='EXTERNALLY_CLOSED' className='text-xs'>
+                    <span className='flex items-center gap-2'>
+                      <span className='h-2 w-2 rounded-full bg-amber-400' />
+                      Externally closed
+                    </span>
+                  </SelectItem>
+                  <SelectItem value='INTERNALLY_CLOSED' className='text-xs'>
+                    <span className='flex items-center gap-2'>
+                      <span className='h-2 w-2 rounded-full bg-amber-400' />
+                      Internally closed
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
               <Button
                 variant='outline'
                 onClick={handleRecompute}
@@ -332,11 +424,11 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps) {
                 </div>
                 <div className='text-muted-foreground flex items-center gap-4 text-xs'>
                   <div className='flex items-center gap-1'>
-                    <span className='h-2 w-2 rounded-full bg-[var(--color-livePrice)]' />
+                    <span className='h-2 w-2 rounded-full bg-(--color-livePrice)' />
                     Live
                   </div>
                   <div className='flex items-center gap-1'>
-                    <span className='h-2 w-2 rounded-full bg-[var(--color-fairPrice)]' />
+                    <span className='h-2 w-2 rounded-full bg-(--color-fairPrice)' />
                     AIMM
                   </div>
                 </div>
@@ -579,6 +671,29 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps) {
                     </p>
                   </div>
                 </div>
+                <div className='flex flex-col gap-2 pt-2 sm:flex-row sm:items-center sm:justify-between'>
+                  <Button
+                    type='button'
+                    className='bg-primary text-primary-foreground shadow-primary/30 hover:bg-primary/90 min-w-[160px] gap-2 px-4 text-xs shadow-lg'
+                    disabled={isSavingAutomation || isConfirmingAutomation}
+                    onClick={() =>
+                      updateAutomationConfig({
+                        driftThresholdPts,
+                        maxSpendUsd,
+                        slippagePts,
+                      })
+                    }
+                  >
+                    {isSavingAutomation || isConfirmingAutomation
+                      ? 'Saving to contract…'
+                      : isAutomationSaved
+                        ? 'Saved to contract'
+                        : 'Save automation to contract'}
+                  </Button>
+                  {automationError ? (
+                    <p className='text-destructive text-[11px] sm:text-right'>{automationError.message}</p>
+                  ) : null}
+                </div>
               </CardContent>
             </Card>
 
@@ -715,119 +830,4 @@ function clearTimerGroup(store: MutableRefObject<Array<ReturnType<typeof setTime
     clearTimeout(timerId);
   }
   store.current = [];
-}
-
-type AgentSignalStrength = AgentRun['signals'][number]['strength'];
-
-function getSignalClass(strength: AgentSignalStrength) {
-  switch (strength) {
-    case 'high':
-      return 'bg-green-500/10 text-green-200';
-    case 'medium':
-      return 'bg-blue-500/10 text-blue-200';
-    default:
-      return 'bg-amber-500/10 text-amber-200';
-  }
-}
-
-function getStatusBadgeClass(status: Market['status']) {
-  switch (status) {
-    case 'open':
-      return 'border-green-500/30 bg-green-500/10 text-green-300';
-    case 'suspended':
-      return 'border-amber-500/30 bg-amber-500/10 text-amber-300';
-    default:
-      return 'border-muted bg-muted/30 text-muted-foreground';
-  }
-}
-
-function getStatusDotClass(status: Market['aiRunStatus'] | AgentRun['status']) {
-  switch (status) {
-    case 'success':
-      return 'bg-green-500';
-    case 'running':
-      return 'bg-blue-500';
-    default:
-      return 'bg-amber-500';
-  }
-}
-
-function getPositionBadgeClass(position: Market['agentPosition']) {
-  if (!position) {
-    return 'border-border bg-muted text-muted-foreground';
-  }
-  if (position.startsWith('+')) {
-    return 'border-green-500/30 bg-green-500/10 text-green-300';
-  }
-  if (position.startsWith('-')) {
-    return 'border-red-500/30 bg-red-500/10 text-red-300';
-  }
-  return 'border-border bg-muted text-muted-foreground';
-}
-
-function calculateMispricing(livePrice: number, fairPrice: number) {
-  const absolute = fairPrice - livePrice;
-  const relative = (absolute / livePrice) * 100;
-  return { absolute, relative };
-}
-
-function formatPercentage(value: number) {
-  return `${(value * 100).toFixed(1)}%`;
-}
-
-function formatCompactUsd(value: number) {
-  if (value >= 1_000_000_000) {
-    return `${(value / 1_000_000_000).toFixed(1)}B`;
-  }
-  if (value >= 1_000_000) {
-    return `${(value / 1_000_000).toFixed(1)}M`;
-  }
-  if (value >= 1_000) {
-    return `${(value / 1_000).toFixed(1)}K`;
-  }
-  return value.toLocaleString();
-}
-
-function formatUsd(value: number) {
-  const compact = formatCompactUsd(value);
-  return `$${compact}`;
-}
-
-function formatSize(value: number) {
-  if (value >= 1_000) {
-    return `${(value / 1_000).toFixed(1)}k`;
-  }
-  return value.toString();
-}
-
-function formatTimeRemaining(date: Date) {
-  const diffMs = date.getTime() - Date.now();
-  if (diffMs <= 0) return 'Expired';
-  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (days > 30) {
-    const months = days / 30;
-    return `${months.toFixed(1)} mo`;
-  }
-  if (days >= 1) {
-    return `${days}d`;
-  }
-  const hours = Math.floor(diffMs / (1000 * 60 * 60));
-  if (hours >= 1) return `${hours}h`;
-  const minutes = Math.floor(diffMs / (1000 * 60));
-  return `${minutes}m`;
-}
-
-function formatRelativeTime(date: Date) {
-  const diffSeconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (diffSeconds < 60) return `${diffSeconds}s ago`;
-  const minutes = Math.floor(diffSeconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
-function formatTimestamp(date: Date) {
-  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
