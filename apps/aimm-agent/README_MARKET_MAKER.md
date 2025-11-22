@@ -15,7 +15,7 @@ Stateful prediction market research agent that analyzes markets and generates or
 
 - **Two-Phase Twitter Analysis**:
   - **Popular tweets** (high engagement): Baseline sentiment
-  - **Recent tweets** (last 6 hours): Delta/shift detection
+  - **Recent tweets** (last 10 minutes): Delta/shift detection for breaking news
 
 - **Time-Aware**: Considers market expiration date and days remaining
 
@@ -25,20 +25,22 @@ Stateful prediction market research agent that analyzes markets and generates or
 
 1. Install dependencies:
 ```bash
-cd /Users/dayuzhang/Code/Hackathons/Eth_Global_Buenos_Aires_2025/aimm/apps/agent
+cd /Users/dayuzhang/Code/Hackathons/Eth_Global_Buenos_Aires_2025/aimm/apps/aimm-agent
 poetry install
 ```
 
-2. Configure environment variables:
+2. Configure environment variables (if not already done):
 ```bash
-cp .env.market_maker .env
-# Edit .env with your API keys
+# The .env file should already exist
+# Edit .env with your API keys if needed
 ```
 
-Required API keys:
+Required API keys in `.env`:
 - `VENICE_API_KEY`: Venice AI API key (for LLM with web search)
 - `X_API_KEY`: Twitter API key (twitterapi.io)
+- `KALSHI_BASE_URL`: Kalshi API base URL (default: https://api.elections.kalshi.com/trade-api/v2)
 - Optional: `KALSHI_API_KEY` for authenticated Kalshi API access
+- Optional: `LANGSMITH_API_KEY` for LangSmith tracing
 
 ## Usage
 
@@ -97,11 +99,15 @@ src/
 ## How It Works
 
 1. **Baseline from Popular Tweets**: High-engagement tweets establish market consensus
-2. **Delta from Recent Tweets**: Very recent tweets (last 6 hours) show sentiment shifts
+2. **Delta from Recent Tweets**: Very recent tweets (last 10 minutes) detect breaking news
 3. **News Scoring**: Each source scored by credibility (0-10), price impact, spread impact
 4. **Fair Price Calculation**: Weighted sum of price impacts from all sources
-5. **Delta Reconciliation**: Compares research price vs orderbook, adjusts accordingly
-6. **Order Generation**: Competitive market-making orders around final fair price
+5. **Orderbook Analysis**: Analyzes both YES and NO sides (mid price, spread, liquidity)
+6. **Delta Reconciliation**:
+   - Compares research price vs orderbook
+   - Considers orderbook thickness (tight spread = efficient market)
+   - Only deviates from thick orderbook if news is <10 minutes old
+7. **Order Generation**: Competitive market-making orders on both YES and NO sides
 
 ## Example Analysis
 
