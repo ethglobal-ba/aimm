@@ -2,7 +2,9 @@ import type { Market, MarketAimmStatus } from '@/types/market';
 import type { AgentRun } from '@/lib/mock-market-detail';
 
 export function formatPercentage(value: number): string {
-  return `${(value * 100).toFixed(1)}%`;
+  // Values are probabilities on a 0–1 scale; display as whole-number cents (0–100¢).
+  const cents = Math.round(value * 100);
+  return `${cents}¢`;
 }
 
 export function calculateMispricing(livePrice: number, fairPrice: number): { absolute: number; relative: number } {
@@ -153,3 +155,30 @@ export function getPositionBadgeClass(position: Market['agentPosition']): string
   }
   return 'border-border bg-muted text-muted-foreground';
 }
+
+/**
+ * Format a long identifier (such as a market ID or hash) with a middle ellipsis.
+ *
+ * Examples:
+ * - "0x24BC6D39EF2533890009118B2348E53AECF73E9949FB9719D44F3FECD33B0B54"
+ *   → "0x24BC6…3B0B54"
+ *
+ * Short values are returned unchanged.
+ */
+export function formatIdentifierWithEllipsis(
+  value: string,
+  visibleStart: number = 6,
+  visibleEnd: number = 6
+): string {
+  const minimumLengthForTruncation = visibleStart + visibleEnd + 3; // 3 for the ellipsis
+
+  if (value.length <= minimumLengthForTruncation) {
+    return value;
+  }
+
+  const start = value.slice(0, visibleStart);
+  const end = value.slice(-visibleEnd);
+
+  return `${start}…${end}`;
+}
+

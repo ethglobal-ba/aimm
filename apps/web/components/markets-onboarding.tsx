@@ -9,7 +9,9 @@ import { Label } from '@workspace/ui/components/label';
 import { Text } from '@workspace/ui/components/text';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@workspace/ui/components/select';
 import { useDemoOnboarding } from '@/components/demo-onboarding-context';
+import { formatIdentifierWithEllipsis } from '@/lib/market-utils';
 import { useGetMarketsQuery } from '@/lib/generated/hooks';
+import type { GetMarketsQuery } from '@/lib/generated/graphql';
 import { useMarketsStatus } from '@/components/markets-status-context';
 import type { MarketAimmStatus } from '@/types/market';
 
@@ -50,12 +52,12 @@ export function MarketsOnboarding() {
   const { setStatus: setAimmStatus } = useMarketsStatus();
 
   const indexerMarkets: OnboardingMarket[] = useMemo(() => {
-    if (!data?.marketss?.items) {
+    if (!data?.markets?.items) {
       return [];
     }
 
-    return data.marketss.items.map(item => ({
-      id: item.externalId,
+    return data.markets.items.map((item: GetMarketsQuery['markets']['items'][number]): OnboardingMarket => ({
+      id: item.id,
       title: item.marketName,
       platform: item.platform,
       symbol: item.externalId,
@@ -224,9 +226,11 @@ export function MarketsOnboarding() {
                           variant='outline'
                           className='text-muted-foreground border-border/60 h-4 rounded-sm px-1.5 text-[10px] tracking-wide uppercase'
                         >
-                          {market.platform}
+                          {formatIdentifierWithEllipsis(market.platform)}
                         </Badge>
-                        <span className='text-muted-foreground font-mono text-[11px]'>{market.symbol}</span>
+                        <span className='text-muted-foreground font-mono text-[11px]'>
+                          {formatIdentifierWithEllipsis(market.symbol)}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -264,13 +268,15 @@ export function MarketsOnboarding() {
                     <div className='mb-2 flex items-center justify-between gap-2'>
                       <div className='flex flex-col gap-0.5'>
                         <span className='text-foreground text-xs font-medium'>{market.title}</span>
-                        <span className='text-muted-foreground font-mono text-[11px]'>{market.symbol}</span>
+                        <span className='text-muted-foreground font-mono text-[11px]'>
+                          {formatIdentifierWithEllipsis(market.symbol)}
+                        </span>
                       </div>
                       <Badge
                         variant='outline'
                         className='text-muted-foreground border-border/60 h-4 rounded-sm px-1.5 text-[10px] tracking-wide uppercase'
                       >
-                        {market.platform}
+                        {formatIdentifierWithEllipsis(market.platform)}
                       </Badge>
                     </div>
 
@@ -401,3 +407,5 @@ export function MarketsOnboarding() {
     </div>
   );
 }
+
+

@@ -1,11 +1,45 @@
 query GetMarkets {
-  marketss {
+  markets {
     items {
+      id
       externalId
       marketName
+      subtitle
       optionAText
       optionBText
       platform
+      status
+      createdAt
+      updatedAt
+      optionACurrentExternalPrice
+      optionBCurrentExternalPrice
+      optionACurrentFairPrice
+      optionBCurrentFairPrice
+      lastExternalPriceUpdate
+      lastFairPriceUpdate
+      volume
     }
+  }
+}
+
+query GetMarket($id: String!) {
+  market(id: $id) {
+    id
+    externalId
+    marketName
+    subtitle
+    optionAText
+    optionBText
+    platform
+    status
+    createdAt
+    updatedAt
+    optionACurrentExternalPrice
+    optionBCurrentExternalPrice
+    optionACurrentFairPrice
+    optionBCurrentFairPrice
+    lastExternalPriceUpdate
+    lastFairPriceUpdate
+    volume
   }
 }

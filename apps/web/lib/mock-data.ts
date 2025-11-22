@@ -1,8 +1,6 @@
 // MOCK DATA: UI-only fake data for the markets table on the dashboard.
 // Replace this with real market data from the AIMM indexer / SDK when wiring production.
 
-import type { Market } from '@/types/market';
-
 /**
  * MOCK DATA: UI-only fake data for the markets table on the dashboard.
  *
@@ -11,7 +9,7 @@ import type { Market } from '@/types/market';
  * detail page. It is not persisted and will be replaced by real data from the
  * AIMM indexer / SDK.
  */
-export const mockMarkets: Market[] = [
+export const mockMarkets = [
   {
     id: '1',
     title: 'Will Bitcoin reach $100,000 by end of 2025?',
