@@ -1,5 +1,5 @@
 import { createConfig } from 'ponder';
-import { AIMMABI } from './abis/AIMMABI';
+import { aimmAbi } from '@aimm/common';
 
 export default createConfig({
   database: {
@@ -17,7 +17,7 @@ export default createConfig({
   contracts: {
     AIMM: {
       chain: 'baseSepolia',
-      abi: AIMMABI,
+      abi: aimmAbi,
       address: '0xff3F84978B81f0457584919213fdDeBD579E74B1',
       startBlock: 34030442, // Start from a safe block that exists
 
