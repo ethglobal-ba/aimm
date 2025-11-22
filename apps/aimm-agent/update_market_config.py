@@ -7,6 +7,7 @@ Example: python update_market_config.py "polymarket-123" 1000 500000000000000000
 
 import sys
 import os
+import json
 from decimal import Decimal
 from web3 import Web3
 from dotenv import load_dotenv
@@ -18,21 +19,25 @@ load_dotenv()
 CONTRACT_ADDRESS = "0xff3F84978B81f0457584919213fdDeBD579E74B1"
 RPC_URL = os.getenv("RPC_URL", "https://sepolia.base.org")  # Base Sepolia default
 
-# Minimal ABI for updateMarketConfig function
-CONTRACT_ABI = [
-    {
-        "type": "function",
-        "inputs": [
-            {"name": "externalMarketId", "internalType": "string", "type": "string"},
-            {"name": "minPriceDiff", "internalType": "uint256", "type": "uint256"},
-            {"name": "maxSpend", "internalType": "uint256", "type": "uint256"},
-            {"name": "slippageBps", "internalType": "uint256", "type": "uint256"},
-        ],
-        "name": "updateMarketConfig",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-    }
-]
+# Load contract ABI from generated JSON file
+def load_contract_abi():
+    """Load the contract ABI from the generated JSON file"""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    abi_path = os.path.join(current_dir, "src", "types", "__generated__", "AIMM.json")
+
+    try:
+        with open(abi_path, 'r') as f:
+            contract_data = json.load(f)
+            return contract_data.get('abi', [])
+    except FileNotFoundError:
+        print(f"Error: ABI file not found at {abi_path}")
+        print("Please run 'generate-contract-types.sh' to generate the ABI file")
+        sys.exit(1)
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON in ABI file: {e}")
+        sys.exit(1)
+
+CONTRACT_ABI = load_contract_abi()
 
 
 def main():

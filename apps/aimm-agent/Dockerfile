@@ -9,6 +9,8 @@ COPY pyproject.toml .
 RUN poetry install --only=main --no-root
 
 COPY app.py .
+COPY src/ src/
+COPY .env* ./
 
 EXPOSE 5000
 

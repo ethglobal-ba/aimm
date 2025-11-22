@@ -1,4 +1,3 @@
-import { AIMMABI } from '../../indexer/abis/AIMMABI';
 import {
   bytesToHex,
   ConsensusAggregationByFields,
@@ -68,7 +67,7 @@ interface IndexerMarket {
 
 interface IndexerResponse {
   data: {
-    marketss: {
+    markets: {
       items: IndexerMarket[];
     };
   };
@@ -218,7 +217,7 @@ const fetchSingleMarketUpdate = (
 const fetchMarketIds = (sendRequester: HTTPSendRequester, config: Config): MarketIdsResponse => {
   const query = {
     query: `query OpenMarkets {
-  marketss(where: {status: 0}) {
+  markets(where: {status: 1}) {
     items {
       externalId
       marketName
@@ -255,7 +254,7 @@ const fetchMarketIds = (sendRequester: HTTPSendRequester, config: Config): Marke
   const bodyText = new TextDecoder().decode(resp.body);
   const indexerResponse = JSON.parse(bodyText) as IndexerResponse;
 
-  const marketIds = indexerResponse.data.marketss.items.map(market => market.externalId);
+  const marketIds = indexerResponse.data.markets.items.map(market => market.externalId);
 
   if (!marketIds || marketIds.length === 0) {
     throw new Error('No market IDs returned from indexer');
@@ -404,7 +403,7 @@ const updateAllMarkets = (runtime: Runtime<Config>): string => {
 
   // Convert market updates to workflow results and write to AIMM contract
   runtime.log(`Writing ${marketUpdates.length} market updates to AIMM contract`);
-  
+
   for (const marketUpdate of marketUpdates) {
     try {
       const workflowResult: WorkflowResult = {

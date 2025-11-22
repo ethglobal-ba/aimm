@@ -8,21 +8,19 @@ services:
       - "5432:5432"
     # volumes:
     # - postgres_data:/var/lib/postgresql/data
-  #agent:
-   # build:
-   #   context: ./apps/agent
-  #    dockerfile: Dockerfile
-  #  ports:
-  #    - "5002:5000"
-  #  environment:
-  #    - FLASK_ENV=development
-  #  env_file:
-  #    - ./apps/agent/.env
-  #  volumes:
-  #    - ./apps/agent:/app
-  #  restart: unless-stopped
-  #  depends_on:
-  #    - postgres
+  agent:
+    build:
+      context: ./apps/aimm-agent
+      dockerfile: Dockerfile
+    ports:
+      - "5002:5000"
+    environment:
+      - FLASK_ENV=development
+    volumes:
+      - ./apps/aimm-agent:/app
+    restart: unless-stopped
+    depends_on:
+      - postgres
 
   indexer:
     build:

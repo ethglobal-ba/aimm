@@ -9,6 +9,44 @@ import {
   workflowResult,
 } from '../ponder.schema';
 
+// Utility function to convert hex string to readable string
+function hexToString(hex: string): string {
+  // If it doesn't look like hex, return as-is
+  if (!hex || typeof hex !== 'string') {
+    return hex;
+  }
+
+  // Remove 0x prefix if present
+  const cleanHex = hex.startsWith('0x') ? hex.slice(2) : hex;
+
+  // If it's not a valid hex string, return as-is
+  if (!/^[0-9a-fA-F]*$/.test(cleanHex)) {
+    return hex;
+  }
+
+  // Convert hex to bytes and then to UTF-8 string
+  try {
+    const buffer = Buffer.from(cleanHex, 'hex');
+    const decoded = buffer.toString('utf8');
+
+    // Check if the decoded string contains only printable ASCII characters
+    // and no null bytes (except at the end for padding)
+    const cleaned = decoded.replace(/\0+$/, ''); // Remove trailing null bytes
+
+    // If it contains non-printable characters (except common whitespace), it's probably not text
+    if (/[\x00-\x08\x0E-\x1F\x7F-\x9F]/.test(cleaned)) {
+      console.warn(`Hex value appears to be binary data, not text: ${hex}`);
+      return hex; // Return original hex
+    }
+
+    return cleaned || hex; // Return cleaned string or original if empty
+  } catch (error) {
+    // If conversion fails, return original string
+    console.warn(`Failed to convert hex to string: ${hex}`, error);
+    return hex;
+  }
+}
+
 // Market Onboarded Event
 ponder.on('AIMM:MarketOnboarded', async ({ event, context }) => {
   console.log('MarketOnboarded event received:', {
@@ -20,44 +58,55 @@ ponder.on('AIMM:MarketOnboarded', async ({ event, context }) => {
     blockNumber: event.block.number,
   });
 
-  const { platform, externalMarketId, marketName, optionA, optionB } = event.args;
+  const { platform, externalMarketId, marketName, optionA, optionB, subtitle, eventTicker } = event.args;
   const { db } = context;
+
+  // Convert hex strings to readable strings
+  const platformStr = hexToString(platform);
+  const marketIdStr = hexToString(externalMarketId);
+  const marketNameStr = hexToString(marketName);
+  const optionAStr = hexToString(optionA);
+  const optionBStr = hexToString(optionB);
+  const subtitleStr = hexToString(subtitle);
+  const eventTickerStr = hexToString(eventTicker);
 
   try {
     await db
       .insert(market)
       .values({
-        id: externalMarketId,
-        platform: platform,
-        externalId: externalMarketId,
-        marketName: marketName,
-        optionAText: optionA,
-        optionBText: optionB,
+        id: marketIdStr,
+        platform: platformStr,
+        externalId: marketIdStr,
+        marketName: marketNameStr,
+        optionAText: optionAStr,
+        optionBText: optionBStr,
+        subtitle: subtitleStr,
+        eventTicker: eventTickerStr,
         status: 0, // Default to Inactive status (0)
         // Initialize prices as null
-        optionACurrentExternalPrice: null,
-        optionBCurrentExternalPrice: null,
-        lastExternalPriceUpdate: null,
-        optionACurrentFairPrice: null,
-        optionBCurrentFairPrice: null,
-        lastFairPriceUpdate: null,
-        volume: null,
+        optionACurrentExternalPrice: 0n,
+        optionBCurrentExternalPrice: 0n,
+        lastExternalPriceUpdate: 0n,
+        optionACurrentFairPrice: 0n,
+        optionBCurrentFairPrice: 0n,
+        lastFairPriceUpdate: 0n,
+        volume: 0n,
         createdAt: event.block.timestamp,
         updatedAt: event.block.timestamp,
       })
       .onConflictDoUpdate({
         target: 'id',
         set: {
-          platform: platform,
-          externalId: externalMarketId,
-          marketName: marketName,
-          optionAText: optionA,
-          optionBText: optionB,
+          platform: platformStr,
+          externalId: marketIdStr,
+          marketName: marketNameStr,
+          optionAText: optionAStr,
+          optionBText: optionBStr,
           updatedAt: event.block.timestamp,
         },
       });
 
-    console.log('MarketOnboarded successfully processed:', externalMarketId);
+    console.log('MarketOnboarded successfully processed:', marketIdStr);
   } catch (error) {
     console.error('Error processing MarketOnboarded event:', error);
     throw error;
@@ -68,20 +117,25 @@ ponder.on('AIMM:MarketOnboarded', async ({ event, context }) => {
 ponder.on('AIMM:MarketConfigUpdated', async ({ event, context }) => {
   const { externalMarketId, platform, minPriceDiff, maxSpend, slippage } = event.args;
   const { db } = context;
+
+  // Convert hex strings to readable strings
+  const marketIdStr = hexToString(externalMarketId);
+  const platformStr = hexToString(platform);
+
   console.log('MarketConfigUpdated event received:', {
-    externalMarketId,
-    platform,
+    externalMarketId: marketIdStr,
+    platform: platformStr,
     minPriceDiff,
     maxSpend,
     slippage,
   });
 
-  const configId = `${externalMarketId}-${event.block.number}-${event.log.logIndex}`;
+  const configId = `${marketIdStr}-${event.block.number}-${event.log.logIndex}`;
 
   await db.insert(marketConfig).values({
     id: configId,
-    marketId: externalMarketId,
-    platform,
+    marketId: marketIdStr,
+    platform: platformStr,
     minPriceDiff,
     maxSpend,
     slippage,
@@ -89,26 +143,42 @@ ponder.on('AIMM:MarketConfigUpdated', async ({ event, context }) => {
     blockNumber: event.block.number,
     transactionHash: event.transaction.hash,
   });
+  try {
+    await db.update(market, { id: marketIdStr }).set({
+      minPriceDiff,
+      maxSpend,
+      slippage,
+      updatedAt: event.block.timestamp,
+    });
+  } catch (error) {
+    // Market doesn't exist yet, skip the update
+    console.log(`Market ${marketIdStr} doesn't exist yet, skipping fair price update`);
+  }
 });
 
 // Current Prices Updated Event (External)
 ponder.on('AIMM:CurrentPricesUpdated', async ({ event, context }) => {
   const { externalMarketId, platform, extPriceA, extPriceB } = event.args;
   const { db } = context;
+
+  // Convert hex strings to readable strings
+  const marketIdStr = hexToString(externalMarketId);
+  const platformStr = hexToString(platform);
+
   console.log('CurrentPricesUpdated event received:', {
-    externalMarketId,
-    platform,
+    externalMarketId: marketIdStr,
+    platform: platformStr,
     extPriceA,
     extPriceB,
   });
 
-  const priceUpdateId = `${externalMarketId}-external-${event.block.number}-${event.log.logIndex}`;
+  const priceUpdateId = `${marketIdStr}-external-${event.block.number}-${event.log.logIndex}`;
 
   // Insert price update event record
   await db.insert(priceUpdate).values({
     id: priceUpdateId,
-    marketId: externalMarketId,
-    platform,
+    marketId: marketIdStr,
+    platform: platformStr,
     type: 'external',
     optionAPrice: extPriceA,
     optionBPrice: extPriceB,
@@ -117,32 +187,42 @@ ponder.on('AIMM:CurrentPricesUpdated', async ({ event, context }) => {
     transactionHash: event.transaction.hash,
   });
 
-  // Update the persistent market record with latest external prices
-  await db.update(market, { id: externalMarketId }).set({
-    optionACurrentExternalPrice: extPriceA,
-    optionBCurrentExternalPrice: extPriceB,
-    lastExternalPriceUpdate: event.block.timestamp,
-    updatedAt: event.block.timestamp,
-  });
+  // Update the persistent market record with latest external prices (only if market exists)
+  try {
+    await db.update(market, { id: marketIdStr }).set({
+      optionACurrentExternalPrice: extPriceA,
+      optionBCurrentExternalPrice: extPriceB,
+      lastExternalPriceUpdate: event.block.timestamp,
+      updatedAt: event.block.timestamp,
+    });
+  } catch (error) {
+    // Market doesn't exist yet, skip the update
+    console.log(`Market ${marketIdStr} doesn't exist yet, skipping external price update`);
+  }
 });
 
 // Fair Prices Updated Event
 ponder.on('AIMM:FairPricesUpdated', async ({ event, context }) => {
   const { externalMarketId, platform, fairPriceA, fairPriceB } = event.args;
   const { db } = context;
+
+  // Convert hex strings to readable strings
+  const marketIdStr = hexToString(externalMarketId);
+  const platformStr = hexToString(platform);
+
   console.log('FairPricesUpdated event received:', {
-    externalMarketId,
-    platform,
+    externalMarketId: marketIdStr,
+    platform: platformStr,
     fairPriceA,
     fairPriceB,
   });
-  const priceUpdateId = `${externalMarketId}-fair-${event.block.number}-${event.log.logIndex}`;
+  const priceUpdateId = `${marketIdStr}-fair-${event.block.number}-${event.log.logIndex}`;
 
   // Insert price update event record
   await db.insert(priceUpdate).values({
     id: priceUpdateId,
-    marketId: externalMarketId,
-    platform,
+    marketId: marketIdStr,
+    platform: platformStr,
     type: 'fair',
     optionAPrice: fairPriceA,
     optionBPrice: fairPriceB,
@@ -151,13 +231,18 @@ ponder.on('AIMM:FairPricesUpdated', async ({ event, context }) => {
     transactionHash: event.transaction.hash,
   });
 
-  // Update the persistent market record with latest fair prices
-  await db.update(market, { id: externalMarketId }).set({
-    optionACurrentFairPrice: fairPriceA,
-    optionBCurrentFairPrice: fairPriceB,
-    lastFairPriceUpdate: event.block.timestamp,
-    updatedAt: event.block.timestamp,
-  });
+  // Update the persistent market record with latest fair prices (only if market exists)
+  try {
+    await db.update(market, { id: marketIdStr }).set({
+      optionACurrentFairPrice: fairPriceA,
+      optionBCurrentFairPrice: fairPriceB,
+      lastFairPriceUpdate: event.block.timestamp,
+      updatedAt: event.block.timestamp,
+    });
+  } catch (error) {
+    // Market doesn't exist yet, skip the update
+    console.log(`Market ${marketIdStr} doesn't exist yet, skipping fair price update`);
+  }
 });
 
 // Market Status Changed Event
@@ -165,17 +250,21 @@ ponder.on('AIMM:MarketStatusChanged', async ({ event, context }) => {
   const { externalMarketId, platform, newStatus } = event.args;
   const { db } = context;
 
+  // Convert hex strings to readable strings
+  const marketIdStr = hexToString(externalMarketId);
+  const platformStr = hexToString(platform);
+
   console.log('MarketStatusChanged event received:', {
-    externalMarketId,
-    platform,
+    externalMarketId: marketIdStr,
+    platform: platformStr,
     newStatus,
   });
-  const statusChangeId = `${externalMarketId}-${event.block.number}-${event.log.logIndex}`;
+  const statusChangeId = `${marketIdStr}-${event.block.number}-${event.log.logIndex}`;
 
   await db.insert(marketStatusChange).values({
     id: statusChangeId,
-    marketId: externalMarketId,
-    platform,
+    marketId: marketIdStr,
+    platform: platformStr,
     oldStatus: null, // Not provided in the new contract
     newStatus: Number(newStatus),
     timestamp: event.block.timestamp,
@@ -183,11 +272,16 @@ ponder.on('AIMM:MarketStatusChanged', async ({ event, context }) => {
     transactionHash: event.transaction.hash,
   });
 
-  // Update the market status in the market table
-  await db.update(market, { id: externalMarketId }).set({
-    status: Number(newStatus),
-    updatedAt: event.block.timestamp,
-  });
+  // Update the market status in the market table (only if market exists)
+  try {
+    await db.update(market, { id: marketIdStr }).set({
+      status: Number(newStatus),
+      updatedAt: event.block.timestamp,
+    });
+  } catch (error) {
+    // Market doesn't exist yet, skip the update
+    console.log(`Market ${marketIdStr} doesn't exist yet, skipping status update`);
+  }
 });
 
 // Market Status Updated Event (New event from changeMarketStatus function)
@@ -195,18 +289,22 @@ ponder.on('AIMM:MarketStatusUpdated', async ({ event, context }) => {
   const { externalMarketId, platform, newStatus } = event.args;
   const { db } = context;
 
+  // Convert hex strings to readable strings
+  const marketIdStr = hexToString(externalMarketId);
+  const platformStr = hexToString(platform);
+
   console.log('MarketStatusUpdated event received:', {
-    externalMarketId,
-    platform,
+    externalMarketId: marketIdStr,
+    platform: platformStr,
     newStatus,
   });
-  const statusChangeId = `${externalMarketId}-updated-${event.block.number}-${event.log.logIndex}`;
+  const statusChangeId = `${marketIdStr}-updated-${event.block.number}-${event.log.logIndex}`;
 
   // Insert status change event record (using same table but with different ID prefix)
   await db.insert(marketStatusChange).values({
     id: statusChangeId,
-    marketId: externalMarketId,
-    platform,
+    marketId: marketIdStr,
+    platform: platformStr,
     oldStatus: null, // Not provided in the event
     newStatus: Number(newStatus),
     timestamp: event.block.timestamp,
@@ -214,11 +312,16 @@ ponder.on('AIMM:MarketStatusUpdated', async ({ event, context }) => {
     transactionHash: event.transaction.hash,
   });
 
-  // Update the market status in the persistent market table
-  await db.update(market, { id: externalMarketId }).set({
-    status: Number(newStatus),
-    updatedAt: event.block.timestamp,
-  });
+  // Update the market status in the persistent market table (only if market exists)
+  try {
+    await db.update(market, { id: marketIdStr }).set({
+      status: Number(newStatus),
+      updatedAt: event.block.timestamp,
+    });
+  } catch (error) {
+    // Market doesn't exist yet, skip the update
+    console.log(`Market ${marketIdStr} doesn't exist yet, skipping status update`);
+  }
 });
 
 // Default Config Updated Event

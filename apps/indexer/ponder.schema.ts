@@ -8,17 +8,22 @@ export const market = onchainTable('market', t => ({
   marketName: t.text().notNull(),
   optionAText: t.text().notNull(),
   optionBText: t.text().notNull(),
+  subtitle: t.text().notNull(),
+  eventTicker: t.text(),
   status: t.integer().notNull().default(0), // MarketStatus enum: 0=Inactive, 1=Active, 2=ClosedInternal, 3=ClosedExternal
   // Current external prices
-  optionACurrentExternalPrice: t.bigint(),
-  optionBCurrentExternalPrice: t.bigint(),
-  lastExternalPriceUpdate: t.bigint(),
+  optionACurrentExternalPrice: t.bigint().default(0n),
+  optionBCurrentExternalPrice: t.bigint().default(0n),
+  lastExternalPriceUpdate: t.bigint().default(0n),
   // Current fair prices
-  optionACurrentFairPrice: t.bigint(),
-  optionBCurrentFairPrice: t.bigint(),
-  lastFairPriceUpdate: t.bigint(),
+  optionACurrentFairPrice: t.bigint().default(0n),
+  optionBCurrentFairPrice: t.bigint().default(0n),
+  lastFairPriceUpdate: t.bigint().default(0n),
+  minPriceDiff: t.bigint().default(0n),
+  maxSpend: t.bigint().default(0n),
+  slippage: t.bigint().default(0n),
   // Volume
-  volume: t.bigint(),
+  volume: t.bigint().default(0n),
   createdAt: t.bigint().notNull(),
   updatedAt: t.bigint().notNull(),
 }));
