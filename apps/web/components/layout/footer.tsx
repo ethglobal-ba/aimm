@@ -1,6 +1,10 @@
 import Link from 'next/link';
+import { Button } from '@workspace/ui/components/button';
+import { useDemoOnboarding } from '@/components/demo-onboarding-context';
 
 export function Footer() {
+  const { isDemoOnboardingMode, toggleDemoOnboardingMode } = useDemoOnboarding();
+
   return (
     <footer className='border-border/40 bg-background border-t'>
       <div className='container flex flex-col items-center justify-between gap-3 py-6 md:h-16 md:flex-row md:py-0'>
@@ -45,7 +49,16 @@ export function Footer() {
             .
           </p>
         </div>
-        <div className='flex gap-4'>
+        <div className='flex items-center gap-3'>
+          <Button
+            type='button'
+            variant={isDemoOnboardingMode ? 'outline' : 'ghost'}
+            size='sm'
+            className='h-7 text-[11px]'
+            onClick={toggleDemoOnboardingMode}
+          >
+            {isDemoOnboardingMode ? 'Demo onboarding: on' : 'Demo onboarding: off'}
+          </Button>
           <Link
             href='https://github.com'
             target='_blank'

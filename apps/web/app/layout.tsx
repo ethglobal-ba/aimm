@@ -1,8 +1,8 @@
 import { Geist, Geist_Mono } from 'next/font/google';
-import { headers } from 'next/headers';
-
 import '@workspace/ui/globals.css';
 import { Providers } from '@/components/providers';
+import { AuthGate } from '@/components/auth-gate';
+import { CdpProvider } from '@/components/cdp-provider';
 
 const fontSans = Geist({
   subsets: ['latin'],
@@ -14,14 +14,11 @@ const fontMono = Geist_Mono({
   variable: '--font-mono',
 });
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const headersObj = await headers();
-  const cookies = headersObj.get('cookie');
-
   return (
     <html lang='en' className='dark' suppressHydrationWarning>
       <head>
@@ -35,7 +32,11 @@ export default async function RootLayout({
         />
       </head>
       <body className={`${fontSans.variable} ${fontMono.variable} dark font-sans antialiased`}>
-        <Providers cookies={cookies}>{children}</Providers>
+        <Providers>
+          <CdpProvider>
+            <AuthGate>{children}</AuthGate>
+          </CdpProvider>
+        </Providers>
       </body>
     </html>
   );
