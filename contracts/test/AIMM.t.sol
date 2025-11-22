@@ -13,7 +13,7 @@ contract AIMMTest is Test {
     // Default config values
     uint256 constant DEFAULT_DRIFT_PERCENTAGE = 500; // 5% in basis points
     uint256 constant DEFAULT_MAX_SPEND = 1000 ether;
-    uint256 constant DEFAULT_SLIPPAGE = 100; // 1% in basis points
+    uint256 constant DEFAULT_SLIPPAGE_TOLERANCE = 100; // 1% in basis points
 
     // Test data
     string constant EXTERNAL_ID = "kalshi-123";
@@ -27,16 +27,16 @@ contract AIMMTest is Test {
         user2 = makeAddr("user2");
 
         // Deploy AIMM contract with default configuration
-        aimm = new AIMM(DEFAULT_DRIFT_PERCENTAGE, DEFAULT_MAX_SPEND, DEFAULT_SLIPPAGE);
+        aimm = new AIMM(DEFAULT_DRIFT_PERCENTAGE, DEFAULT_MAX_SPEND, DEFAULT_SLIPPAGE_TOLERANCE);
     }
 
     function test_Deployment() public {
         // Test that contract is deployed with correct default config
-        (uint256 driftPercentage, uint256 maxSpend, uint256 slippage) = aimm.defaultConfig();
+        (uint256 driftPercentage, uint256 maxSpend, uint256 slippageTolerance) = aimm.defaultConfig();
 
         assertEq(driftPercentage, DEFAULT_DRIFT_PERCENTAGE);
         assertEq(maxSpend, DEFAULT_MAX_SPEND);
-        assertEq(slippage, DEFAULT_SLIPPAGE);
+        assertEq(slippageTolerance, DEFAULT_SLIPPAGE_TOLERANCE);
         assertEq(aimm.owner(), owner);
         assertEq(aimm.resultCount(), 0);
     }
@@ -44,12 +44,14 @@ contract AIMMTest is Test {
     function test_OnboardMarket_Success() public {
         // Test successful market onboarding
         vm.expectEmit(true, true, false, true);
-        emit AIMM.MarketOnboarded("kalshi", EXTERNAL_ID, MARKET_NAME, OPTION_A, OPTION_B);
+        emit AIMM.MarketOnboarded("kalshi", EXTERNAL_ID, MARKET_NAME, "SUBTITLE123", "EVENT456", OPTION_A, OPTION_B);
 
         AIMM.OnboardMarketParams memory params = AIMM.OnboardMarketParams({
             externalMarketId: EXTERNAL_ID,
             platform: "kalshi",
             marketName: MARKET_NAME,
+            subtitle: "SUBTITLE123",
+            eventTicker: "EVENT456",
             optionAText: OPTION_A,
             optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
@@ -66,10 +68,13 @@ contract AIMMTest is Test {
         assertEq(market.optionBText, OPTION_B);
         assertEq(market.optionACurrentExternalPrice, 0);
         assertEq(market.optionBCurrentExternalPrice, 0);
-        assertEq(market.minPriceDifference, DEFAULT_DRIFT_PERCENTAGE);
-        assertEq(market.maxSpendAmount, DEFAULT_MAX_SPEND);
-        assertEq(market.slippageToleranceBps, DEFAULT_SLIPPAGE);
         assertEq(uint256(market.status), uint256(AIMM.MarketStatus.Inactive));
+
+        // Verify market configuration (stored separately)
+        (uint256 minPriceDiff, uint256 maxSpend, uint256 slippageTolerance) = aimm.marketConfigs(EXTERNAL_ID);
+        assertEq(minPriceDiff, DEFAULT_DRIFT_PERCENTAGE);
+        assertEq(maxSpend, DEFAULT_MAX_SPEND);
+        assertEq(slippageTolerance, DEFAULT_SLIPPAGE_TOLERANCE);
 
         // Check external market ID was added to array
         string[] memory marketIds = aimm.getAllMarketIds();
@@ -85,6 +90,8 @@ contract AIMMTest is Test {
             externalMarketId: EXTERNAL_ID,
             platform: "kalshi",
             marketName: MARKET_NAME,
+            subtitle: "SUBTITLE789",
+            eventTicker: "EVENT012",
             optionAText: OPTION_A,
             optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
@@ -100,6 +107,8 @@ contract AIMMTest is Test {
             externalMarketId: EXTERNAL_ID,
             platform: "kalshi",
             marketName: MARKET_NAME,
+            subtitle: "SUBTITLE345",
+            eventTicker: "EVENT678",
             optionAText: OPTION_A,
             optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
@@ -120,6 +129,8 @@ contract AIMMTest is Test {
             externalMarketId: "",
             platform: "kalshi",
             marketName: MARKET_NAME,
+            subtitle: "SUBTITLE901",
+            eventTicker: "EVENT234",
             optionAText: OPTION_A,
             optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
@@ -134,6 +145,8 @@ contract AIMMTest is Test {
             externalMarketId: EXTERNAL_ID,
             platform: "kalshi",
             marketName: "",
+            subtitle: "SUBTITLE567",
+            eventTicker: "EVENT890",
             optionAText: OPTION_A,
             optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
@@ -149,6 +162,8 @@ contract AIMMTest is Test {
             externalMarketId: EXTERNAL_ID,
             platform: "kalshi",
             marketName: MARKET_NAME,
+            subtitle: "SUBTITLE135",
+            eventTicker: "EVENT246",
             optionAText: OPTION_A,
             optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
@@ -159,7 +174,7 @@ contract AIMMTest is Test {
 
         uint256 newMinPriceDiff = 1000; // 10%
         uint256 newMaxSpend = 500 ether;
-        uint256 newSlippage = 200; // 2%
+        uint256 newSlippage = 250; // 2.5%
 
         vm.expectEmit(true, true, false, true);
         emit AIMM.MarketConfigUpdated(
@@ -169,10 +184,10 @@ contract AIMMTest is Test {
         aimm.updateMarketConfig(EXTERNAL_ID, newMinPriceDiff, newMaxSpend, newSlippage);
 
         // Verify config was updated
-        AIMM.ExternalMarket memory market = aimm.getMarket(EXTERNAL_ID);
-        assertEq(market.minPriceDifference, newMinPriceDiff);
-        assertEq(market.maxSpendAmount, newMaxSpend);
-        assertEq(market.slippageToleranceBps, newSlippage);
+        (uint256 minPriceDiff, uint256 maxSpend, uint256 slippageTolerance) = aimm.marketConfigs(EXTERNAL_ID);
+        assertEq(minPriceDiff, newMinPriceDiff);
+        assertEq(maxSpend, newMaxSpend);
+        assertEq(slippageTolerance, newSlippage);
     }
 
     function test_UpdateMarketConfig_OnlyOwner() public {
@@ -180,6 +195,8 @@ contract AIMMTest is Test {
             externalMarketId: EXTERNAL_ID,
             platform: "kalshi",
             marketName: MARKET_NAME,
+            subtitle: "SUBTITLE357",
+            eventTicker: "EVENT468",
             optionAText: OPTION_A,
             optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
@@ -190,12 +207,12 @@ contract AIMMTest is Test {
 
         vm.prank(user1);
         vm.expectRevert(abi.encodeWithSelector(0x118cdaa7, user1)); // OwnableUnauthorizedAccount selector
-        aimm.updateMarketConfig(EXTERNAL_ID, 1000, 500 ether, 200);
+        aimm.updateMarketConfig(EXTERNAL_ID, 1000, 500 ether, 250);
     }
 
     function test_UpdateMarketConfig_MarketMustExist() public {
         vm.expectRevert("Market does not exist");
-        aimm.updateMarketConfig("nonexistent", 1000, 500 ether, 200);
+        aimm.updateMarketConfig("nonexistent", 1000, 500 ether, 250);
     }
 
     function test_SetMarketStatus() public {
@@ -203,6 +220,8 @@ contract AIMMTest is Test {
             externalMarketId: EXTERNAL_ID,
             platform: "kalshi",
             marketName: MARKET_NAME,
+            subtitle: "SUBTITLE579",
+            eventTicker: "EVENT680",
             optionAText: OPTION_A,
             optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
@@ -212,7 +231,7 @@ contract AIMMTest is Test {
         aimm.onboardMarket(params);
 
         vm.expectEmit(true, true, false, true);
-        emit AIMM.MarketStatusChanged("kalshi", EXTERNAL_ID, AIMM.MarketStatus.ClosedInternal);
+        emit AIMM.MarketStatusUpdated("kalshi", EXTERNAL_ID, AIMM.MarketStatus.ClosedInternal);
 
         aimm.updateMarketStatus(EXTERNAL_ID, AIMM.MarketStatus.ClosedInternal);
 
@@ -223,17 +242,17 @@ contract AIMMTest is Test {
     function test_UpdateDefaultConfig() public {
         uint256 newDrift = 750; // 7.5%
         uint256 newMaxSpend = 2000 ether;
-        uint256 newSlippage = 150; // 1.5%
+        uint256 newSlippage = 300; // 3%
 
         vm.expectEmit(false, false, false, true);
         emit AIMM.DefaultConfigUpdated(newDrift, newMaxSpend, newSlippage);
 
         aimm.updateDefaultConfig(newDrift, newMaxSpend, newSlippage);
 
-        (uint256 driftPercentage, uint256 maxSpend, uint256 slippage) = aimm.defaultConfig();
+        (uint256 driftPercentage, uint256 maxSpend, uint256 slippageTolerance) = aimm.defaultConfig();
         assertEq(driftPercentage, newDrift);
         assertEq(maxSpend, newMaxSpend);
-        assertEq(slippage, newSlippage);
+        assertEq(slippageTolerance, newSlippage);
     }
 
     function test_ProcessReport_CurrentPriceFetch() public {
@@ -241,6 +260,8 @@ contract AIMMTest is Test {
             externalMarketId: EXTERNAL_ID,
             platform: "kalshi",
             marketName: MARKET_NAME,
+            subtitle: "SUBTITLE791",
+            eventTicker: "EVENT802",
             optionAText: OPTION_A,
             optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
@@ -306,6 +327,8 @@ contract AIMMTest is Test {
             externalMarketId: EXTERNAL_ID,
             platform: "kalshi",
             marketName: MARKET_NAME,
+            subtitle: "SUBTITLE913",
+            eventTicker: "EVENT024",
             optionAText: OPTION_A,
             optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
@@ -344,6 +367,8 @@ contract AIMMTest is Test {
             externalMarketId: EXTERNAL_ID,
             platform: "kalshi",
             marketName: MARKET_NAME,
+            subtitle: "SUBTITLE135",
+            eventTicker: "EVENT246",
             optionAText: OPTION_A,
             optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
@@ -381,6 +406,8 @@ contract AIMMTest is Test {
             externalMarketId: EXTERNAL_ID,
             platform: "kalshi",
             marketName: MARKET_NAME,
+            subtitle: "SUBTITLE357",
+            eventTicker: "EVENT468",
             optionAText: OPTION_A,
             optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
@@ -412,6 +439,8 @@ contract AIMMTest is Test {
             externalMarketId: EXTERNAL_ID,
             platform: "kalshi",
             marketName: MARKET_NAME,
+            subtitle: "SUBTITLE579",
+            eventTicker: "EVENT680",
             optionAText: OPTION_A,
             optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
@@ -450,6 +479,8 @@ contract AIMMTest is Test {
             externalMarketId: EXTERNAL_ID,
             platform: "kalshi",
             marketName: MARKET_NAME,
+            subtitle: "SUBTITLE791",
+            eventTicker: "EVENT802",
             optionAText: OPTION_A,
             optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,

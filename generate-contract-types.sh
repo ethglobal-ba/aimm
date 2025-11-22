@@ -27,6 +27,7 @@ echo "Moving contract types to $CONTRACT_TYPES_FILE..."
 mkdir -p ../packages/common/src/types/__generated__/
 cp types/generated.ts "../$CONTRACT_TYPES_FILE"
 cp types/generated.ts "../$CONTRACT_TYPES_FILE_INDEXER"
+cp types/generated.ts "../$CONTRACT_TYPES_FILE_SCRIPTS"
 
 # # Copy ABI files to apps in case they need them (common json import is glitchy)
 # echo "Copying TlonToken.json and TokenFactory.json to apps..."

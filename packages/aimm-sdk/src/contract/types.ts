@@ -44,7 +44,7 @@ export interface PriceDriftResult {
 }
 
 export const AIMM_CONTRACT_CONFIG = {
-  address: '0xe4F09E868fFd477FC3D14F54b543DbCDAaE9Ad9c' as const,
+  address: '0x7Eb455A7D85A0098714B3F682b3BE8c994c5A843' as const,
   abi: AIMMABI,
   chainId: 84532, // Base Sepolia
 }

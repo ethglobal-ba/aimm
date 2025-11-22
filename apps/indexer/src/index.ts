@@ -20,7 +20,7 @@ ponder.on('AIMM:MarketOnboarded', async ({ event, context }) => {
     blockNumber: event.block.number,
   });
 
-  const { platform, externalMarketId, marketName, optionA, optionB } = event.args;
+  const { platform, externalMarketId, marketName, optionA, optionB,  } = event.args;
   const { db } = context;
 
   try {
@@ -35,13 +35,13 @@ ponder.on('AIMM:MarketOnboarded', async ({ event, context }) => {
         optionBText: optionB,
         status: 0, // Default to Inactive status (0)
         // Initialize prices as null
-        optionACurrentExternalPrice: null,
-        optionBCurrentExternalPrice: null,
-        lastExternalPriceUpdate: null,
-        optionACurrentFairPrice: null,
-        optionBCurrentFairPrice: null,
-        lastFairPriceUpdate: null,
-        volume: null,
+        optionACurrentExternalPrice: 0n,
+        optionBCurrentExternalPrice: 0n,
+        lastExternalPriceUpdate: 0n,
+        optionACurrentFairPrice: 0n,
+        optionBCurrentFairPrice: 0n,
+        lastFairPriceUpdate: 0n,
+        volume: 0n,
         createdAt: event.block.timestamp,
         updatedAt: event.block.timestamp,
       })

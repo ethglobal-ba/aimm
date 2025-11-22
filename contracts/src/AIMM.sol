@@ -34,11 +34,20 @@ contract AIMM is IReceiverTemplate {
         uint256 slippageToleranceBps; // Slippage tolerance in basis points
     }
 
+    // Market-specific configuration
+    struct MarketConfig {
+        uint256 minPriceDifference; // Minimum price difference to trigger action
+        uint256 maxSpendAmount; // Max amount allowed to spend for this market
+        uint256 slippageToleranceBps; // Slippage tolerance for this market
+    }
+
     // Input parameters for onboarding a market
     struct OnboardMarketParams {
         string externalMarketId;
         string platform;
         string marketName;
+        string subtitle;
+        string eventTicker;
         string optionAText;
         string optionBText;
         uint256 optionACurrentExternalPrice;
@@ -50,6 +59,8 @@ contract AIMM is IReceiverTemplate {
     struct ExternalMarket {
         string platform; // Platform name (e.g., "kalshi", "polymarket")
         string marketName; // Human readable market name
+        string subtitle; // Market subtitle
+        string eventTicker; // Event ticker identifier
         string optionAText; // Description of option A
         string optionBText; // Description of option B
         uint256 optionACurrentExternalPrice; // Current price on external market
@@ -59,9 +70,6 @@ contract AIMM is IReceiverTemplate {
         uint256 lastCurrentPriceUpdate; // Timestamp of last current price update
         uint256 lastFairPriceUpdate; // Timestamp of last fair price update
         uint256 volume; // Trading volume for this market
-        uint256 minPriceDifference; // Minimum price difference to trigger action
-        uint256 maxSpendAmount; // Max amount allowed to spend for this market
-        uint256 slippageToleranceBps; // Slippage tolerance for this market
         MarketStatus status;
     }
 
@@ -77,6 +85,7 @@ contract AIMM is IReceiverTemplate {
     // Market management state
     DefaultConfig public defaultConfig;
     mapping(string => ExternalMarket) public externalMarkets;
+    mapping(string => MarketConfig) public marketConfigs;
     string[] public externalMarketIds;
 
     // --- Events ---
@@ -85,6 +94,8 @@ contract AIMM is IReceiverTemplate {
         string indexed platform,
         string indexed externalMarketId,
         string marketName,
+        string subtitle,
+        string eventTicker,
         string optionA,
         string optionB
     );
@@ -162,6 +173,8 @@ contract AIMM is IReceiverTemplate {
         externalMarkets[params.externalMarketId] = ExternalMarket({
             platform: params.platform,
             marketName: params.marketName,
+            subtitle: params.subtitle,
+            eventTicker: params.eventTicker,
             optionAText: params.optionAText,
             optionBText: params.optionBText,
             optionACurrentExternalPrice: params.optionACurrentExternalPrice,
@@ -171,10 +184,13 @@ contract AIMM is IReceiverTemplate {
             lastCurrentPriceUpdate: 0,
             lastFairPriceUpdate: 0,
             volume: params.initialVolume,
+            status: MarketStatus.Inactive
+        });
+
+        marketConfigs[params.externalMarketId] = MarketConfig({
             minPriceDifference: defaultConfig.driftPercentagePoints,
             maxSpendAmount: defaultConfig.maxSpendAmount,
-            slippageToleranceBps: defaultConfig.slippageToleranceBps,
-            status: MarketStatus.Inactive
+            slippageToleranceBps: defaultConfig.slippageToleranceBps
         });
 
         externalMarketIds.push(params.externalMarketId);
@@ -183,6 +199,8 @@ contract AIMM is IReceiverTemplate {
             params.platform,
             params.externalMarketId,
             params.marketName,
+            params.subtitle,
+            params.eventTicker,
             params.optionAText,
             params.optionBText
         );
@@ -251,11 +269,12 @@ contract AIMM is IReceiverTemplate {
         uint256 maxSpend,
         uint256 slippageBps
     ) public onlyOwner marketMustExist(externalMarketId) {
-        ExternalMarket storage market = externalMarkets[externalMarketId];
-        market.minPriceDifference = minPriceDiff;
-        market.maxSpendAmount = maxSpend;
-        market.slippageToleranceBps = slippageBps;
+        MarketConfig storage config = marketConfigs[externalMarketId];
+        config.minPriceDifference = minPriceDiff;
+        config.maxSpendAmount = maxSpend;
+        config.slippageToleranceBps = slippageBps;
 
+        ExternalMarket memory market = externalMarkets[externalMarketId];
         emit MarketConfigUpdated(
             market.platform, externalMarketId, minPriceDiff, maxSpend, slippageBps
         );
@@ -344,6 +363,7 @@ contract AIMM is IReceiverTemplate {
         returns (bool shouldBalance, uint256 driftA, uint256 driftB)
     {
         ExternalMarket memory market = externalMarkets[externalMarketId];
+        MarketConfig memory config = marketConfigs[externalMarketId];
 
         if (
             market.status != MarketStatus.Active || market.optionACurrentFairPrice == 0
@@ -365,7 +385,7 @@ contract AIMM is IReceiverTemplate {
             : ((market.optionBCurrentFairPrice - market.optionBCurrentExternalPrice) * 10000)
                 / market.optionBCurrentFairPrice;
 
-        shouldBalance = driftA >= market.minPriceDifference || driftB >= market.minPriceDifference;
+        shouldBalance = driftA >= config.minPriceDifference || driftB >= config.minPriceDifference;
     }
 
     /**

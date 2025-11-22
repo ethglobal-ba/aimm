@@ -120,7 +120,7 @@ contract DeployAIMM is Script {
         return deployWithCustomConfig(
             10, // 0.1% drift (more sensitive for testing)
             1 ether, // 1 ETH max spend (lower for testnet)
-            200 // 2% slippage (higher tolerance for testnet)
+            50 // 0.5% slippage tolerance (lower for testnet)
         );
     }
 
@@ -131,7 +131,7 @@ contract DeployAIMM is Script {
         return deployWithCustomConfig(
             250, // 2.5% drift (more conservative)
             50 ether, // 50 ETH max spend (higher for mainnet)
-            50 // 0.5% slippage (tighter for mainnet)
+            200 // 2% slippage tolerance (higher for mainnet)
         );
     }
 
@@ -144,71 +144,98 @@ contract DeployAIMM is Script {
         
         vm.startBroadcast();
 
-        // 1. Egypt President Market - Abdel Fattah el-Sisi
-        // FIXED: Ensuring correct parameter mapping
+        // 1. Trump Endorsement - Daniel Cameron (Kentucky Senate)
         aimm.onboardMarket(AIMM.OnboardMarketParams({
-            externalMarketId: "KXAFRICALEADEROUT-35-AFES", // Kalshi ticker - this is what we'll use for API calls
-            platform: "kalshi", // Platform name
-            marketName: "Will Abdel Fattah el-Sisi leave office next in this set?", // marketName
-            optionAText: "Yes - Abdel Fattah el-Sisi leaves office first", // optionAText
-            optionBText: "No - Abdel Fattah el-Sisi does not leave office first", // optionBText
-            optionACurrentExternalPrice: 8000000, // yes_ask: 8 cents = 0.080000 with 6 decimals
-            optionBCurrentExternalPrice: 92000000, // no_bid: 92 cents = 0.920000 with 6 decimals
-            initialVolume: 22000000000000000000 // volume: 22 from Kalshi data
+            externalMarketId: "KXTRUMPENDORSE-26SEP15-DCAM",
+            platform: "kalshi",
+            marketName: "Will Donald Trump endorse Daniel Cameron in the 2026 Kentucky Senate Republican primary before May 19, 2026?",
+            subtitle: ":: Kentucky Senate",
+            eventTicker: "KXTRUMPENDORSE-26SEP15",
+            optionAText: "Yes",
+            optionBText: "No",
+            optionACurrentExternalPrice: 21000000, // yes_ask: 21 cents
+            optionBCurrentExternalPrice: 89000000, // no_bid: ~89 cents (100-11)
+            initialVolume: 0
         }));
-        console.log("Onboarded: Egypt President Market");
+        console.log("Onboarded: Daniel Cameron Kentucky Senate Endorsement");
 
-        // 2. Miami Vice Actor Market - Pedro Pascal
+        // 2. Trump Endorsement - Barry Moore (Alabama Senate)
         aimm.onboardMarket(AIMM.OnboardMarketParams({
-            externalMarketId: "KXACTORSONNYCROCKETT-35-PED",
-            platform: "kalshi", // platform
-            marketName: "Will Pedro Pascal be casted in the next Miami Vice?",
-            optionAText: "Yes - Pedro Pascal is cast",
-            optionBText: "No - Pedro Pascal is not cast",
-            optionACurrentExternalPrice: 11000000, // yes_ask: 11 cents = 0.110000 with 6 decimals
-            optionBCurrentExternalPrice: 89000000, // no_bid: 89 cents = 0.890000 with 6 decimals
-            initialVolume: 0 // volume: 0 from Kalshi data
+            externalMarketId: "KXTRUMPENDORSE-26SEP15-BMOR",
+            platform: "kalshi",
+            marketName: "Will Donald Trump endorse Barry Moore in the 2026 Alabama Senate Republican primary before May 19, 2026?",
+            subtitle: ":: Alabama Senate",
+            eventTicker: "KXTRUMPENDORSE-26SEP15",
+            optionAText: "Yes",
+            optionBText: "No",
+            optionACurrentExternalPrice: 33000000, // yes_ask: 33 cents
+            optionBCurrentExternalPrice: 77000000, // no_bid: 77 cents
+            initialVolume: 0
         }));
-        console.log("Onboarded: Pedro Pascal Miami Vice Market");
+        console.log("Onboarded: Barry Moore Alabama Senate Endorsement");
 
-        // 3. James Bond Song Market - Ariana Grande
+        // 3. Trump Endorsement - Buddy Carter (Georgia Senate)
         aimm.onboardMarket(AIMM.OnboardMarketParams({
-            externalMarketId: "KXPERFORMBONDSONG-35-ARI",
-            platform: "kalshi", // platform
-            marketName: "Who will perform the next James Bond Song?",
-            optionAText: "Yes - Ariana Grande performs",
-            optionBText: "No - Ariana Grande does not perform",
-            optionACurrentExternalPrice: 12000000, // yes_ask: 12 cents = 0.120000 with 6 decimals
-            optionBCurrentExternalPrice: 96000000, // no_bid: 96 cents = 0.960000 with 6 decimals
-            initialVolume: 52000000000000000000 // volume: 52 from Kalshi data
+            externalMarketId: "KXTRUMPENDORSE-26SEP15-BCAR",
+            platform: "kalshi",
+            marketName: "Will Donald Trump endorse Buddy Carter in the 2026 Georgia Senate Republican primary before May 19, 2026?",
+            subtitle: ":: Georgia Senate",
+            eventTicker: "KXTRUMPENDORSE-26SEP15",
+            optionAText: "Yes",
+            optionBText: "No",
+            optionACurrentExternalPrice: 15000000, // yes_ask: 15 cents
+            optionBCurrentExternalPrice: 95000000, // no_bid: 95 cents
+            initialVolume: 0
         }));
-        console.log("Onboarded: Ariana Grande Bond Song Market");
+        console.log("Onboarded: Buddy Carter Georgia Senate Endorsement");
 
-        // 4. Next Pope Market - Pietro Parolin
+        // 4. Trump Endorsement - Andy Barr (Kentucky Senate)
         aimm.onboardMarket(AIMM.OnboardMarketParams({
-            externalMarketId: "KXNEWPOPE-35-PPAR",
-            platform: "kalshi", // platform
-            marketName: "Who will the next Pope be?",
-            optionAText: "Yes - Pietro Parolin becomes Pope",
-            optionBText: "No - Pietro Parolin does not become Pope",
-            optionACurrentExternalPrice: 10000000, // yes_ask: 10 cents = 0.100000 with 6 decimals
-            optionBCurrentExternalPrice: 90000000, // no_bid: 90 cents = 0.900000 with 6 decimals
-            initialVolume: 504000000000000000000 // volume: 504 from Kalshi data
+            externalMarketId: "KXTRUMPENDORSE-26SEP15-ABAR",
+            platform: "kalshi",
+            marketName: "Will Donald Trump endorse Andy Barr in the 2026 Kentucky Senate Republican primary before May 19, 2026?",
+            subtitle: ":: Kentucky Senate",
+            eventTicker: "KXTRUMPENDORSE-26SEP15",
+            optionAText: "Yes",
+            optionBText: "No",
+            optionACurrentExternalPrice: 68000000, // yes_ask: 68 cents
+            optionBCurrentExternalPrice: 42000000, // no_bid: 42 cents
+            initialVolume: 0
         }));
-        console.log("Onboarded: Pietro Parolin Pope Market");
+        console.log("Onboarded: Andy Barr Kentucky Senate Endorsement");
 
-        // 5. Next Pope Market - Peter Erdo
+        // 5. Trump Endorsement - Julia Letlow (Louisiana Senate)
         aimm.onboardMarket(AIMM.OnboardMarketParams({
-            externalMarketId: "KXNEWPOPE-35-PERD",
-            platform: "kalshi", // platform
-            marketName: "Who will the next Pope be?",
-            optionAText: "Yes - Peter Erdo becomes Pope",
-            optionBText: "No - Peter Erdo does not become Pope",
-            optionACurrentExternalPrice: 3000000, // yes_ask: 3 cents = 0.030000 with 6 decimals
-            optionBCurrentExternalPrice: 97000000, // no_bid: 97 cents = 0.970000 with 6 decimals
-            initialVolume: 551000000000000000000 // volume: 551 from Kalshi data
+            externalMarketId: "KXTRUMPENDORSE-26SEP15-JLET",
+            platform: "kalshi",
+            marketName: "Will Donald Trump endorse Julia Letlow in the 2026 Louisiana Senate Republican primary before May 16, 2026?",
+            subtitle: ":: Louisiana Senate",
+            eventTicker: "KXTRUMPENDORSE-26SEP15",
+            optionAText: "Yes",
+            optionBText: "No",
+            optionACurrentExternalPrice: 20000000, // yes_ask: 20 cents
+            optionBCurrentExternalPrice: 90000000, // no_bid: 90 cents
+            initialVolume: 0
         }));
-        console.log("Onboarded: Peter Erdo Pope Market");
+        console.log("Onboarded: Julia Letlow Louisiana Senate Endorsement");
+
+        // Set markets to active status (except the first one)
+        console.log("\n=== Setting Markets to Active Status ===");
+        
+        // Activate all markets except Daniel Cameron (index 0)
+        aimm.updateMarketStatus("KXTRUMPENDORSE-26SEP15-BMOR", AIMM.MarketStatus.Active);
+        console.log("Activated: Barry Moore Alabama Senate");
+        
+        aimm.updateMarketStatus("KXTRUMPENDORSE-26SEP15-BCAR", AIMM.MarketStatus.Active);
+        console.log("Activated: Buddy Carter Georgia Senate");
+        
+        aimm.updateMarketStatus("KXTRUMPENDORSE-26SEP15-ABAR", AIMM.MarketStatus.Active);
+        console.log("Activated: Andy Barr Kentucky Senate");
+        
+        aimm.updateMarketStatus("KXTRUMPENDORSE-26SEP15-JLET", AIMM.MarketStatus.Active);
+        console.log("Activated: Julia Letlow Louisiana Senate");
+        
+        console.log("Note: Daniel Cameron market left as Inactive for testing");
 
         vm.stopBroadcast();
 
@@ -268,6 +295,8 @@ contract DeployAIMM is Script {
             externalMarketId: "TEST-MARKET-001",
             platform: "test",
             marketName: "Test Market for Verification",
+            subtitle: "SUBTITLETEST-MARKET-001", // subtitle with prefix
+            eventTicker: "EVENTTEST-MARKET-001", // eventTicker with prefix
             optionAText: "Option A",
             optionBText: "Option B",
             optionACurrentExternalPrice: 50000000, // 50 cents
@@ -281,7 +310,7 @@ contract DeployAIMM is Script {
             "TEST-MARKET-001",
             600, // 6% min price difference
             20 ether, // 20 ETH max spend
-            150 // 1.5% slippage
+            150 // 1.5% slippage tolerance
         );
 
         // 3. MarketStatusChanged - Change the test market status
@@ -297,7 +326,7 @@ contract DeployAIMM is Script {
         aimm.updateDefaultConfig(
             700, // 7% drift percentage
             25 ether, // 25 ETH max spend
-            200 // 2% slippage
+            175 // 1.75% slippage tolerance
         );
 
         // 6. CurrentPricesUpdated & 7. FairPricesUpdated & 8. ResultUpdated
