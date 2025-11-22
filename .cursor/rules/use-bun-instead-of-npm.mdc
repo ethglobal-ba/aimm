@@ -1,0 +1,7 @@
+---
+alwaysApply: true
+---
+
+`bun` is our package manager for typescript stuffs. Use `bun` and `bunx` instead of `npm`, `npx`, `pnpm`, etc.
+
+Although we are using bun as our package manager, we're not using bun libraries in our implementation, instead we're using traditional node libraries (ws, axios, etc)

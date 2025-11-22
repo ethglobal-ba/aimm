@@ -1,0 +1,16 @@
+---
+globs: *.ts,*.tsx
+alwaysApply: false
+---
+
+# General typescript rules
+
+- Do not use any unless explicitly instructed otherwise
+- Do not type cast to any unless explicitly instructed otherwise
+- Avoid type casting as a solution to type errors unless it's absolutely necessary or explicitly instructed otherwise
+- Avoid using @ts-expect-error, @ts-ignore, or @ts-nocheck unless absolutely necessary or explicitly instructed otherwise
+
+## Checking your work
+
+- If you've had to make a substantial change to a typescript file, run `bun run tsc --noEmit` or `bun run build` in the app or package directory after completing your changes to confirm your work.
+- If you've had to make a substantial change to a shared package (packages/common), run `turbo run build` at the project root
