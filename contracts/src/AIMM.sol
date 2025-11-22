@@ -273,7 +273,7 @@ contract AIMM is IReceiverTemplate {
     {
         ExternalMarket storage market = externalMarkets[externalMarketId];
         market.status = newStatus;
-        emit MarketStatusChanged(market.platform, externalMarketId, newStatus);
+    emit MarketStatusUpdated(market.platform, externalMarketId, newStatus);
     }
 
     /**

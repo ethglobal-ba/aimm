@@ -14,6 +14,16 @@ export const aimmAbi = [
   },
   {
     type: 'function',
+    inputs: [
+      { name: 'externalMarketId', internalType: 'string', type: 'string' },
+      { name: 'newStatus', internalType: 'enum AIMM.MarketStatus', type: 'uint8' },
+    ],
+    name: 'changeMarketStatus',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     inputs: [],
     name: 'defaultConfig',
     outputs: [
@@ -369,6 +379,16 @@ export const aimmAbi = [
       { name: 'newStatus', internalType: 'enum AIMM.MarketStatus', type: 'uint8', indexed: false },
     ],
     name: 'MarketStatusChanged',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'platform', internalType: 'string', type: 'string', indexed: true },
+      { name: 'externalMarketId', internalType: 'string', type: 'string', indexed: true },
+      { name: 'newStatus', internalType: 'enum AIMM.MarketStatus', type: 'uint8', indexed: false },
+    ],
+    name: 'MarketStatusUpdated',
   },
   {
     type: 'event',
