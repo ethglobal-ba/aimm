@@ -11,45 +11,61 @@ import {
 
 // Market Onboarded Event
 ponder.on('AIMM:MarketOnboarded', async ({ event, context }) => {
-  const { platform, marketId, marketName, optionA, optionB } = event.args;
+  console.log('MarketOnboarded event received:', {
+    platform: event.args.platform,
+    externalMarketId: event.args.externalMarketId,
+    marketName: event.args.marketName,
+    optionA: event.args.optionA,
+    optionB: event.args.optionB,
+    blockNumber: event.block.number,
+  });
+
+  const { platform, externalMarketId, marketName, optionA, optionB } = event.args;
   const { db } = context;
 
-  await db
-    .insert(markets)
-    .values({
-      id: marketId,
-      platform: platform,
-      externalId: marketId, // Use marketId as externalId since it's the external platform's market ID
-      marketName: marketName,
-      optionAText: optionA,
-      optionBText: optionB,
-      status: 0, // Default to Active status (0)
-      createdAt: event.block.timestamp,
-      updatedAt: event.block.timestamp,
-    })
-    .onConflictDoUpdate({
-      target: 'id',
-      set: {
+  try {
+    await db
+      .insert(markets)
+      .values({
+        id: externalMarketId,
         platform: platform,
-        externalId: marketId,
+        externalId: externalMarketId,
         marketName: marketName,
         optionAText: optionA,
         optionBText: optionB,
+        status: 0, // Default to Active status (0)
+        createdAt: event.block.timestamp,
         updatedAt: event.block.timestamp,
-      },
-    });
+      })
+      .onConflictDoUpdate({
+        target: 'id',
+        set: {
+          platform: platform,
+          externalId: externalMarketId,
+          marketName: marketName,
+          optionAText: optionA,
+          optionBText: optionB,
+          updatedAt: event.block.timestamp,
+        },
+      });
+
+    console.log('MarketOnboarded successfully processed:', externalMarketId);
+  } catch (error) {
+    console.error('Error processing MarketOnboarded event:', error);
+    throw error;
+  }
 });
 
 // Market Config Updated Event
 ponder.on('AIMM:MarketConfigUpdated', async ({ event, context }) => {
-  const { marketId, platform, minPriceDiff, maxSpend, slippage } = event.args;
+  const { externalMarketId, platform, minPriceDiff, maxSpend, slippage } = event.args;
   const { db } = context;
 
-  const configId = `${marketId}-${event.block.number}-${event.log.logIndex}`;
+  const configId = `${externalMarketId}-${event.block.number}-${event.log.logIndex}`;
 
   await db.insert(marketConfigs).values({
     id: configId,
-    marketId,
+    marketId: externalMarketId,
     platform,
     minPriceDiff,
     maxSpend,
@@ -62,18 +78,18 @@ ponder.on('AIMM:MarketConfigUpdated', async ({ event, context }) => {
 
 // Current Prices Updated Event (External)
 ponder.on('AIMM:CurrentPricesUpdated', async ({ event, context }) => {
-  const { marketId, platform, optionAPrice, optionBPrice } = event.args;
+  const { externalMarketId, platform, extPriceA, extPriceB } = event.args;
   const { db } = context;
 
-  const priceUpdateId = `${marketId}-external-${event.block.number}-${event.log.logIndex}`;
+  const priceUpdateId = `${externalMarketId}-external-${event.block.number}-${event.log.logIndex}`;
 
   await db.insert(priceUpdates).values({
     id: priceUpdateId,
-    marketId,
+    marketId: externalMarketId,
     platform,
     type: 'external',
-    optionAPrice,
-    optionBPrice,
+    optionAPrice: extPriceA,
+    optionBPrice: extPriceB,
     timestamp: event.block.timestamp,
     blockNumber: event.block.number,
     transactionHash: event.transaction.hash,
@@ -82,18 +98,18 @@ ponder.on('AIMM:CurrentPricesUpdated', async ({ event, context }) => {
 
 // Fair Prices Updated Event
 ponder.on('AIMM:FairPricesUpdated', async ({ event, context }) => {
-  const { marketId, platform, optionAPrice, optionBPrice } = event.args;
+  const { externalMarketId, platform, fairPriceA, fairPriceB } = event.args;
   const { db } = context;
 
-  const priceUpdateId = `${marketId}-fair-${event.block.number}-${event.log.logIndex}`;
+  const priceUpdateId = `${externalMarketId}-fair-${event.block.number}-${event.log.logIndex}`;
 
   await db.insert(priceUpdates).values({
     id: priceUpdateId,
-    marketId,
+    marketId: externalMarketId,
     platform,
     type: 'fair',
-    optionAPrice,
-    optionBPrice,
+    optionAPrice: fairPriceA,
+    optionBPrice: fairPriceB,
     timestamp: event.block.timestamp,
     blockNumber: event.block.number,
     transactionHash: event.transaction.hash,
@@ -102,16 +118,16 @@ ponder.on('AIMM:FairPricesUpdated', async ({ event, context }) => {
 
 // Market Status Changed Event
 ponder.on('AIMM:MarketStatusChanged', async ({ event, context }) => {
-  const { marketId, platform, oldStatus, newStatus } = event.args;
+  const { externalMarketId, platform, newStatus } = event.args;
   const { db } = context;
 
-  const statusChangeId = `${marketId}-${event.block.number}-${event.log.logIndex}`;
+  const statusChangeId = `${externalMarketId}-${event.block.number}-${event.log.logIndex}`;
 
   await db.insert(marketStatusChanges).values({
     id: statusChangeId,
-    marketId,
+    marketId: externalMarketId,
     platform,
-    oldStatus: oldStatus ? Number(oldStatus) : null,
+    oldStatus: null, // Not provided in the new contract
     newStatus: Number(newStatus),
     timestamp: event.block.timestamp,
     blockNumber: event.block.number,
@@ -125,7 +141,7 @@ ponder.on('AIMM:MarketStatusChanged', async ({ event, context }) => {
       status: Number(newStatus),
       updatedAt: event.block.timestamp,
     })
-    .where({ id: marketId });
+    .where({ id: externalMarketId });
 });
 
 // Default Config Updated Event
