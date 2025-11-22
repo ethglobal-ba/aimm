@@ -8,7 +8,17 @@ export const market = onchainTable('market', t => ({
   marketName: t.text().notNull(),
   optionAText: t.text().notNull(),
   optionBText: t.text().notNull(),
-  status: t.integer().notNull().default(0), // MarketStatus enum
+  status: t.integer().notNull().default(0), // MarketStatus enum: 0=Inactive, 1=Active, 2=ClosedInternal, 3=ClosedExternal
+  // Current external prices
+  optionACurrentExternalPrice: t.bigint(),
+  optionBCurrentExternalPrice: t.bigint(),
+  lastExternalPriceUpdate: t.bigint(),
+  // Current fair prices
+  optionACurrentFairPrice: t.bigint(),
+  optionBCurrentFairPrice: t.bigint(),
+  lastFairPriceUpdate: t.bigint(),
+  // Volume
+  volume: t.bigint(),
   createdAt: t.bigint().notNull(),
   updatedAt: t.bigint().notNull(),
 }));

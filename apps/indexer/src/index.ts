@@ -33,7 +33,15 @@ ponder.on('AIMM:MarketOnboarded', async ({ event, context }) => {
         marketName: marketName,
         optionAText: optionA,
         optionBText: optionB,
-        status: 0, // Default to Active status (0)
+        status: 0, // Default to Inactive status (0)
+        // Initialize prices as null
+        optionACurrentExternalPrice: null,
+        optionBCurrentExternalPrice: null,
+        lastExternalPriceUpdate: null,
+        optionACurrentFairPrice: null,
+        optionBCurrentFairPrice: null,
+        lastFairPriceUpdate: null,
+        volume: null,
         createdAt: event.block.timestamp,
         updatedAt: event.block.timestamp,
       })
@@ -83,6 +91,7 @@ ponder.on('AIMM:CurrentPricesUpdated', async ({ event, context }) => {
 
   const priceUpdateId = `${externalMarketId}-external-${event.block.number}-${event.log.logIndex}`;
 
+  // Insert price update event record
   await db.insert(priceUpdate).values({
     id: priceUpdateId,
     marketId: externalMarketId,
@@ -94,6 +103,16 @@ ponder.on('AIMM:CurrentPricesUpdated', async ({ event, context }) => {
     blockNumber: event.block.number,
     transactionHash: event.transaction.hash,
   });
+
+  // Update the persistent market record with latest external prices
+  await db
+    .update(market, { id: externalMarketId })
+    .set({
+      optionACurrentExternalPrice: extPriceA,
+      optionBCurrentExternalPrice: extPriceB,
+      lastExternalPriceUpdate: event.block.timestamp,
+      updatedAt: event.block.timestamp,
+    });
 });
 
 // Fair Prices Updated Event
@@ -103,6 +122,7 @@ ponder.on('AIMM:FairPricesUpdated', async ({ event, context }) => {
 
   const priceUpdateId = `${externalMarketId}-fair-${event.block.number}-${event.log.logIndex}`;
 
+  // Insert price update event record
   await db.insert(priceUpdate).values({
     id: priceUpdateId,
     marketId: externalMarketId,
@@ -114,6 +134,16 @@ ponder.on('AIMM:FairPricesUpdated', async ({ event, context }) => {
     blockNumber: event.block.number,
     transactionHash: event.transaction.hash,
   });
+
+  // Update the persistent market record with latest fair prices
+  await db
+    .update(market, { id: externalMarketId })
+    .set({
+      optionACurrentFairPrice: fairPriceA,
+      optionBCurrentFairPrice: fairPriceB,
+      lastFairPriceUpdate: event.block.timestamp,
+      updatedAt: event.block.timestamp,
+    });
 });
 
 // Market Status Changed Event
@@ -139,6 +169,34 @@ ponder.on('AIMM:MarketStatusChanged', async ({ event, context }) => {
     status: Number(newStatus),
     updatedAt: event.block.timestamp,
   });
+});
+
+// Market Status Updated Event (New event from changeMarketStatus function)
+ponder.on('AIMM:MarketStatusUpdated', async ({ event, context }) => {
+  const { externalMarketId, platform, newStatus } = event.args;
+  const { db } = context;
+
+  const statusChangeId = `${externalMarketId}-updated-${event.block.number}-${event.log.logIndex}`;
+
+  // Insert status change event record (using same table but with different ID prefix)
+  await db.insert(marketStatusChange).values({
+    id: statusChangeId,
+    marketId: externalMarketId,
+    platform,
+    oldStatus: null, // Not provided in the event
+    newStatus: Number(newStatus),
+    timestamp: event.block.timestamp,
+    blockNumber: event.block.number,
+    transactionHash: event.transaction.hash,
+  });
+
+  // Update the market status in the persistent market table
+  await db
+    .update(market, { id: externalMarketId })
+    .set({
+      status: Number(newStatus),
+      updatedAt: event.block.timestamp,
+    });
 });
 
 // Default Config Updated Event

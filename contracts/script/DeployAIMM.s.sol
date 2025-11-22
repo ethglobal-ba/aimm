@@ -286,9 +286,13 @@ contract DeployAIMM is Script {
 
         // 3. MarketStatusChanged - Change the test market status
         console.log("Emitting MarketStatusChanged event...");
-        aimm.updateMarketStatus("TEST-MARKET-001", AIMM.MarketStatus.ClosedInternal);
+        aimm.updateMarketStatus("TEST-MARKET-001", AIMM.MarketStatus.Active);
 
-        // 4. DefaultConfigUpdated - Update default configuration
+        // 4. MarketStatusUpdated - Change the test market status with new function
+        console.log("Emitting MarketStatusUpdated event...");
+        aimm.changeMarketStatus("TEST-MARKET-001", AIMM.MarketStatus.ClosedInternal);
+
+        // 5. DefaultConfigUpdated - Update default configuration
         console.log("Emitting DefaultConfigUpdated event...");
         aimm.updateDefaultConfig(
             700, // 7% drift percentage
@@ -296,7 +300,7 @@ contract DeployAIMM is Script {
             200 // 2% slippage
         );
 
-        // 5. CurrentPricesUpdated & 6. FairPricesUpdated & 7. ResultUpdated
+        // 6. CurrentPricesUpdated & 7. FairPricesUpdated & 8. ResultUpdated
         // These are emitted by calling the receiver template with mock data
         console.log("Emitting CurrentPricesUpdated, FairPricesUpdated, and ResultUpdated events...");
 
@@ -335,10 +339,11 @@ contract DeployAIMM is Script {
         console.log("  1. MarketOnboarded");
         console.log("  2. MarketConfigUpdated");
         console.log("  3. MarketStatusChanged");
-        console.log("  4. DefaultConfigUpdated");
-        console.log("  5. CurrentPricesUpdated");
-        console.log("  6. FairPricesUpdated");
-        console.log("  7. ResultUpdated (x2)");
+        console.log("  4. MarketStatusUpdated");
+        console.log("  5. DefaultConfigUpdated");
+        console.log("  6. CurrentPricesUpdated");
+        console.log("  7. FairPricesUpdated");
+        console.log("  8. ResultUpdated (x2)");
     }
 
     /**
