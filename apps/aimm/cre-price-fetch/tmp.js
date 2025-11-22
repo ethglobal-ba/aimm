@@ -18088,41 +18088,6 @@ var convertPriceToSixDecimals = (priceInCents) => {
 var convertVolume = (volume) => {
   return BigInt(Math.round(volume * 1000000000000000000));
 };
-var fetchTrackedMarketsFromIndexer = (sendRequester, config) => {
-  const query = {
-    query: `query OpenMarkets {
-  marketss(where: {status: 0}) {
-    items {
-      externalId
-      marketName
-      optionAText
-      optionBText
-      platform
-      status
-    }
-  }
-}`
-  };
-  const req = {
-    url: `${config.aimmIndexerUrl}/graphql`,
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(query)
-  };
-  const resp = sendRequester.sendRequest(req).result();
-  if (resp.statusCode !== 200) {
-    throw new Error(`Indexer GraphQL request failed with status: ${resp.statusCode}`);
-  }
-  const bodyText = new TextDecoder().decode(resp.body);
-  const indexerResponse = JSON.parse(bodyText);
-  const marketIds = indexerResponse.data.marketss.items.map((market) => market.externalId);
-  if (!marketIds || marketIds.length === 0) {
-    throw new Error("No market IDs returned from indexer");
-  }
-  return marketIds;
-};
 var fetchSingleMarketUpdate = (sendRequester, config, externalMarketId) => {
   const req = {
     url: `${config.kalshiApiUrl}/markets/${externalMarketId}`,
@@ -18144,27 +18109,56 @@ var fetchSingleMarketUpdate = (sendRequester, config, externalMarketId) => {
     volume
   };
 };
-var fetchSingleMarketIdString = (sendRequester, config) => {
-  const marketIds = fetchTrackedMarketsFromIndexer(sendRequester, config);
-  return marketIds.join(",");
-};
-var fetchMarketsDirectly = (runtime2) => {
-  const httpCapability = new cre.capabilities.HTTPClient;
-  const response = httpCapability.sendRequest(runtime2, fetchSingleMarketIdString, (inputs) => {
-    if (inputs.length === 0) {
-      throw new Error("No inputs provided for aggregation");
+var fetchMarketIds = (sendRequester, config) => {
+  const query = {
+    query: `query OpenMarkets {
+  marketss(where: {status: 0}) {
+    items {
+      externalId
+      marketName
+      optionAText
+      optionBText
+      platform
+      status
     }
-    return inputs[0];
-  })(runtime2.config).result();
-  return response.split(",").filter((id) => id.trim() !== "");
+  }
+}`
+  };
+  const bodyBytes = new TextEncoder().encode(JSON.stringify(query));
+  const body = Buffer.from(bodyBytes).toString("base64");
+  const req = {
+    url: `${config.aimmIndexerUrl}`,
+    method: "POST",
+    body,
+    headers: {
+      "Content-Type": "application/json"
+    }
+  };
+  const resp = sendRequester.sendRequest(req).result();
+  if (resp.statusCode !== 200) {
+    throw new Error(`Indexer GraphQL request failed with status: ${resp.statusCode}`);
+  }
+  const bodyText = new TextDecoder().decode(resp.body);
+  const indexerResponse = JSON.parse(bodyText);
+  const marketIds = indexerResponse.data.marketss.items.map((market) => market.externalId);
+  if (!marketIds || marketIds.length === 0) {
+    throw new Error("No market IDs returned from indexer");
+  }
+  return {
+    marketIds
+  };
 };
 var updateAllMarkets = (runtime2) => {
   runtime2.log(`Updating all markets`);
-  const trackedMarketIds = fetchMarketsDirectly(runtime2);
+  const httpCapability = new cre.capabilities.HTTPClient;
+  runtime2.log(`Fetching tracked markets from indexer`);
+  const marketIdsResponse = httpCapability.sendRequest(runtime2, fetchMarketIds, ConsensusAggregationByFields({
+    marketIds: identical
+  }))(runtime2.config).result();
+  const trackedMarketIds = marketIdsResponse.marketIds;
   runtime2.log(`Found ${trackedMarketIds.length} tracked markets from indexer: ${trackedMarketIds.join(", ")}`);
   const trackedMarkets = trackedMarketIds.map((id) => ({ externalMarketId: id }));
   runtime2.log(`Fetching Kalshi market prices for ${trackedMarkets.length} markets`);
-  const httpCapability = new cre.capabilities.HTTPClient;
   for (const trackedMarket of trackedMarkets) {
     runtime2.log(`Fetching data for market: ${trackedMarket.externalMarketId}`);
     try {

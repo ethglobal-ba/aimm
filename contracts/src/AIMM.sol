@@ -11,6 +11,7 @@ import {IReceiverTemplate} from "./IReceiverTemplate.sol";
 contract AIMM is IReceiverTemplate {
     // Struct to hold the data sent in a report from the workflow
     enum MarketStatus {
+        Inactive, // Market is onboarded but not being tracked yet (default)
         Active, // We are tracking and will automatically balance price
         ClosedInternal, // We have chosen to stop tracking the market irrespective of external status
         ClosedExternal // The external market has closed and we have chosen to stop tracking the market
@@ -109,6 +110,9 @@ contract AIMM is IReceiverTemplate {
     event MarketStatusChanged(
         string indexed platform, string indexed externalMarketId, MarketStatus newStatus
     );
+    event MarketStatusUpdated(
+        string indexed platform, string indexed externalMarketId, MarketStatus newStatus
+    );
     event DefaultConfigUpdated(uint256 driftPercentage, uint256 maxSpend, uint256 slippage);
 
     /**
@@ -170,7 +174,7 @@ contract AIMM is IReceiverTemplate {
             minPriceDifference: defaultConfig.driftPercentagePoints,
             maxSpendAmount: defaultConfig.maxSpendAmount,
             slippageToleranceBps: defaultConfig.slippageToleranceBps,
-            status: MarketStatus.Active
+            status: MarketStatus.Inactive
         });
 
         externalMarketIds.push(params.externalMarketId);
@@ -269,7 +273,22 @@ contract AIMM is IReceiverTemplate {
     {
         ExternalMarket storage market = externalMarkets[externalMarketId];
         market.status = newStatus;
-        emit MarketStatusChanged(market.platform, externalMarketId, newStatus);
+    emit MarketStatusUpdated(market.platform, externalMarketId, newStatus);
+    }
+
+    /**
+     * @notice Change market status (emits MarketStatusUpdated event)
+     * @param externalMarketId The market to update
+     * @param newStatus The new market status
+     */
+    function changeMarketStatus(string memory externalMarketId, MarketStatus newStatus)
+        public
+        onlyOwner
+        marketMustExist(externalMarketId)
+    {
+        ExternalMarket storage market = externalMarkets[externalMarketId];
+        market.status = newStatus;
+        emit MarketStatusUpdated(market.platform, externalMarketId, newStatus);
     }
 
     /**

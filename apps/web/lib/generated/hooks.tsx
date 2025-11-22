@@ -1,20 +1,21 @@
+import * as Types from './graphql';
 import { gql } from '@apollo/client';
 import * as Apollo from '@apollo/client';
 const defaultOptions = {} as const;
 
 export const GetMarketsDocument = gql`
-    query GetMarkets {
-  marketss {
-    items {
-      externalId
-      marketName
-      optionAText
-      optionBText
-      platform
+  query GetMarkets {
+    marketss {
+      items {
+        externalId
+        marketName
+        optionAText
+        optionBText
+        platform
+      }
     }
   }
-}
-    `;
+`;
 
 /**
  * __useGetMarketsQuery__
@@ -31,18 +32,26 @@ export const GetMarketsDocument = gql`
  *   },
  * });
  */
-export function useGetMarketsQuery(baseOptions?: Apollo.QueryHookOptions<Types.GetMarketsQuery, Types.GetMarketsQueryVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<Types.GetMarketsQuery, Types.GetMarketsQueryVariables>(GetMarketsDocument, options);
-      }
-export function useGetMarketsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<Types.GetMarketsQuery, Types.GetMarketsQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<Types.GetMarketsQuery, Types.GetMarketsQueryVariables>(GetMarketsDocument, options);
-        }
-export function useGetMarketsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<Types.GetMarketsQuery, Types.GetMarketsQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<Types.GetMarketsQuery, Types.GetMarketsQueryVariables>(GetMarketsDocument, options);
-        }
+export function useGetMarketsQuery(
+  baseOptions?: Apollo.QueryHookOptions<Types.GetMarketsQuery, Types.GetMarketsQueryVariables>
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useQuery<Types.GetMarketsQuery, Types.GetMarketsQueryVariables>(GetMarketsDocument, options);
+}
+export function useGetMarketsLazyQuery(
+  baseOptions?: Apollo.LazyQueryHookOptions<Types.GetMarketsQuery, Types.GetMarketsQueryVariables>
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useLazyQuery<Types.GetMarketsQuery, Types.GetMarketsQueryVariables>(GetMarketsDocument, options);
+}
+export function useGetMarketsSuspenseQuery(
+  baseOptions?:
+    | Apollo.SkipToken
+    | Apollo.SuspenseQueryHookOptions<Types.GetMarketsQuery, Types.GetMarketsQueryVariables>
+) {
+  const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions };
+  return Apollo.useSuspenseQuery<Types.GetMarketsQuery, Types.GetMarketsQueryVariables>(GetMarketsDocument, options);
+}
 export type GetMarketsQueryHookResult = ReturnType<typeof useGetMarketsQuery>;
 export type GetMarketsLazyQueryHookResult = ReturnType<typeof useGetMarketsLazyQuery>;
 export type GetMarketsSuspenseQueryHookResult = ReturnType<typeof useGetMarketsSuspenseQuery>;

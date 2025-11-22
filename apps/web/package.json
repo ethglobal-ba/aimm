@@ -13,6 +13,7 @@
     "codegen": "graphql-codegen --config codegen.ts"
   },
   "dependencies": {
+    "@apollo/client": "^3.11.0",
     "@coinbase/cdp-core": "^0.0.67",
     "@coinbase/cdp-hooks": "^0.0.67",
     "@coinbase/cdp-react": "^0.0.67",

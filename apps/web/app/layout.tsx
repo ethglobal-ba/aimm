@@ -1,10 +1,10 @@
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Bricolage_Grotesque, Geist_Mono } from 'next/font/google';
 import '@workspace/ui/globals.css';
 import { Providers } from '@/components/providers';
 import { AuthGate } from '@/components/auth-gate';
 import { CdpProvider } from '@/components/cdp-provider';
 
-const fontSans = Geist({
+const fontSans = Bricolage_Grotesque({
   subsets: ['latin'],
   variable: '--font-sans',
 });

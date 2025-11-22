@@ -94,7 +94,7 @@ export function AuthGate({ children }: AuthGateProps) {
           {authState === 'connecting' ? (
             <>
               <CardTitle className='text-lg font-semibold tracking-tight'>Preparing your dashboard…</CardTitle>
-              <Text as='p' size='sm' className='text-muted-foreground'>
+              <Text as='p' variant='body' muted>
                 Verifying wallet connection and AIMM vault state.
               </Text>
             </>
@@ -103,22 +103,22 @@ export function AuthGate({ children }: AuthGateProps) {
               <CardTitle className='text-lg font-semibold tracking-tight'>
                 {authState === 'disconnected' ? 'Connect your wallet to continue' : 'Set up your AIMM vault'}
               </CardTitle>
-              <Text as='p' size='sm' className='text-muted-foreground'>
+              <Text as='p' variant='body' muted>
                 {authState === 'disconnected'
                   ? 'AIMM uses your connected wallet to scope access to markets and manage positions.'
-                  : 'This looks like your first time here. Before the agent can trade on your behalf, you’ll deposit into the AIMM vault contract.'}
+                  : 'This looks like your first time here. Before the agent can trade on your behalf, you\'ll deposit into the AIMM vault contract.'}
               </Text>
             </>
           )}
         </CardHeader>
         <CardContent className='space-y-4'>
           {authState === 'connecting' ? (
-            <Text as='p' size='sm' className='text-muted-foreground'>
+            <Text as='p' variant='body' muted>
               Detecting wallet connection…
             </Text>
           ) : authState === 'disconnected' ? (
             <div className='flex flex-col gap-3'>
-              <Text as='p' size='xs' className='text-muted-foreground'>
+              <Text as='p' variant='caption' muted>
                 Click below to sign in with Coinbase CDP embedded wallets. We&apos;ll create a wallet for you under the hood.
               </Text>
               <div className='flex justify-start'>
@@ -127,7 +127,7 @@ export function AuthGate({ children }: AuthGateProps) {
             </div>
           ) : (
             <div className='space-y-3 text-sm'>
-              <Text as='p' size='xs' className='text-muted-foreground'>
+              <Text as='p' variant='caption' muted>
                 For this hackathon build we simulate the vault balance locally. In the full version, this step will
                 check your deposited balance in the AIMM contract on-chain.
               </Text>
@@ -140,20 +140,20 @@ export function AuthGate({ children }: AuthGateProps) {
         </CardContent>
         <CardFooter className='flex flex-col items-stretch gap-2 border-t border-border/50 bg-muted/5 px-6 py-4'>
           {authState === 'disconnected' ? (
-            <Text as='p' size='xs' className='text-muted-foreground'>
-              Once connected, you’ll see your AIMM dashboard here.
+            <Text as='p' variant='caption' muted>
+              Once connected, you&apos;ll see your AIMM dashboard here.
             </Text>
           ) : authState === 'onboarding' ? (
             <>
               <Button size='sm' className='w-full text-xs' onClick={handleCompleteOnboarding}>
                 Simulate deposit & continue
               </Button>
-              <Text as='p' size='xs' className='text-muted-foreground'>
+              <Text as='p' variant='caption' muted>
                 Demo mode only – real deposits will be wired to the AIMM vault contract later.
               </Text>
             </>
           ) : (
-            <Text as='p' size='xs' className='text-muted-foreground'>
+            <Text as='p' variant='caption' muted>
               Waiting for wallet status…
             </Text>
           )}

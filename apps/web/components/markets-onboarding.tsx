@@ -1,24 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Badge } from '@workspace/ui/components/badge';
 import { Button } from '@workspace/ui/components/button';
 import { Checkbox } from '@workspace/ui/components/checkbox';
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@workspace/ui/components/input-group';
 import { Label } from '@workspace/ui/components/label';
 import { Text } from '@workspace/ui/components/text';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@workspace/ui/components/select';
-import { mockMarkets } from '@/lib/mock-data';
-import type { Market } from '@/types/market';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@workspace/ui/components/select';
 import { useDemoOnboarding } from '@/components/demo-onboarding-context';
+import { useGetMarketsQuery } from '@/lib/generated/hooks';
+import { useMarketsStatus } from '@/components/markets-status-context';
+import type { MarketAimmStatus } from '@/types/market';
 
 type AutomationInterval = 'on_price_update' | '5m' | '15m' | '1h';
+
+interface OnboardingMarket {
+  id: string;
+  title: string;
+  platform: string;
+  symbol: string;
+}
 
 interface MarketAutomationConfig {
   driftThresholdPts: number;
@@ -44,38 +46,85 @@ const INTERVAL_OPTIONS: { value: AutomationInterval; label: string }[] = [
 export function MarketsOnboarding() {
   const { isDemoOnboardingMode, toggleDemoOnboardingMode } = useDemoOnboarding();
 
-  const candidateMarkets: Market[] = mockMarkets.filter(market => market.status === 'open');
+  const { data, loading, error } = useGetMarketsQuery();
+  const { setStatus: setAimmStatus } = useMarketsStatus();
 
-  const [selectedMarketIds, setSelectedMarketIds] = useState<string[]>(() =>
-    candidateMarkets.slice(0, 3).map(market => market.id),
-  );
+  const indexerMarkets: OnboardingMarket[] = useMemo(() => {
+    if (!data?.marketss?.items) {
+      return [];
+    }
 
-  const [configsByMarket, setConfigsByMarket] = useState<Record<string, MarketAutomationConfig>>(() => {
-    const initial: Record<string, MarketAutomationConfig> = {};
-    candidateMarkets.forEach(market => {
-      initial[market.id] = { ...DEFAULT_CONFIG };
+    return data.marketss.items.map(item => ({
+      id: item.externalId,
+      title: item.marketName,
+      platform: item.platform,
+      symbol: item.externalId,
+    }));
+  }, [data]);
+
+  const candidateMarkets: OnboardingMarket[] = indexerMarkets;
+
+  const [selectedMarketIds, setSelectedMarketIds] = useState<string[]>([]);
+
+  const [configsByMarket, setConfigsByMarket] = useState<Record<string, MarketAutomationConfig>>({});
+
+  useEffect(() => {
+    if (candidateMarkets.length === 0) {
+      return;
+    }
+
+    setSelectedMarketIds(prevIds => {
+      if (prevIds.length > 0) {
+        const validIds = candidateMarkets.map(market => market.id);
+        return prevIds.filter(id => validIds.includes(id));
+      }
+
+      return candidateMarkets.slice(0, 3).map(market => market.id);
     });
-    return initial;
-  });
+
+    setConfigsByMarket(prevConfigs => {
+      const nextConfigs: Record<string, MarketAutomationConfig> = { ...prevConfigs };
+
+      candidateMarkets.forEach(market => {
+        if (!nextConfigs[market.id]) {
+          nextConfigs[market.id] = { ...DEFAULT_CONFIG };
+        }
+      });
+
+      Object.keys(nextConfigs).forEach(marketId => {
+        if (!candidateMarkets.some(market => market.id === marketId)) {
+          delete nextConfigs[marketId];
+        }
+      });
+
+      return nextConfigs;
+    });
+  }, [candidateMarkets]);
 
   const handleToggleMarket = (marketId: string) => {
     setSelectedMarketIds(prevIds =>
-      prevIds.includes(marketId) ? prevIds.filter(id => id !== marketId) : [...prevIds, marketId],
+      prevIds.includes(marketId) ? prevIds.filter(id => id !== marketId) : [...prevIds, marketId]
     );
   };
 
   const handleConfigChange = <K extends keyof MarketAutomationConfig>(
     marketId: string,
     key: K,
-    value: MarketAutomationConfig[K],
+    value: MarketAutomationConfig[K]
   ) => {
-    setConfigsByMarket(prev => ({
-      ...prev,
-      [marketId]: {
-        ...prev[marketId],
-        [key]: value,
-      },
-    }));
+    setConfigsByMarket(prev => {
+      const existingConfig = prev[marketId] ?? DEFAULT_CONFIG;
+
+      const next: Record<string, MarketAutomationConfig> = {
+        ...prev,
+        [marketId]: {
+          ...existingConfig,
+          [key]: value,
+        },
+      };
+
+      return next;
+    });
   };
 
   const handleCompleteOnboarding = () => {
@@ -94,6 +143,22 @@ export function MarketsOnboarding() {
       window.localStorage.setItem('aimmDemoOnboardingConfig', JSON.stringify(payload));
     }
 
+    /**
+     * MOCK: Map the onboarding selection into AIMM activation statuses.
+     *
+     * In this demo build, we treat selected markets as ACTIVE and all other
+     * candidates as INACTIVE. This is purely a UI affordance; in production the
+     * real activation state will be controlled by AIMM contracts / indexer.
+     */
+    const selectedSet = new Set<string>(selectedMarketIds);
+    const nextActiveStatus: MarketAimmStatus = 'ACTIVE';
+    const nextInactiveStatus: MarketAimmStatus = 'INACTIVE';
+
+    candidateMarkets.forEach(market => {
+      const nextStatus = selectedSet.has(market.id) ? nextActiveStatus : nextInactiveStatus;
+      setAimmStatus(market.id, nextStatus);
+    });
+
     // In demo mode, automatically flip back to the markets table after onboarding.
     if (isDemoOnboardingMode) {
       toggleDemoOnboardingMode();
@@ -106,14 +171,14 @@ export function MarketsOnboarding() {
     <div className='flex h-full flex-col gap-4 p-4 sm:p-6'>
       <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
         <div className='space-y-1'>
-          <div className='inline-flex items-center gap-2 rounded-full bg-primary/10 px-2 py-1 text-[11px] text-primary'>
+          <div className='bg-primary/10 text-primary inline-flex items-center gap-2 rounded-full px-2 py-1 text-[11px]'>
             <span className='font-medium tracking-wide'>Step 1 · Pick markets</span>
           </div>
           <div className='space-y-1'>
             <h2 className='text-foreground text-sm font-semibold tracking-tight sm:text-base'>
               Choose which markets AIMM should manage
             </h2>
-            <Text as='p' size='xs' className='text-muted-foreground max-w-2xl'>
+            <Text as='p' className='text-muted-foreground max-w-2xl text-xs'>
               Select one or more markets to onboard and set per-market automation limits. These settings are demo-only
               and will be wired to the AIMM contract in the full version.
             </Text>
@@ -127,26 +192,24 @@ export function MarketsOnboarding() {
       </div>
 
       <div className='grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]'>
-        <div className='space-y-2 rounded-md border border-border/60 bg-muted/10 p-3 sm:p-4'>
-          <Text as='p' size='xs' className='text-muted-foreground mb-1 font-medium tracking-wide uppercase'>
+        <div className='border-border/60 bg-muted/10 space-y-2 rounded-md border p-3 sm:p-4'>
+          <Text as='p' className='text-muted-foreground mb-1 text-xs font-medium tracking-wide uppercase'>
             Markets
           </Text>
           <div className='space-y-2'>
+            {loading && !error && indexerMarkets.length === 0 ? (
+              <Text as='p' className='text-muted-foreground text-xs'>
+                Loading markets from the AIMM indexer…
+              </Text>
+            ) : null}
             {candidateMarkets.map(market => {
               const isSelected = selectedMarketIds.includes(market.id);
               return (
-                <div
+                <button
                   key={market.id}
-                  role='button'
-                  tabIndex={0}
+                  type='button'
                   onClick={() => handleToggleMarket(market.id)}
-                  onKeyDown={event => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      handleToggleMarket(market.id);
-                    }
-                  }}
-                  className='border-border/60 hover:border-border/80 hover:bg-muted/30 flex w-full items-center justify-between rounded-md border bg-background/40 px-3 py-2 text-left text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60'
+                  className='border-border/60 hover:border-border/80 hover:bg-muted/30 bg-background/40 focus-visible:ring-ring/60 flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none'
                 >
                   <div className='flex items-center gap-3'>
                     <Checkbox
@@ -159,7 +222,7 @@ export function MarketsOnboarding() {
                       <div className='flex items-center gap-2'>
                         <Badge
                           variant='outline'
-                          className='text-muted-foreground border-border/60 h-4 rounded-sm px-1.5 text-[10px] uppercase tracking-wide'
+                          className='text-muted-foreground border-border/60 h-4 rounded-sm px-1.5 text-[10px] tracking-wide uppercase'
                         >
                           {market.platform}
                         </Badge>
@@ -167,22 +230,19 @@ export function MarketsOnboarding() {
                       </div>
                     </div>
                   </div>
-                  <span className='text-muted-foreground font-mono text-[11px]'>
-                    Live {Math.round(market.livePrice * 100)} · AIMM {Math.round(market.aimmFairPrice * 100)}
-                  </span>
-                </div>
+                </button>
               );
             })}
           </div>
         </div>
 
-        <div className='space-y-3 rounded-md border border-border/60 bg-muted/5 p-3 sm:p-4'>
-          <Text as='p' size='xs' className='text-muted-foreground mb-1 font-medium tracking-wide uppercase'>
+        <div className='border-border/60 bg-muted/5 space-y-3 rounded-md border p-3 sm:p-4'>
+          <Text as='p' className='text-muted-foreground mb-1 text-xs font-medium tracking-wide uppercase'>
             Per-market automation config
           </Text>
 
           {selectedMarketIds.length === 0 ? (
-            <Text as='p' size='xs' className='text-muted-foreground'>
+            <Text as='p' className='text-muted-foreground text-xs'>
               Select at least one market on the left to configure drift thresholds, spend limits, slippage, and
               automation cadence.
             </Text>
@@ -208,7 +268,7 @@ export function MarketsOnboarding() {
                       </div>
                       <Badge
                         variant='outline'
-                        className='text-muted-foreground border-border/60 h-4 rounded-sm px-1.5 text-[10px] uppercase tracking-wide'
+                        className='text-muted-foreground border-border/60 h-4 rounded-sm px-1.5 text-[10px] tracking-wide uppercase'
                       >
                         {market.platform}
                       </Badge>
@@ -231,11 +291,7 @@ export function MarketsOnboarding() {
                             value={config.driftThresholdPts.toString()}
                             onChange={event => {
                               const numeric = Number(event.target.value);
-                              handleConfigChange(
-                                marketId,
-                                'driftThresholdPts',
-                                Number.isNaN(numeric) ? 0 : numeric,
-                              );
+                              handleConfigChange(marketId, 'driftThresholdPts', Number.isNaN(numeric) ? 0 : numeric);
                             }}
                             className='text-right text-xs'
                           />
@@ -301,9 +357,7 @@ export function MarketsOnboarding() {
                         <Label className='text-[11px]'>Automation interval (demo)</Label>
                         <Select
                           value={config.interval}
-                          onValueChange={value =>
-                            handleConfigChange(marketId, 'interval', value as AutomationInterval)
-                          }
+                          onValueChange={value => handleConfigChange(marketId, 'interval', value as AutomationInterval)}
                         >
                           <SelectTrigger size='sm' className='h-8 w-full text-xs'>
                             <SelectValue placeholder='Choose cadence' />
@@ -326,8 +380,8 @@ export function MarketsOnboarding() {
         </div>
       </div>
 
-      <div className='mt-1 flex flex-col gap-2 border-t border-border/40 pt-3 sm:flex-row sm:items-center sm:justify-between'>
-        <Text as='p' size='xs' className='text-muted-foreground'>
+      <div className='border-border/40 mt-1 flex flex-col gap-2 border-t pt-3 sm:flex-row sm:items-center sm:justify-between'>
+        <Text as='p' className='text-muted-foreground text-xs'>
           These settings are per-market and demo-only. In production they will be written to the AIMM contract and used
           by the agent when deciding whether to balance each market.
         </Text>
@@ -347,5 +401,3 @@ export function MarketsOnboarding() {
     </div>
   );
 }
-
-

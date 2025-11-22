@@ -69,7 +69,7 @@ contract AIMMTest is Test {
         assertEq(market.minPriceDifference, DEFAULT_DRIFT_PERCENTAGE);
         assertEq(market.maxSpendAmount, DEFAULT_MAX_SPEND);
         assertEq(market.slippageToleranceBps, DEFAULT_SLIPPAGE);
-        assertEq(uint256(market.status), uint256(AIMM.MarketStatus.Active));
+        assertEq(uint256(market.status), uint256(AIMM.MarketStatus.Inactive));
 
         // Check external market ID was added to array
         string[] memory marketIds = aimm.getAllMarketIds();
@@ -388,6 +388,9 @@ contract AIMMTest is Test {
             initialVolume: 0
         });
         aimm.onboardMarket(params);
+
+        // Activate the market for testing
+        aimm.updateMarketStatus(EXTERNAL_ID, AIMM.MarketStatus.Active);
 
         // Set external prices to 60/40
         _updateExternalPrices(60 * 1e18, 40 * 1e18);

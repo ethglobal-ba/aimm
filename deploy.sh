@@ -28,6 +28,7 @@ ssh $SERVER << EOF
   set -e
   
   cd $REMOTE_DIR
+  docker compose down
   docker compose up --build -d
 EOF
 
