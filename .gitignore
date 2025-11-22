@@ -156,7 +156,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+/apps/agent/lib/
 lib64/
 parts/
 sdist/

@@ -6,8 +6,7 @@
   "packageManager": "bun@1.2.19",
   "workspaces": [
     "apps/*",
-    "packages/*",
-    "apps/aimm/cre-price-fetch"
+    "packages/*"
   ],
   "devDependencies": {
     "@types/bun": "latest",
