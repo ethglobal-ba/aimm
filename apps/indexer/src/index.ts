@@ -11,12 +11,35 @@ import {
 
 // Utility function to convert hex string to readable string
 function hexToString(hex: string): string {
+  // If it doesn't look like hex, return as-is
+  if (!hex || typeof hex !== 'string') {
+    return hex;
+  }
+
   // Remove 0x prefix if present
   const cleanHex = hex.startsWith('0x') ? hex.slice(2) : hex;
 
+  // If it's not a valid hex string, return as-is
+  if (!/^[0-9a-fA-F]*$/.test(cleanHex)) {
+    return hex;
+  }
+
   // Convert hex to bytes and then to UTF-8 string
   try {
-    return Buffer.from(cleanHex, 'hex').toString('utf8').replace(/\0/g, '');
+    const buffer = Buffer.from(cleanHex, 'hex');
+    const decoded = buffer.toString('utf8');
+
+    // Check if the decoded string contains only printable ASCII characters
+    // and no null bytes (except at the end for padding)
+    const cleaned = decoded.replace(/\0+$/, ''); // Remove trailing null bytes
+
+    // If it contains non-printable characters (except common whitespace), it's probably not text
+    if (/[\x00-\x08\x0E-\x1F\x7F-\x9F]/.test(cleaned)) {
+      console.warn(`Hex value appears to be binary data, not text: ${hex}`);
+      return hex; // Return original hex
+    }
+
+    return cleaned || hex; // Return cleaned string or original if empty
   } catch (error) {
     // If conversion fails, return original string
     console.warn(`Failed to convert hex to string: ${hex}`, error);
