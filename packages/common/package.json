@@ -9,6 +9,7 @@
     "build": "tsc"
   },
   "devDependencies": {
+    "@graphql-codegen/cli": "^6.1.0",
     "@types/bun": "latest",
     "@types/minimatch": "^6.0.0"
   },
