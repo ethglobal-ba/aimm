@@ -1,12 +1,12 @@
 import { ponder } from 'ponder:registry';
 import {
+  defaultConfigUpdate,
   market,
   marketConfig,
-  priceUpdate,
   marketStatusChange,
-  defaultConfigUpdate,
-  workflowResult,
   ownershipTransfer,
+  priceUpdate,
+  workflowResult,
 } from '../ponder.schema';
 
 // Market Onboarded Event
@@ -135,12 +135,10 @@ ponder.on('AIMM:MarketStatusChanged', async ({ event, context }) => {
   });
 
   // Update the market status in the market table
-  await db
-    .update(market, { id: externalMarketId })
-    .set({
-      status: Number(newStatus),
-      updatedAt: event.block.timestamp,
-    });
+  await db.update(market, { id: externalMarketId }).set({
+    status: Number(newStatus),
+    updatedAt: event.block.timestamp,
+  });
 });
 
 // Default Config Updated Event

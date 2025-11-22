@@ -4,16 +4,16 @@ import {
   ConsensusAggregationByFields,
   cre,
   type CronPayload,
-  encodeCallMsg,
   getNetwork,
+  hexToBase64,
   HTTPSendRequester,
   identical,
-  LAST_FINALIZED_BLOCK_NUMBER,
   median,
   Runner,
   type Runtime,
+  TxStatus,
 } from '@chainlink/cre-sdk';
-import { type Address, decodeFunctionResult, encodeFunctionData, zeroAddress } from 'viem';
+import { type Address, encodeAbiParameters } from 'viem';
 import { z } from 'zod';
 
 const configSchema = z.object({
@@ -36,6 +36,24 @@ type MarketUpdate = {
 
 type MarketIdsResponse = {
   marketIds: string[];
+};
+
+// Market status enum matching the contract
+enum MarketStatus {
+  Active = 0,
+  ClosedInternal = 1,
+  ClosedExternal = 2,
+}
+
+// WorkflowResult type matching the contract struct
+type WorkflowResult = {
+  workflowName: string;
+  platform: string;
+  externalMarketId: string;
+  optionAPrice: bigint;
+  optionBPrice: bigint;
+  volume: bigint;
+  status: MarketStatus;
 };
 
 // GraphQL response interfaces
@@ -110,7 +128,6 @@ const convertPriceToSixDecimals = (priceInCents: number): bigint => {
 const convertVolume = (volume: number): bigint => {
   return BigInt(Math.round(volume * 1e18)); // Standard 18-decimal scaling for volume
 };
-
 
 // Fetch tracked market IDs from the AIMM contract - COMMENTED OUT
 // const fetchTrackedMarketsFromChain = (runtime: Runtime<Config>, evmConfig: Config): readonly string[] => {
@@ -198,10 +215,7 @@ const fetchSingleMarketUpdate = (
 };
 
 // Fetch tracked market IDs from indexer - following the same pattern as fetchSingleMarketUpdate
-const fetchMarketIds = (
-  sendRequester: HTTPSendRequester,
-  config: Config
-): MarketIdsResponse => {
+const fetchMarketIds = (sendRequester: HTTPSendRequester, config: Config): MarketIdsResponse => {
   const query = {
     query: `query OpenMarkets {
   marketss(where: {status: 0}) {
@@ -217,13 +231,19 @@ const fetchMarketIds = (
 }`,
   };
 
+  // Serialize the data to JSON and encode as bytes
+  const bodyBytes = new TextEncoder().encode(JSON.stringify(query));
+
+  // Convert to base64 for the request
+  const body = Buffer.from(bodyBytes).toString('base64');
+
   const req = {
-    url: `${config.aimmIndexerUrl}/graphql`,
+    url: `${config.aimmIndexerUrl}`,
     method: 'POST' as const,
+    body,
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(query),
   };
 
   const resp = sendRequester.sendRequest(req).result();
@@ -246,6 +266,87 @@ const fetchMarketIds = (
   } satisfies MarketIdsResponse;
 };
 
+// Write market price updates to AIMM contract - following the same pattern as updateReserves
+const updateAIMMPrices = (runtime: Runtime<Config>, workflowResult: WorkflowResult): string => {
+  runtime.log(
+    `Updating AIMM prices for market ${workflowResult.externalMarketId}: optionA=${workflowResult.optionAPrice.toString()}, optionB=${workflowResult.optionBPrice.toString()}`
+  );
+
+  const network = getNetwork({
+    chainFamily: 'evm',
+    chainSelectorName: runtime.config.chainSelectorName,
+    isTestnet: true,
+  });
+
+  if (!network) {
+    throw new Error(`Network not found for chain selector name: ${runtime.config.chainSelectorName}`);
+  }
+
+  const evmClient = new cre.capabilities.EVMClient(network.chainSelector.selector);
+
+  // ABI encode the WorkflowResult struct for the onReport function
+  // The onReport function expects (bytes metadata, bytes report)
+  // where report is the ABI-encoded WorkflowResult struct
+  const reportData = encodeAbiParameters(
+    [
+      {
+        type: 'tuple',
+        components: [
+          { name: 'workflowName', type: 'string' },
+          { name: 'platform', type: 'string' },
+          { name: 'externalMarketId', type: 'string' },
+          { name: 'optionAPrice', type: 'uint256' },
+          { name: 'optionBPrice', type: 'uint256' },
+          { name: 'volume', type: 'uint256' },
+          { name: 'status', type: 'uint8' },
+        ],
+      },
+    ],
+    [
+      {
+        workflowName: workflowResult.workflowName,
+        platform: workflowResult.platform,
+        externalMarketId: workflowResult.externalMarketId,
+        optionAPrice: workflowResult.optionAPrice,
+        optionBPrice: workflowResult.optionBPrice,
+        volume: workflowResult.volume,
+        status: workflowResult.status,
+      },
+    ]
+  );
+
+  // Generate report using consensus capability
+  const reportResponse = runtime
+    .report({
+      encodedPayload: hexToBase64(reportData),
+      encoderName: 'evm',
+      signingAlgo: 'ecdsa',
+      hashingAlgo: 'keccak256',
+    })
+    .result();
+
+  const resp = evmClient
+    .writeReport(runtime, {
+      receiver: runtime.config.aimmContractAddress as Address,
+      report: reportResponse,
+      gasConfig: {
+        gasLimit: runtime.config.gasLimit,
+      },
+    })
+    .result();
+
+  const txStatus = resp.txStatus;
+
+  if (txStatus !== TxStatus.SUCCESS) {
+    throw new Error(`Failed to write report: ${resp.errorMessage || txStatus}`);
+  }
+
+  const txHash = resp.txHash || new Uint8Array(32);
+
+  runtime.log(`Write report transaction succeeded at txHash: ${bytesToHex(txHash)}`);
+
+  return bytesToHex(txHash);
+};
 
 const updateAllMarkets = (runtime: Runtime<Config>): string => {
   runtime.log(`Updating all markets`);
@@ -254,7 +355,7 @@ const updateAllMarkets = (runtime: Runtime<Config>): string => {
 
   // Get tracked markets from indexer using the same pattern as Kalshi fetching
   runtime.log(`Fetching tracked markets from indexer`);
-  
+
   const marketIdsResponse = httpCapability
     .sendRequest(
       runtime,
@@ -271,6 +372,9 @@ const updateAllMarkets = (runtime: Runtime<Config>): string => {
 
   const trackedMarkets = trackedMarketIds.map(id => ({ externalMarketId: id }));
   runtime.log(`Fetching Kalshi market prices for ${trackedMarkets.length} markets`);
+
+  // Collect all market updates
+  const marketUpdates: MarketUpdate[] = [];
 
   for (const trackedMarket of trackedMarkets) {
     runtime.log(`Fetching data for market: ${trackedMarket.externalMarketId}`);
@@ -290,6 +394,7 @@ const updateAllMarkets = (runtime: Runtime<Config>): string => {
         .result();
 
       runtime.log(`Market data for ${trackedMarket.externalMarketId}: ${safeJsonStringify(currentMarketPrices)}`);
+      marketUpdates.push(currentMarketPrices);
     } catch (error) {
       runtime.log(`Error fetching data for market ${trackedMarket.externalMarketId}: ${error}`);
       // Continue with other markets even if one fails
@@ -297,9 +402,31 @@ const updateAllMarkets = (runtime: Runtime<Config>): string => {
     }
   }
 
-  // Update AIMM contract with all market data
-  // return updateAIMMPrices(runtime, marketUpdates);
-  return 'success';
+  // Convert market updates to workflow results and write to AIMM contract
+  runtime.log(`Writing ${marketUpdates.length} market updates to AIMM contract`);
+  
+  for (const marketUpdate of marketUpdates) {
+    try {
+      const workflowResult: WorkflowResult = {
+        workflowName: 'currentPriceFetch',
+        platform: 'kalshi', // Since we're fetching from Kalshi
+        externalMarketId: marketUpdate.externalMarketId,
+        optionAPrice: marketUpdate.optionAPrice,
+        optionBPrice: marketUpdate.optionBPrice,
+        volume: marketUpdate.volume,
+        status: MarketStatus.Active, // Default to active for current price updates
+      };
+
+      const txHash = updateAIMMPrices(runtime, workflowResult);
+      runtime.log(`Successfully updated AIMM contract for market ${marketUpdate.externalMarketId}, txHash: ${txHash}`);
+    } catch (error) {
+      runtime.log(`Error updating AIMM contract for market ${marketUpdate.externalMarketId}: ${error}`);
+      // Continue with other markets even if one fails
+      continue;
+    }
+  }
+
+  return `Successfully processed ${marketUpdates.length} markets`;
 };
 
 const onCronTrigger = (runtime: Runtime<Config>, payload: CronPayload): string => {

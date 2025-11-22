@@ -1,5 +1,5 @@
-import { createConfig } from 'ponder';
 import { aimmAbi } from '@aimm/common';
+import { createConfig } from 'ponder';
 
 export default createConfig({
   database: {
@@ -20,7 +20,6 @@ export default createConfig({
       abi: aimmAbi,
       address: '0xff3F84978B81f0457584919213fdDeBD579E74B1',
       startBlock: 34030442, // Start from a safe block that exists
-
     },
   },
   options: {
