@@ -84,6 +84,25 @@
   },
   {
     "type": "function",
+    "name": "externalMarketIds",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "externalMarkets",
     "inputs": [
       {
@@ -94,7 +113,7 @@
     ],
     "outputs": [
       {
-        "name": "externalId",
+        "name": "platform",
         "type": "string",
         "internalType": "string"
       },
@@ -134,7 +153,17 @@
         "internalType": "uint256"
       },
       {
-        "name": "lastPriceUpdate",
+        "name": "lastCurrentPriceUpdate",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "lastFairPriceUpdate",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "volume",
         "type": "uint256",
         "internalType": "uint256"
       },
@@ -192,7 +221,7 @@
     "name": "getMarket",
     "inputs": [
       {
-        "name": "marketId",
+        "name": "externalMarketId",
         "type": "string",
         "internalType": "string"
       }
@@ -204,7 +233,7 @@
         "internalType": "struct AIMM.ExternalMarket",
         "components": [
           {
-            "name": "externalId",
+            "name": "platform",
             "type": "string",
             "internalType": "string"
           },
@@ -244,7 +273,17 @@
             "internalType": "uint256"
           },
           {
-            "name": "lastPriceUpdate",
+            "name": "lastCurrentPriceUpdate",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "lastFairPriceUpdate",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "volume",
             "type": "uint256",
             "internalType": "uint256"
           },
@@ -288,7 +327,12 @@
             "internalType": "string"
           },
           {
-            "name": "marketId",
+            "name": "platform",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "externalMarketId",
             "type": "string",
             "internalType": "string"
           },
@@ -303,19 +347,14 @@
             "internalType": "uint256"
           },
           {
-            "name": "offchainValue",
+            "name": "volume",
             "type": "uint256",
             "internalType": "uint256"
           },
           {
-            "name": "onchainValue",
-            "type": "int256",
-            "internalType": "int256"
-          },
-          {
-            "name": "finalResult",
-            "type": "uint256",
-            "internalType": "uint256"
+            "name": "status",
+            "type": "uint8",
+            "internalType": "enum AIMM.MarketStatus"
           }
         ]
       }
@@ -340,7 +379,12 @@
         "internalType": "string"
       },
       {
-        "name": "marketId",
+        "name": "platform",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "externalMarketId",
         "type": "string",
         "internalType": "string"
       },
@@ -355,38 +399,14 @@
         "internalType": "uint256"
       },
       {
-        "name": "offchainValue",
+        "name": "volume",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "onchainValue",
-        "type": "int256",
-        "internalType": "int256"
-      },
-      {
-        "name": "finalResult",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "marketIds",
-    "inputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "string",
-        "internalType": "string"
+        "name": "status",
+        "type": "uint8",
+        "internalType": "enum AIMM.MarketStatus"
       }
     ],
     "stateMutability": "view"
@@ -414,29 +434,51 @@
     "name": "onboardMarket",
     "inputs": [
       {
-        "name": "marketId",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "externalId",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "marketName",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "optionAText",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "optionBText",
-        "type": "string",
-        "internalType": "string"
+        "name": "params",
+        "type": "tuple",
+        "internalType": "struct AIMM.OnboardMarketParams",
+        "components": [
+          {
+            "name": "externalMarketId",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "platform",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "marketName",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "optionAText",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "optionBText",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "optionACurrentExternalPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "optionBCurrentExternalPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "initialVolume",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
       }
     ],
     "outputs": [],
@@ -492,7 +534,12 @@
         "internalType": "string"
       },
       {
-        "name": "marketId",
+        "name": "platform",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "externalMarketId",
         "type": "string",
         "internalType": "string"
       },
@@ -507,19 +554,14 @@
         "internalType": "uint256"
       },
       {
-        "name": "offchainValue",
+        "name": "volume",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "onchainValue",
-        "type": "int256",
-        "internalType": "int256"
-      },
-      {
-        "name": "finalResult",
-        "type": "uint256",
-        "internalType": "uint256"
+        "name": "status",
+        "type": "uint8",
+        "internalType": "enum AIMM.MarketStatus"
       }
     ],
     "stateMutability": "view"
@@ -578,28 +620,10 @@
   },
   {
     "type": "function",
-    "name": "setMarketStatus",
-    "inputs": [
-      {
-        "name": "marketId",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "newStatus",
-        "type": "uint8",
-        "internalType": "enum AIMM.MarketStatus"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "shouldBalancePrice",
     "inputs": [
       {
-        "name": "marketId",
+        "name": "externalMarketId",
         "type": "string",
         "internalType": "string"
       }
@@ -683,7 +707,7 @@
     "name": "updateMarketConfig",
     "inputs": [
       {
-        "name": "marketId",
+        "name": "externalMarketId",
         "type": "string",
         "internalType": "string"
       },
@@ -707,6 +731,24 @@
     "stateMutability": "nonpayable"
   },
   {
+    "type": "function",
+    "name": "updateMarketStatus",
+    "inputs": [
+      {
+        "name": "externalMarketId",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "newStatus",
+        "type": "uint8",
+        "internalType": "enum AIMM.MarketStatus"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
     "type": "event",
     "name": "CurrentPricesUpdated",
     "inputs": [
@@ -717,7 +759,7 @@
         "internalType": "string"
       },
       {
-        "name": "marketId",
+        "name": "externalMarketId",
         "type": "string",
         "indexed": true,
         "internalType": "string"
@@ -773,7 +815,7 @@
         "internalType": "string"
       },
       {
-        "name": "marketId",
+        "name": "externalMarketId",
         "type": "string",
         "indexed": true,
         "internalType": "string"
@@ -804,7 +846,7 @@
         "internalType": "string"
       },
       {
-        "name": "marketId",
+        "name": "externalMarketId",
         "type": "string",
         "indexed": true,
         "internalType": "string"
@@ -841,7 +883,7 @@
         "internalType": "string"
       },
       {
-        "name": "marketId",
+        "name": "externalMarketId",
         "type": "string",
         "indexed": true,
         "internalType": "string"
@@ -878,7 +920,7 @@
         "internalType": "string"
       },
       {
-        "name": "marketId",
+        "name": "externalMarketId",
         "type": "string",
         "indexed": true,
         "internalType": "string"

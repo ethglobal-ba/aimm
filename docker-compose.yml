@@ -26,5 +26,22 @@ services:
     depends_on:
       - postgres
 
+  indexer:
+    build:
+      context: ./apps/indexer
+      dockerfile: Dockerfile
+    ports:
+      - "42069:42069"  # Ponder default API port
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - ./apps/indexer/.env.local
+    volumes:
+      - ./apps/indexer:/app
+      - /app/node_modules  # Anonymous volume to avoid overwriting node_modules
+    restart: unless-stopped
+    depends_on:
+      - postgres
+
 volumes:
   postgres_data:
