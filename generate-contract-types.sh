@@ -29,23 +29,12 @@ cp types/generated.ts "../$CONTRACT_TYPES_FILE"
 cp types/generated.ts "../$CONTRACT_TYPES_FILE_INDEXER"
 cp types/generated.ts "../$CONTRACT_TYPES_FILE_SCRIPTS"
 
-# # Copy ABI files to apps in case they need them (common json import is glitchy)
-# echo "Copying TlonToken.json and TokenFactory.json to apps..."
-# mkdir -p "../apps/project-discovery-agent/src/types/__generated__"
-# mkdir -p "../apps/project-scoring-agent/src/types/__generated__"
-# mkdir -p "../apps/backend/src/types/__generated__"
-# mkdir -p "../apps/frontend/src/types/__generated__"
-# mkdir -p "../apps/indexer/abis"
-# cp out/TlonToken.sol/TlonToken.json "../apps/project-discovery-agent/src/types/__generated__/TlonToken.json"
-# cp out/TlonToken.sol/TlonToken.json "../apps/project-scoring-agent/src/types/__generated__/TlonToken.json"
-# cp out/TlonToken.sol/TlonToken.json "../apps/backend/src/types/__generated__/TlonToken.json"
-# cp out/TlonToken.sol/TlonToken.json "../apps/frontend/src/types/__generated__/TlonToken.json"
-# cp out/TlonToken.sol/TlonToken.json "../apps/indexer/abis/TlonToken.json"
-# cp out/TokenFactory.sol/TokenFactory.json "../apps/project-discovery-agent/src/types/__generated__/TokenFactory.json"
-# cp out/TokenFactory.sol/TokenFactory.json "../apps/project-scoring-agent/src/types/__generated__/TokenFactory.json"
-# cp out/TokenFactory.sol/TokenFactory.json "../apps/backend/src/types/__generated__/TokenFactory.json"
-# cp out/TokenFactory.sol/TokenFactory.json "../apps/frontend/src/types/__generated__/TokenFactory.json"
-# cp out/TokenFactory.sol/TokenFactory.json "../apps/indexer/abis/TokenFactory.json"
+# Copy ABI files to agent apps in case they need them (common json import is glitchy)
+echo "Copying AIMM.json to agent apps..."
+mkdir -p "../apps/agent/src/types/__generated__"
+mkdir -p "../apps/aimm-agent/src/types/__generated__"
+cp out/AIMM.sol/AIMM.json "../apps/agent/src/types/__generated__/AIMM.json"
+cp out/AIMM.sol/AIMM.json "../apps/aimm-agent/src/types/__generated__/AIMM.json"
 
 # Clean up temporary directory from contracts
 rm -rf types

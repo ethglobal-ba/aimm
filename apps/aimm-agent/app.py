@@ -10,12 +10,56 @@ def home():
 
 
 @app.route("/updatePrice", methods=["POST"])
-def update_price(price):
+def update_price():
     try:
         print("Updating price at /updatePrice")
-        # Here you can add logic to handle the price update
-        return jsonify({"status": "success", "price": price}), 200
+
+        # Get request data
+        data = request.get_json()
+        if not data:
+            return jsonify({"status": "error", "message": "No JSON data provided"}), 400
+
+        event_ticker = data.get("event_ticker")
+        market_ticker = data.get("market_ticker")
+
+        if not event_ticker or not market_ticker:
+            return jsonify({
+                "status": "error",
+                "message": "event_ticker and market_ticker are required"
+            }), 400
+
+        # Import the market maker analysis function
+        from src.agents.market_maker_stateful import analyze_market_stateful
+
+        # Run the fair price analysis
+        print(f"Running fair price analysis for {event_ticker}/{market_ticker}")
+        result = analyze_market_stateful(event_ticker, market_ticker)
+
+        if not result:
+            return jsonify({
+                "status": "error",
+                "message": "Failed to analyze market"
+            }), 500
+
+        # Extract key results
+        response = {
+            "status": "success",
+            "event_ticker": event_ticker,
+            "market_ticker": market_ticker,
+            "research_fair_price": result["research_fair_price"],
+            "orderbook_mid_price": result["orderbook_mid_price"],
+            "final_fair_price": result["final_fair_price"],
+            "final_spread": result["final_spread"],
+            "price_delta": result["price_delta"],
+            "final_orders": result["final_orders"]
+        }
+
+        return jsonify(response), 200
+
     except Exception as e:
+        import traceback
+        print(f"Error in update_price: {e}")
+        print(traceback.format_exc())
         return jsonify({"status": "error", "message": str(e)}), 400
 
 
