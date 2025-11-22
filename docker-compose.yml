@@ -1,0 +1,20 @@
+# Include the database compose file
+include:
+  - path: ./packages/db/docker-compose.yml
+
+services:
+  agent:
+    build:
+      context: ./apps/agent
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5000"
+    environment:
+      - FLASK_ENV=development
+    env_file:
+      - ./apps/agent/.env
+    volumes:
+      - ./apps/agent:/app
+    restart: unless-stopped
+    depends_on:
+      - postgres

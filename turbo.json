@@ -1,0 +1,120 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "globalEnv": [
+    "TURBO_TELEMETRY_DISABLED=1",
+    "NEXT_TELEMETRY_DISABLED=1",
+    "DO_NOT_TRACK=1",
+    "STORYBOOK_DISABLE_TELEMETRY=1",
+    "CLAUDE_CODE_ENABLE_TELEMETRY=0"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": [
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "TURBO_TELEMETRY_DISABLED=1",
+        "NEXT_TELEMETRY_DISABLED=1",
+        "DO_NOT_TRACK=1",
+        "STORYBOOK_DISABLE_TELEMETRY=1",
+        "CLAUDE_CODE_ENABLE_TELEMETRY=0"
+      ]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "env": [
+        "SUPABASE_URL",
+        "SUPABASE_SECRET_KEY",
+        "INDEXER_RPC_URL",
+        "BASE_SEPOLIA_RPC_URL",
+        "BASE_SEPOLIA_PRIVATE_KEY",
+        "VENICE_API_KEY",
+        "CLOUDFRONT_DOMAIN",
+        "CHAIN_ID",
+        "TURBO_TELEMETRY_DISABLED",
+        "NEXT_TELEMETRY_DISABLED",
+        "DO_NOT_TRACK",
+        "STORYBOOK_DISABLE_TELEMETRY",
+        "CLAUDE_CODE_ENABLE_TELEMETRY"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": ["^build"],
+      "env": [
+        "SUPABASE_URL",
+        "SUPABASE_SECRET_KEY",
+        "INDEXER_RPC_URL",
+        "BASE_SEPOLIA_RPC_URL",
+        "BASE_SEPOLIA_PRIVATE_KEY",
+        "VENICE_API_KEY",
+        "CLOUDFRONT_DOMAIN",
+        "CHAIN_ID",
+        "TURBO_TELEMETRY_DISABLED",
+        "NEXT_TELEMETRY_DISABLED",
+        "DO_NOT_TRACK",
+        "STORYBOOK_DISABLE_TELEMETRY",
+        "CLAUDE_CODE_ENABLE_TELEMETRY"
+      ]
+    },
+    "test:e2e": {
+      "dependsOn": ["^build"],
+      "env": [
+        "SUPABASE_URL",
+        "SUPABASE_SECRET_KEY",
+        "INDEXER_RPC_URL",
+        "BASE_SEPOLIA_RPC_URL",
+        "BASE_SEPOLIA_PRIVATE_KEY",
+        "VENICE_API_KEY",
+        "CLOUDFRONT_DOMAIN",
+        "CHAIN_ID",
+        "TURBO_TELEMETRY_DISABLED",
+        "NEXT_TELEMETRY_DISABLED",
+        "DO_NOT_TRACK",
+        "STORYBOOK_DISABLE_TELEMETRY",
+        "CLAUDE_CODE_ENABLE_TELEMETRY"
+      ]
+    },
+    "lint": {
+      "dependsOn": ["^build"],
+      "env": [
+        "TURBO_TELEMETRY_DISABLED",
+        "NEXT_TELEMETRY_DISABLED",
+        "DO_NOT_TRACK",
+        "STORYBOOK_DISABLE_TELEMETRY",
+        "CLAUDE_CODE_ENABLE_TELEMETRY"
+      ]
+    },
+    "lint:fix": {
+      "dependsOn": ["^build"],
+      "env": [
+        "TURBO_TELEMETRY_DISABLED",
+        "NEXT_TELEMETRY_DISABLED",
+        "DO_NOT_TRACK",
+        "STORYBOOK_DISABLE_TELEMETRY",
+        "CLAUDE_CODE_ENABLE_TELEMETRY"
+      ]
+    },
+
+    "format": {
+      "outputs": [],
+      "env": [
+        "TURBO_TELEMETRY_DISABLED",
+        "NEXT_TELEMETRY_DISABLED",
+        "DO_NOT_TRACK",
+        "STORYBOOK_DISABLE_TELEMETRY",
+        "CLAUDE_CODE_ENABLE_TELEMETRY"
+      ]
+    },
+    "format:check": {
+      "outputs": [],
+      "env": [
+        "TURBO_TELEMETRY_DISABLED",
+        "NEXT_TELEMETRY_DISABLED",
+        "DO_NOT_TRACK",
+        "STORYBOOK_DISABLE_TELEMETRY",
+        "CLAUDE_CODE_ENABLE_TELEMETRY"
+      ]
+    }
+  }
+}

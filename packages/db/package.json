@@ -1,0 +1,11 @@
+
+{
+  "name": "@aimm/db",
+  "type": "module",
+  "scripts": {
+    "db:start": "docker compose up -d",
+    "db:watch": "docker compose up",
+    "db:stop": "docker compose stop",
+    "db:down": "docker compose down"
+  }
+}

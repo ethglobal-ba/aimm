@@ -1,0 +1,28 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+via_ir = true
+optimizer = true
+optimizer_runs = 1000
+remappings = [
+    "@chainlink/contracts/=lib/chainlink-brownie-contracts/contracts/",
+    "@chainlink/contracts-ccip/=lib/chainlink-brownie-contracts/contracts/src/v0.8/ccip/",
+    "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/"
+]
+
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+
+[rpc_endpoints]
+mainnet = "${RPC_1}"
+sepolia = "${RPC_11155111}"
+base_sepolia = "${RPC_84532}"
+
+[fmt]
+line_length = 100
+
+[etherscan]
+sepolia = { key = "${VERIFICATION_KEY_1}" }
+base_sepolia = { key = "${VERIFICATION_KEY_1}"}
+

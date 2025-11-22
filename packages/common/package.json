@@ -1,0 +1,18 @@
+{
+  "name": "@aimm/common",
+  "module": "index.ts",
+  "type": "module",
+  "packageManager": "bun@1.2.19",
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/minimatch": "^6.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "contracts",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@pythnetwork/pyth-sdk-solidity": "^4.3.1",
+    "@wagmi/cli": "^2.8.0"
+  }
+}

@@ -1,0 +1,11 @@
+import { Loading03Icon } from 'hugeicons-react';
+
+import { cn } from '@workspace/ui/lib/utils';
+
+function Spinner({ className, ...props }: React.ComponentProps<'svg'>) {
+  return (
+    <Loading03Icon role='status' aria-label='Loading' className={cn('size-4 animate-spin', className)} {...props} />
+  );
+}
+
+export { Spinner };
