@@ -89,7 +89,7 @@ const convertVolume = (volume: number): bigint => {
 };
 
 // Fetch tracked market IDs from the AIMM contract
-const fetchTrackedMarkets = (runtime: Runtime<Config>, evmConfig: Config): readonly string[] => {
+const fetchTrackedMarketsFromChain = (runtime: Runtime<Config>, evmConfig: Config): readonly string[] => {
   runtime.log(
     `Fetching tracked markets from contract: ${runtime.config.aimmContractAddress}, using ${evmConfig.chainSelectorName} chain selector`
   );
@@ -105,12 +105,15 @@ const fetchTrackedMarkets = (runtime: Runtime<Config>, evmConfig: Config): reado
   }
 
   const evmClient = new cre.capabilities.EVMClient(network.chainSelector.selector);
+  runtime.log('Building call data for fetch markets');
 
   // Encode the contract call data for getAllMarketIds
   const callData = encodeFunctionData({
     abi: aimmAbi,
     functionName: 'getAllMarketIds',
   });
+
+  runtime.log("")
 
   const contractCall = evmClient
     .callContract(runtime, {
@@ -174,7 +177,7 @@ const updateAllMarkets = (runtime: Runtime<Config>): string => {
   runtime.log(`Updating all markets`);
 
   // Get tracked markets from contract
-  const trackedMarketIds = fetchTrackedMarkets(runtime, runtime.config);
+  const trackedMarketIds = fetchTrackedMarketsFromChain(runtime, runtime.config);
   runtime.log(`Found ${trackedMarketIds.length} tracked markets from contract: ${trackedMarketIds.join(', ')}`);
 
   const trackedMarkets = trackedMarketIds.map(id => ({ externalMarketId: id }));
