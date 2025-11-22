@@ -1,4 +1,4 @@
-import { aimmAbi } from '@aimm/common/src/types/__generated__/contract.types';
+import { AIMMABI } from '../../indexer/abis/AIMMABI';
 import {
   bytesToHex,
   ConsensusAggregationByFields,
@@ -22,6 +22,7 @@ const configSchema = z.object({
   aimmContractAddress: z.string(),
   chainSelectorName: z.string(),
   gasLimit: z.string(),
+  aimmIndexerUrl: z.string(),
 });
 
 type Config = z.infer<typeof configSchema>;
@@ -32,6 +33,28 @@ type MarketUpdate = {
   optionBPrice: bigint;
   volume: bigint;
 };
+
+type MarketIdsResponse = {
+  marketIds: string[];
+};
+
+// GraphQL response interfaces
+interface IndexerMarket {
+  externalId: string;
+  marketName: string;
+  optionAText: string;
+  optionBText: string;
+  platform: string;
+  status: number;
+}
+
+interface IndexerResponse {
+  data: {
+    marketss: {
+      items: IndexerMarket[];
+    };
+  };
+}
 
 // Kalshi API response interface
 interface KalshiApiResponse {
@@ -75,7 +98,7 @@ interface KalshiMarket {
 }
 
 // Utility function to safely stringify objects with bigints
-const safeJsonStringify = (obj: any): string =>
+const safeJsonStringify = (obj: unknown): string =>
   JSON.stringify(obj, (_, value) => (typeof value === 'bigint' ? value.toString() : value), 2);
 
 // Convert price from Kalshi format (cents) to 6-decimal format for USDC compatibility
@@ -88,57 +111,58 @@ const convertVolume = (volume: number): bigint => {
   return BigInt(Math.round(volume * 1e18)); // Standard 18-decimal scaling for volume
 };
 
-// Fetch tracked market IDs from the AIMM contract
-const fetchTrackedMarketsFromChain = (runtime: Runtime<Config>, evmConfig: Config): readonly string[] => {
-  runtime.log(
-    `Fetching tracked markets from contract: ${runtime.config.aimmContractAddress}, using ${evmConfig.chainSelectorName} chain selector`
-  );
-  const network = getNetwork({
-    chainFamily: 'evm',
-    chainSelectorName: evmConfig.chainSelectorName,
-    isTestnet: true,
-  });
 
-  runtime.log(`Network: ${safeJsonStringify(network)}`);
-  if (!network) {
-    throw new Error(`Network not found for chain selector name: ${evmConfig.chainSelectorName}`);
-  }
+// Fetch tracked market IDs from the AIMM contract - COMMENTED OUT
+// const fetchTrackedMarketsFromChain = (runtime: Runtime<Config>, evmConfig: Config): readonly string[] => {
+//   runtime.log(
+//     `Fetching tracked markets from contract: ${runtime.config.aimmContractAddress}, using ${evmConfig.chainSelectorName} chain selector`
+//   );
+//   const network = getNetwork({
+//     chainFamily: 'evm',
+//     chainSelectorName: evmConfig.chainSelectorName,
+//     isTestnet: true,
+//   });
 
-  const evmClient = new cre.capabilities.EVMClient(network.chainSelector.selector);
-  runtime.log('Building call data for fetch markets');
+//   runtime.log(`Network: ${safeJsonStringify(network)}`);
+//   if (!network) {
+//     throw new Error(`Network not found for chain selector name: ${evmConfig.chainSelectorName}`);
+//   }
 
-  // Encode the contract call data for getAllMarketIds
-  const callData = encodeFunctionData({
-    abi: aimmAbi,
-    functionName: 'getAllMarketIds',
-  });
+//   const evmClient = new cre.capabilities.EVMClient(network.chainSelector.selector);
+//   runtime.log('Building call data for fetch markets');
 
-  runtime.log("")
+//   // Encode the contract call data for getAllMarketIds
+//   const callData = encodeFunctionData({
+//     abi: AIMMABI,
+//     functionName: 'getAllMarketIds',
+//   });
 
-  const contractCall = evmClient
-    .callContract(runtime, {
-      call: encodeCallMsg({
-        from: zeroAddress,
-        to: evmConfig.aimmContractAddress as Address,
-        data: callData,
-      }),
-      blockNumber: LAST_FINALIZED_BLOCK_NUMBER,
-    })
-    .result();
+//   runtime.log("")
 
-  // Decode the result
-  const marketIds = decodeFunctionResult({
-    abi: aimmAbi,
-    functionName: 'getAllMarketIds',
-    data: bytesToHex(contractCall.data),
-  });
+//   const contractCall = evmClient
+//     .callContract(runtime, {
+//       call: encodeCallMsg({
+//         from: zeroAddress,
+//         to: evmConfig.aimmContractAddress as Address,
+//         data: callData,
+//       }),
+//       blockNumber: LAST_FINALIZED_BLOCK_NUMBER,
+//     })
+//     .result();
 
-  if (!marketIds || marketIds.length === 0) {
-    throw new Error('No market IDs returned from contract');
-  }
+//   // Decode the result
+//   const marketIds = decodeFunctionResult({
+//     abi: AIMMABI,
+//     functionName: 'getAllMarketIds',
+//     data: bytesToHex(contractCall.data),
+//   });
 
-  return marketIds;
-};
+//   if (!marketIds || marketIds.length === 0) {
+//     throw new Error('No market IDs returned from contract');
+//   }
+
+//   return marketIds;
+// };
 
 // Fetch a single Kalshi market and convert to our market update format
 const fetchSingleMarketUpdate = (
@@ -173,17 +197,80 @@ const fetchSingleMarketUpdate = (
   } satisfies MarketUpdate;
 };
 
+// Fetch tracked market IDs from indexer - following the same pattern as fetchSingleMarketUpdate
+const fetchMarketIds = (
+  sendRequester: HTTPSendRequester,
+  config: Config
+): MarketIdsResponse => {
+  const query = {
+    query: `query OpenMarkets {
+  marketss(where: {status: 0}) {
+    items {
+      externalId
+      marketName
+      optionAText
+      optionBText
+      platform
+      status
+    }
+  }
+}`,
+  };
+
+  const req = {
+    url: `${config.aimmIndexerUrl}/graphql`,
+    method: 'POST' as const,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(query),
+  };
+
+  const resp = sendRequester.sendRequest(req).result();
+
+  if (resp.statusCode !== 200) {
+    throw new Error(`Indexer GraphQL request failed with status: ${resp.statusCode}`);
+  }
+
+  const bodyText = new TextDecoder().decode(resp.body);
+  const indexerResponse = JSON.parse(bodyText) as IndexerResponse;
+
+  const marketIds = indexerResponse.data.marketss.items.map(market => market.externalId);
+
+  if (!marketIds || marketIds.length === 0) {
+    throw new Error('No market IDs returned from indexer');
+  }
+
+  return {
+    marketIds,
+  } satisfies MarketIdsResponse;
+};
+
+
 const updateAllMarkets = (runtime: Runtime<Config>): string => {
   runtime.log(`Updating all markets`);
 
-  // Get tracked markets from contract
-  const trackedMarketIds = fetchTrackedMarketsFromChain(runtime, runtime.config);
-  runtime.log(`Found ${trackedMarketIds.length} tracked markets from contract: ${trackedMarketIds.join(', ')}`);
+  const httpCapability = new cre.capabilities.HTTPClient();
+
+  // Get tracked markets from indexer using the same pattern as Kalshi fetching
+  runtime.log(`Fetching tracked markets from indexer`);
+  
+  const marketIdsResponse = httpCapability
+    .sendRequest(
+      runtime,
+      fetchMarketIds,
+      ConsensusAggregationByFields<MarketIdsResponse>({
+        marketIds: identical,
+      })
+    )(runtime.config)
+    .result();
+
+  const trackedMarketIds = marketIdsResponse.marketIds;
+
+  runtime.log(`Found ${trackedMarketIds.length} tracked markets from indexer: ${trackedMarketIds.join(', ')}`);
 
   const trackedMarkets = trackedMarketIds.map(id => ({ externalMarketId: id }));
   runtime.log(`Fetching Kalshi market prices for ${trackedMarkets.length} markets`);
-
-  const httpCapability = new cre.capabilities.HTTPClient();
 
   for (const trackedMarket of trackedMarkets) {
     runtime.log(`Fetching data for market: ${trackedMarket.externalMarketId}`);
