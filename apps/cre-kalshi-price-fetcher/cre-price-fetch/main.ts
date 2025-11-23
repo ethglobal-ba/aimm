@@ -39,16 +39,24 @@ type MarketIdsResponse = {
 
 // Market status enum matching the contract
 enum MarketStatus {
-  Active = 0,
-  ClosedInternal = 1,
-  ClosedExternal = 2,
+  Inactive = 0,
+  Active = 1,
+  ClosedInternal = 2,
+  ClosedExternal = 3,
+}
+
+// Platform enum matching the contract enum
+enum Platform {
+  KALSHI = 0,
+  LIMITLESS = 1,
+  TRUMPFUN = 2,
 }
 
 // WorkflowResult type matching the contract struct
 type WorkflowResult = {
   workflowName: string;
-  platform: string;
-  externalMarketId: string;
+  platform: Platform;
+  ticker: string;
   optionAPrice: bigint;
   optionBPrice: bigint;
   volume: bigint;
@@ -268,7 +276,7 @@ const fetchMarketIds = (sendRequester: HTTPSendRequester, config: Config): Marke
 // Write market price updates to AIMM contract - following the same pattern as updateReserves
 const updateAIMMPrices = (runtime: Runtime<Config>, workflowResult: WorkflowResult): string => {
   runtime.log(
-    `Updating AIMM prices for market ${workflowResult.externalMarketId}: optionA=${workflowResult.optionAPrice.toString()}, optionB=${workflowResult.optionBPrice.toString()}`
+    `Updating AIMM prices for market ${workflowResult.ticker}: optionA=${workflowResult.optionAPrice.toString()}, optionB=${workflowResult.optionBPrice.toString()}`
   );
 
   const network = getNetwork({
@@ -292,7 +300,7 @@ const updateAIMMPrices = (runtime: Runtime<Config>, workflowResult: WorkflowResu
         type: 'tuple',
         components: [
           { name: 'workflowName', type: 'string' },
-          { name: 'platform', type: 'string' },
+          { name: 'platform', type: 'uint8' },
           { name: 'externalMarketId', type: 'string' },
           { name: 'optionAPrice', type: 'uint256' },
           { name: 'optionBPrice', type: 'uint256' },
@@ -304,8 +312,8 @@ const updateAIMMPrices = (runtime: Runtime<Config>, workflowResult: WorkflowResu
     [
       {
         workflowName: workflowResult.workflowName,
-        platform: workflowResult.platform,
-        externalMarketId: workflowResult.externalMarketId,
+        platform: workflowResult.platform as Platform,
+        externalMarketId: workflowResult.ticker,
         optionAPrice: workflowResult.optionAPrice,
         optionBPrice: workflowResult.optionBPrice,
         volume: workflowResult.volume,

@@ -95,7 +95,7 @@ contract AIMM is IReceiverTemplate {
 
     error MarketNotOpen(string marketId);
     error MarketAlreadyExists(string marketId);
-    error UnknownWorkflow(string workflowName);
+    // error UnknownWorkflow(string workflowName);
 
     // --- State Variables ---
     WorkflowResult public latestResult;
@@ -110,7 +110,7 @@ contract AIMM is IReceiverTemplate {
     string[] public externalMarketIds;
 
     // --- Events ---
-    event ResultUpdated(uint256 indexed resultId, uint256 finalResult);
+    event ResultUpdated(string indexed workflowName, uint256 indexed resultId, uint256 finalResult);
     event MarketOnboarded(
         Platforms indexed platform,
         string indexed tickerHash,
@@ -152,6 +152,9 @@ contract AIMM is IReceiverTemplate {
         Platforms indexed platform, string indexed tickerHash, string ticker, MarketStatus newStatus
     );
     event DefaultConfigUpdated(uint256 driftPercentage, uint256 maxSpend, uint256 slippage);
+
+    //TODO Demo event to get rid of revert, troubleshooting chainlink stuff
+    event UnknownWorkflow(string workflowName);
 
     /**
      * @dev Initialize contract with default configuration
@@ -256,7 +259,7 @@ contract AIMM is IReceiverTemplate {
         market.optionBCurrentExternalPrice = optionBPrice;
         market.volume = volume;
         market.lastCurrentPriceUpdate = block.timestamp;
-        market.status = status; //TODO Don't forget the status from Kalshi CRE needs to be converted to contract format 
+        market.status = status; //TODO Don't forget the status from Kalshi CRE needs to be converted to contract format
         emit CurrentPricesUpdated(
             market.platform, // Platforms enum (indexed)
             externalMarketId, // string tickerHash (indexed, hashed)
@@ -429,35 +432,35 @@ contract AIMM is IReceiverTemplate {
         // Decode the report bytes into our WorkflowResult struct
         WorkflowResult memory creWorkflowResult = abi.decode(report, (WorkflowResult));
 
-        // --- Core Logic ---
-        // Update contract state with the new result
-        resultCount++;
-        results[resultCount] = creWorkflowResult;
-        latestResult = creWorkflowResult;
+        // // --- Core Logic ---
+        // // Update contract state with the new result
+        // resultCount++;
+        // results[resultCount] = creWorkflowResult;
+        // latestResult = creWorkflowResult;
 
-        // Use ticker directly
-        string memory externalMarketId = creWorkflowResult.ticker;
+        // // Use ticker directly
+        // string memory externalMarketId = creWorkflowResult.ticker;
 
-        // Handle different workflow types
-        bytes32 workflowNameHash = keccak256(abi.encodePacked(creWorkflowResult.workflowName));
+        // // Handle different workflow types
+        // bytes32 workflowNameHash = keccak256(abi.encodePacked(creWorkflowResult.workflowName));
 
-        if (workflowNameHash == keccak256(abi.encodePacked("currentPriceFetch"))) {
-            updateExternalMarketData(
-                externalMarketId,
-                creWorkflowResult.optionAPrice,
-                creWorkflowResult.optionBPrice,
-                creWorkflowResult.volume,
-                creWorkflowResult.status
-            );
-        } else if (workflowNameHash == keccak256(abi.encodePacked("fairPriceFetch"))) {
-            _updateFairPrices(
-                externalMarketId, creWorkflowResult.optionAPrice, creWorkflowResult.optionBPrice
-            );
-        } else if (workflowNameHash == keccak256(abi.encodePacked("marketStatusUp"))) {
-            revert UnknownWorkflow(creWorkflowResult.workflowName);
-        }
+        // if (workflowNameHash == keccak256(abi.encodePacked("currentPriceFetch"))) {
+        //     updateExternalMarketData(
+        //         externalMarketId,
+        //         creWorkflowResult.optionAPrice,
+        //         creWorkflowResult.optionBPrice,
+        //         creWorkflowResult.volume,
+        //         creWorkflowResult.status
+        //     );
+        // } else if (workflowNameHash == keccak256(abi.encodePacked("fairPriceFetch"))) {
+        //     updateFairPrices(
+        //         externalMarketId, creWorkflowResult.optionAPrice, creWorkflowResult.optionBPrice
+        //     );
+        // } else if (workflowNameHash == keccak256(abi.encodePacked("marketStatusUp"))) {
+        //     emit UnknownWorkflow(creWorkflowResult.workflowName);
+        // }
 
-        emit ResultUpdated(resultCount, block.timestamp);
+        emit ResultUpdated(creWorkflowResult.workflowName, 0, block.timestamp);
     }
 
     // This function is a "dry-run" utility. It allows an offchain system to check

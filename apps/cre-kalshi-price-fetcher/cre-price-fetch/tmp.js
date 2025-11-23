@@ -15265,7 +15265,7 @@ var fetchMarketIds = (sendRequester, config) => {
   };
 };
 var updateAIMMPrices = (runtime2, workflowResult) => {
-  runtime2.log(`Updating AIMM prices for market ${workflowResult.externalMarketId}: optionA=${workflowResult.optionAPrice.toString()}, optionB=${workflowResult.optionBPrice.toString()}`);
+  runtime2.log(`Updating AIMM prices for market ${workflowResult.ticker}: optionA=${workflowResult.optionAPrice.toString()}, optionB=${workflowResult.optionBPrice.toString()}`);
   const network248 = getNetwork({
     chainFamily: "evm",
     chainSelectorName: runtime2.config.chainSelectorName,
@@ -15280,7 +15280,7 @@ var updateAIMMPrices = (runtime2, workflowResult) => {
       type: "tuple",
       components: [
         { name: "workflowName", type: "string" },
-        { name: "platform", type: "string" },
+        { name: "platform", type: "uint8" },
         { name: "externalMarketId", type: "string" },
         { name: "optionAPrice", type: "uint256" },
         { name: "optionBPrice", type: "uint256" },
@@ -15292,7 +15292,7 @@ var updateAIMMPrices = (runtime2, workflowResult) => {
     {
       workflowName: workflowResult.workflowName,
       platform: workflowResult.platform,
-      externalMarketId: workflowResult.externalMarketId,
+      externalMarketId: workflowResult.ticker,
       optionAPrice: workflowResult.optionAPrice,
       optionBPrice: workflowResult.optionBPrice,
       volume: workflowResult.volume,
@@ -15358,7 +15358,7 @@ var updateAllMarkets = (runtime2) => {
         optionAPrice: marketUpdate.optionAPrice,
         optionBPrice: marketUpdate.optionBPrice,
         volume: marketUpdate.volume,
-        status: 0
+        status: 1
       };
       const txHash = updateAIMMPrices(runtime2, workflowResult);
       runtime2.log(`Successfully updated AIMM contract for market ${marketUpdate.externalMarketId}, txHash: ${txHash}`);

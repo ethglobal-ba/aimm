@@ -18,10 +18,13 @@
 staging-settings:
   rpcs:
     - chain-name: ethereum-testnet-sepolia-base-1
-      url: https://sepolia.base.org
+      # url: https://sepolia.base.org
+      url: https://base-sepolia.infura.io/v3/a0c85cf0f46e48eeba90bd7610dfe315
+
 
 # ==========================================================================
 production-settings:
   rpcs:
     - chain-name: ethereum-testnet-sepolia-base-1
-      url: https://sepolia.base.org
+      # url: https://sepolia.base.org
+      url: https://base-sepolia.infura.io/v3/a0c85cf0f46e48eeba90bd7610dfe315
