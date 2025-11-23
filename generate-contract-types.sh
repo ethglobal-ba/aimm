@@ -34,7 +34,7 @@ cp types/generated.ts "../$CONTRACT_TYPES_BREAK_GLASS"
 # Copy ABI files to agent apps in case they need them (common json import is glitchy)
 echo "Copying AIMM.json to agent apps..."
 mkdir -p "../apps/aimm-agent/src/types"
-cp out/AIMM.sol/AIMM.json "../apps/aimm-agent/src/AIMM.json"
+cp out/AIMM.sol/AIMM.json "../apps/aimm-agent/src/types/AIMM.json"
 
 # Clean up temporary directory from contracts
 rm -rf types
