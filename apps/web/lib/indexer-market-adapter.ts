@@ -1,5 +1,5 @@
 import type { market as IndexerMarket } from '@/lib/generated/graphql';
-import type { Market, MarketStatus, Platform, AIRunStatus } from '@/types/market';
+import type { Market, MarketStatus, Platform, AIRunStatus, MarketAimmStatus } from '@/types/market';
 
 const SCALE_6DP = 1_000_000;
 
@@ -58,6 +58,22 @@ function mapStatus(statusCode: number): MarketStatus {
     case 3:
     default:
       return 'closed';
+  }
+}
+
+function mapAimmStatus(statusCode: number): MarketAimmStatus {
+  // AIMM on-chain enum (see contract + ponder schema):
+  // 0 = Inactive, 1 = Active, 2 = ClosedInternal, 3 = ClosedExternal
+  switch (statusCode) {
+  case 1:
+    return 'ACTIVE';
+  case 0:
+    return 'INACTIVE';
+  case 2:
+    return 'INTERNALLY_CLOSED';
+  case 3:
+  default:
+    return 'EXTERNALLY_CLOSED';
   }
 }
 
@@ -128,6 +144,10 @@ function mapPlatform(platformCode: number, platformName: string): Platform {
   }
 }
 
+export function mapIndexerPlatformToPlatform(platformCode: number, platformName: string): Platform {
+  return mapPlatform(platformCode, platformName);
+}
+
 export function mapIndexerMarketToMarket(item: IndexerMarketSource): Market {
   const livePrice = fromPercentFixed6(item.optionACurrentExternalPrice);
   const fairPrice = fromPercentFixed6(item.optionACurrentFairPrice);
@@ -135,7 +155,9 @@ export function mapIndexerMarketToMarket(item: IndexerMarketSource): Market {
   const lastFairUpdate = fromTimestampSeconds(item.lastFairPriceUpdate);
   const volume = fromFixed6(item.volume);
 
-  const status = mapStatus(item.status);
+  const statusCode = typeof item.status === 'number' ? item.status : Number(item.status);
+
+  const status = mapStatus(statusCode);
   const aiRunStatus = deriveAIRunStatus(lastFairUpdate);
 
   const platform = mapPlatform(item.platform, item.platformName);
@@ -152,7 +174,7 @@ export function mapIndexerMarketToMarket(item: IndexerMarketSource): Market {
     livePrice,
     aimmFairPrice: fairPrice,
     status,
-    aimmStatus: undefined,
+    aimmStatus: mapAimmStatus(statusCode),
     agentPosition: null,
     lastAction: null,
     lastActionTimestamp: lastExternalUpdate,

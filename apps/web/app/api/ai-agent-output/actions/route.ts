@@ -5,6 +5,8 @@ import { getRecentAgentActions } from '@/lib/agent-actions';
 export async function GET(request: NextRequest): Promise<Response> {
   const url = new URL(request.url);
   const limitParam = url.searchParams.get('limit');
+  const marketId = url.searchParams.get('marketId');
+  const marketTicker = url.searchParams.get('marketTicker');
 
   let limit = 20;
 
@@ -19,7 +21,10 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   try {
-    const actions = await getRecentAgentActions(limit);
+    const actions = await getRecentAgentActions(limit, {
+      marketId: marketId ?? undefined,
+      marketTicker: marketTicker ?? undefined,
+    });
 
     const dto = actions.map(action => ({
       ...action,
@@ -28,6 +33,7 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     return Response.json({ actions: dto });
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Failed to fetch recent agent actions', error);
 
     return new Response('Internal Server Error', { status: 500 });

@@ -2,7 +2,7 @@
 
 import { Badge } from '@workspace/ui/components/badge';
 import { Button } from '@workspace/ui/components/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@workspace/ui/components/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@workspace/ui/components/card';
 import {
   ChartContainer,
   ChartLegend,
@@ -14,7 +14,6 @@ import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@w
 import { Label } from '@workspace/ui/components/label';
 import { ScrollArea } from '@workspace/ui/components/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@workspace/ui/components/select';
-import { Separator } from '@workspace/ui/components/separator';
 import { cn } from '@workspace/ui/lib/utils';
 import {
   Activity02Icon,
@@ -23,12 +22,13 @@ import {
   BrainIcon,
   FlashIcon,
   LinkSquare01Icon,
-  PlayCircleIcon,
   RefreshIcon,
 } from 'hugeicons-react';
 import Link from 'next/link';
 import { JSX, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts';
+import { useX402 } from '@coinbase/cdp-hooks';
+import { decodeXPaymentResponse } from 'x402-fetch';
 
 import type { Market, MarketAimmStatus } from '@/types/market';
 // MOCK: MarketDetailData and related types currently come from seeded mock data in `@/lib/mock-market-detail`.
@@ -39,19 +39,17 @@ import {
   formatCompactUsd,
   formatIdentifierWithEllipsis,
   formatPercentage,
-  formatRelativeTime,
   formatSize,
-  formatTimeRemaining,
   formatTimestamp,
   formatUsd,
   getAimmStatusLabel,
-  getPositionBadgeClass,
-  getSignalClass,
   getStatusBadgeClass,
-  getStatusDotClass,
 } from '@/lib/market-utils';
+import { useUpdateMarketStatus } from '@/hooks/use-update-market-status';
 import { useUpdateMarketAutomationConfig } from '@/hooks/use-update-market-automation-config';
-import type { AgentRun, MarketDetailData, TradeEvent } from '@/lib/mock-market-detail';
+import type { MarketDetailData, TradeEvent } from '@/lib/mock-market-detail';
+import { LiveAgentActions } from '@/components/live-agent-actions';
+import { PlatformAvatar } from '@/components/platform-avatar';
 
 const platformLabels: Record<Market['platform'], string> = {
   limitless: 'Limitless',
@@ -103,6 +101,27 @@ type AutomationPresetKey = keyof typeof automationPresets;
 
 type RebalanceMode = 'auto' | 'simulate';
 
+interface PriceUpdateSuccessResponse {
+  message: string;
+  timestamp: string;
+  paid: boolean;
+  payment_verified: boolean;
+  market_ticker: string;
+  /**
+   * `price_update` is produced by the external AIMM agent backend, so we treat it as opaque here.
+   */
+  price_update: unknown;
+}
+
+interface PriceUpdateErrorResponse {
+  error: string;
+  details?: string;
+}
+
+type PriceUpdateResult =
+  | { ok: true; data: PriceUpdateSuccessResponse }
+  | { ok: false; error: PriceUpdateErrorResponse };
+
 interface MarketDetailViewProps {
   market: Market;
   detail: MarketDetailData;
@@ -117,6 +136,7 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps): JSX
   const [slippagePts, setSlippagePts] = useState<number>(automationPresets.balanced.slippagePts);
   const recomputeTimers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const rebalanceTimers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  const [recomputeError, setRecomputeError] = useState<string | null>(null);
   const {
     updateConfig: updateAutomationConfig,
     isPending: isSavingAutomation,
@@ -124,6 +144,12 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps): JSX
     isConfirmed: isAutomationSaved,
     error: automationError,
   } = useUpdateMarketAutomationConfig(market.id);
+  const {
+    updateStatus: updateMarketStatus,
+    isPending: isUpdatingStatus,
+    isConfirming: isConfirmingStatus,
+  } = useUpdateMarketStatus();
+  const { fetchWithPayment } = useX402();
 
   useEffect(() => {
     return () => {
@@ -147,6 +173,11 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps): JSX
     const override = getAimmStatusOverride(market.id);
     return override ?? market.aimmStatus ?? 'ACTIVE';
   }, [getAimmStatusOverride, market.aimmStatus, market.id]);
+  const trimmedTitle = market.title.trim();
+  const trimmedName = market.marketName.trim();
+  const hasSubtitle = trimmedTitle.length > 0 && trimmedTitle !== trimmedName;
+  const isClosedStatus = aimmStatus === 'EXTERNALLY_CLOSED' || aimmStatus === 'INTERNALLY_CLOSED';
+  const isStatusSelectDisabled = isClosedStatus || isUpdatingStatus || isConfirmingStatus;
   const statusBadgeClass = getStatusBadgeClass(market.status);
   const platformLabel = platformLabels[market.platform];
   const externalUrl = `${platformLinks[market.platform]}/markets/${market.symbol.toLowerCase()}`;
@@ -155,18 +186,100 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps): JSX
     return `${driftThresholdPts.toFixed(1)} pts drift • $${formatCompactUsd(maxSpendUsd)} max • ${slippagePts.toFixed(2)} pts slip`;
   }, [driftThresholdPts, maxSpendUsd, slippagePts]);
 
-  const handleRecompute = () => {
+  const callX402Recompute = async (): Promise<PriceUpdateResult> => {
+    const url = `/api/402?market_ticker=${encodeURIComponent(market.symbol)}`;
+
+    try {
+      const response = await fetchWithPayment(url, {
+        method: 'GET',
+      });
+
+      // Log the response body and x402 payment response header for debugging
+      const body = await response.json();
+      console.log('x402 response body', body);
+
+      const xPaymentResponseHeader = response.headers.get('x-payment-response');
+      if (xPaymentResponseHeader) {
+        try {
+          const paymentResponse = decodeXPaymentResponse(xPaymentResponseHeader);
+          console.log('x402 payment response', paymentResponse);
+        } catch (decodeError) {
+          console.error('Failed to decode x-payment-response header', decodeError);
+        }
+      } else {
+        console.log('No x-payment-response header found');
+      }
+
+      if (!response.ok) {
+        console.error('x402 recompute response not ok', response);
+
+        // Body is already parsed above
+        const errorBody = body as PriceUpdateErrorResponse;
+
+        if (errorBody && typeof errorBody.error === 'string') {
+          return { ok: false, error: errorBody };
+        }
+
+        return {
+          ok: false,
+          error: {
+            error: `Request failed with status ${response.status}`,
+          },
+        };
+      }
+
+      // Body is already parsed above
+      const data = body as PriceUpdateSuccessResponse;
+      return { ok: true, data };
+    } catch (error: unknown) {
+      console.error('x402 recompute fetchWithPayment threw', error);
+      throw error;
+    }
+  };
+
+  const handleRecompute = async () => {
     if (recomputeState === 'running') return;
+    setRecomputeError(null);
     setRecomputeState('running');
     clearTimerGroup(recomputeTimers);
 
-    const finishId = setTimeout(() => {
+    try {
+      const result = await callX402Recompute();
+
+      if (!result.ok) {
+        const { error } = result;
+        const messageParts: string[] = [];
+
+        if (error.error.length > 0) {
+          messageParts.push(error.error);
+        }
+
+        if (error.details && error.details.length > 0) {
+          messageParts.push(error.details);
+        }
+
+        const message =
+          messageParts.length > 0 ? messageParts.join(' — ') : 'Failed to recompute fair price. Please try again.';
+
+        setRecomputeError(message);
+        setRecomputeState('idle');
+        return;
+      }
+
       setRecomputeState('success');
       const resetId = setTimeout(() => setRecomputeState('idle'), 2400);
       recomputeTimers.current.push(resetId);
-    }, 1800);
+    } catch (error: unknown) {
+      console.error('handleRecompute failed', error);
 
-    recomputeTimers.current.push(finishId);
+      const message =
+        error instanceof Error && error.message.length > 0
+          ? `Unexpected error: ${error.message}`
+          : 'Unexpected error while recomputing fair price. Please try again.';
+
+      setRecomputeError(message);
+      setRecomputeState('idle');
+    }
   };
 
   const handleRebalance = (mode: RebalanceMode) => {
@@ -200,15 +313,6 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps): JSX
           : 'Simulation ready'
         : 'Auto-rebalance';
 
-  const actionStatusCopy =
-    rebalanceState === 'executing'
-      ? `${rebalanceMode === 'auto' ? 'Auto' : 'Simulated'} rebalance in-flight`
-      : rebalanceState === 'success'
-        ? `${rebalanceMode === 'auto' ? 'Orders synced to Base' : 'Suggested orders ready'}`
-        : market.agentPosition
-          ? 'Position within risk band'
-          : 'Flat — ready to enter inventory';
-
   return (
     <div className='bg-background flex-1'>
       <div className='mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-6 pt-6 pb-10'>
@@ -238,15 +342,20 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps): JSX
                 ) : null}
               </div>
 
+              {hasSubtitle ? (
+                <p className='text-muted-foreground max-w-3xl text-sm leading-relaxed'>{trimmedTitle}</p>
+              ) : null}
+
               <div className='text-muted-foreground flex flex-wrap items-center gap-3 text-xs'>
-                <span className='flex items-center gap-1.5'>
-                  <span className='bg-muted-foreground h-1.5 w-1.5 rounded-full' />
-                  {platformLabel}
+                <span className='flex items-center gap-2'>
+                  <PlatformAvatar platform={market.platform} size={18} />
+                  <span className='flex items-center gap-1.5'>
+                    <span className='bg-muted-foreground h-1.5 w-1.5 rounded-full' />
+                    {platformLabel}
+                  </span>
                 </span>
                 <span className='text-muted-foreground/50'>•</span>
                 <span className='font-mono text-[11px]'>{formatIdentifierWithEllipsis(market.symbol)}</span>
-                <span className='text-muted-foreground/50'>•</span>
-                <span>Closes {market.timeToClose ? formatTimeRemaining(market.timeToClose) : 'N/A'}</span>
                 <span className='text-muted-foreground/50'>•</span>
                 <Link
                   href={externalUrl}
@@ -265,8 +374,13 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps): JSX
                 value={aimmStatus}
                 onValueChange={value => {
                   const nextStatus = value as MarketAimmStatus;
-                  setAimmStatus(market.id, nextStatus);
+
+                  if (nextStatus === 'ACTIVE' || nextStatus === 'INACTIVE') {
+                    setAimmStatus(market.id, nextStatus);
+                    updateMarketStatus(market.id, nextStatus);
+                  }
                 }}
+                disabled={isStatusSelectDisabled}
               >
                 <SelectTrigger
                   className={cn(
@@ -307,18 +421,22 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps): JSX
                       Inactive
                     </span>
                   </SelectItem>
-                  <SelectItem value='EXTERNALLY_CLOSED' className='text-xs'>
-                    <span className='flex items-center gap-2'>
-                      <span className='h-2 w-2 rounded-full bg-amber-400' />
-                      Externally closed
-                    </span>
-                  </SelectItem>
-                  <SelectItem value='INTERNALLY_CLOSED' className='text-xs'>
-                    <span className='flex items-center gap-2'>
-                      <span className='h-2 w-2 rounded-full bg-amber-400' />
-                      Internally closed
-                    </span>
-                  </SelectItem>
+                  {isClosedStatus ? (
+                    <>
+                      <SelectItem value='EXTERNALLY_CLOSED' className='text-xs' disabled>
+                        <span className='flex items-center gap-2'>
+                          <span className='h-2 w-2 rounded-full bg-amber-400' />
+                          Externally closed
+                        </span>
+                      </SelectItem>
+                      <SelectItem value='INTERNALLY_CLOSED' className='text-xs' disabled>
+                        <span className='flex items-center gap-2'>
+                          <span className='h-2 w-2 rounded-full bg-amber-400' />
+                          Internally closed
+                        </span>
+                      </SelectItem>
+                    </>
+                  ) : null}
                 </SelectContent>
               </Select>
               <Button
@@ -344,11 +462,12 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps): JSX
                   Open market
                 </Link>
               </Button>
+              {recomputeError ? <span className='text-destructive text-[11px]'>{recomputeError}</span> : null}
             </div>
           </div>
         </div>
 
-        <div className='grid grid-cols-1 gap-4 md:grid-cols-5'>
+        <div className='grid grid-cols-1 gap-4 md:grid-cols-4'>
           <Card className='bg-card/40'>
             <CardContent className='p-4'>
               <p className='text-muted-foreground text-[11px] tracking-wide uppercase'>Live price</p>
@@ -396,34 +515,11 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps): JSX
 
           <Card className='bg-card/40'>
             <CardContent className='p-4'>
-              <p className='text-muted-foreground text-[11px] tracking-wide uppercase'>24h volume</p>
+              <p className='text-muted-foreground text-[11px] tracking-wide uppercase'>Volume</p>
               <p className='text-foreground text-2xl font-semibold'>
                 {market.volume24h != null ? formatUsd(market.volume24h) : 'N/A'}
               </p>
               <p className='text-muted-foreground text-[11px]'>Across Limitless & partners</p>
-            </CardContent>
-          </Card>
-
-          <Card className='bg-card/40'>
-            <CardContent className='space-y-3 p-4'>
-              <div>
-                <p className='text-muted-foreground text-[11px] tracking-wide uppercase'>Time to close</p>
-                <p className='text-foreground text-2xl font-semibold'>
-                  {market.timeToClose ? formatTimeRemaining(market.timeToClose) : 'N/A'}
-                </p>
-              </div>
-              <div className='space-y-1'>
-                <div className='text-muted-foreground flex items-center justify-between text-[11px]'>
-                  <span>Confidence</span>
-                  <span className='text-foreground font-mono text-xs'>{latestRun?.confidence ?? 0}%</span>
-                </div>
-                <div className='bg-muted h-1.5 w-full rounded-full'>
-                  <div
-                    className='h-full rounded-full bg-blue-500 transition-all'
-                    style={{ width: `${latestRun?.confidence ?? 0}%` }}
-                  />
-                </div>
-              </div>
             </CardContent>
           </Card>
         </div>
@@ -691,55 +787,15 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps): JSX
               <CardHeader className='border-border/60 border-b pb-3'>
                 <div className='flex items-center justify-between gap-2'>
                   <CardTitle className='flex items-center gap-2 text-sm font-medium'>
-                    <BrainIcon className='text-muted-foreground size-4' />
-                    Agent reasoning
+                    <BrainIcon className='size-4 text-yellow-400' />
+                    Live agent actions
                   </CardTitle>
-                  <div className='text-muted-foreground flex items-center gap-2 text-[11px]'>
-                    <span
-                      className={`h-2 w-2 rounded-full ${
-                        market.aiRunStatus ? getStatusDotClass(market.aiRunStatus) : 'bg-muted-foreground/40'
-                      }`}
-                    />
-                    <span>Last run {market.lastAIRun ? formatRelativeTime(market.lastAIRun) : 'N/A'}</span>
-                  </div>
+                  <span className='text-muted-foreground text-[11px]'>Scoped to {market.symbol}</span>
                 </div>
               </CardHeader>
-              <CardContent className='pt-4'>
-                <ScrollArea className='h-[360px] pr-4'>
-                  <div className='space-y-4'>
-                    {detail.runs.map(run => (
-                      <RunAccordion key={run.id} run={run} />
-                    ))}
-                  </div>
-                </ScrollArea>
+              <CardContent className='p-0'>
+                <LiveAgentActions marketTicker={market.symbol} hideHeader />
               </CardContent>
-              <CardFooter className='border-border/60 bg-muted/10 flex flex-col gap-3 border-t pt-4'>
-                <div className='text-muted-foreground flex w-full items-center justify-between text-xs'>
-                  <span>Current position</span>
-                  <Badge variant='outline' className={getPositionBadgeClass(market.agentPosition)}>
-                    {market.agentPosition ?? 'Flat'}
-                  </Badge>
-                </div>
-                <div className='text-muted-foreground flex w-full items-center justify-between text-xs'>
-                  <span>Last action</span>
-                  <span className='text-foreground font-medium'>{market.lastAction ?? 'No recent trades'}</span>
-                </div>
-                <div className='border-border/70 rounded-md border border-dashed px-3 py-2 text-xs'>
-                  <span className='text-muted-foreground'>Execution status:</span>{' '}
-                  <span className='text-foreground font-medium'>{actionStatusCopy}</span>
-                </div>
-                <div className='flex w-full gap-2'>
-                  <Button
-                    variant='secondary'
-                    className='border-border bg-muted flex-1 gap-2 border text-xs'
-                    disabled={rebalanceState === 'executing'}
-                    onClick={() => handleRebalance('simulate')}
-                  >
-                    <PlayCircleIcon className='size-4' />
-                    Simulate rebalance
-                  </Button>
-                </div>
-              </CardFooter>
             </Card>
           </div>
         </div>
@@ -762,49 +818,6 @@ function TradeRow({ trade }: { trade: TradeEvent }) {
       </div>
       <p className='text-muted-foreground mt-1 text-xs'>Venue: {trade.venue}</p>
       <p className='text-muted-foreground/80 text-xs'>Status: {trade.status}</p>
-    </div>
-  );
-}
-
-function RunAccordion({ run }: { run: AgentRun }) {
-  return (
-    <div className='border-border/60 rounded-lg border p-3'>
-      <div className='text-muted-foreground flex flex-wrap items-center justify-between gap-2 text-xs'>
-        <div className='flex items-center gap-2'>
-          <span className={`h-2 w-2 rounded-full ${getStatusDotClass(run.status)}`} />
-          {formatRelativeTime(run.timestamp)}
-        </div>
-        <div className='text-foreground flex items-center gap-3 font-mono text-[11px]'>
-          <span>{formatPercentage(run.fairPrice)}</span>
-          <Separator orientation='vertical' className='bg-border h-4' />
-          <span>{run.durationSeconds}s</span>
-        </div>
-      </div>
-      <p className='text-foreground mt-2 text-sm'>{run.summary}</p>
-      <div className='mt-3 flex flex-wrap gap-2'>
-        {run.signals.map(signal => (
-          <Badge
-            key={signal.id}
-            variant='outline'
-            className={`border-border/60 text-[11px] ${getSignalClass(signal.strength)}`}
-          >
-            {signal.label}
-          </Badge>
-        ))}
-      </div>
-      <div className='text-muted-foreground mt-3 grid grid-cols-2 gap-2 text-[11px]'>
-        <div>
-          Live at run
-          <p className='text-foreground font-mono text-sm'>{formatPercentage(run.livePriceAtRun)}</p>
-        </div>
-        <div>
-          Δ vs live
-          <p className='text-foreground font-mono text-sm'>
-            {run.delta >= 0 ? '+' : ''}
-            {(run.delta * 100).toFixed(1)}%
-          </p>
-        </div>
-      </div>
     </div>
   );
 }

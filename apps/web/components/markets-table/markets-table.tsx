@@ -4,7 +4,13 @@ import { useMemo } from 'react';
 import { Badge } from '@workspace/ui/components/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@workspace/ui/components/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@workspace/ui/components/table';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@workspace/ui/components/tooltip';
 import { cn } from '@workspace/ui/lib/utils';
+import Link from 'next/link';
+
+import { useMarketsStatus } from '@/components/markets-status-context';
+import { PlatformAvatar } from '@/components/platform-avatar';
+import { useUpdateMarketStatus } from '@/hooks/use-update-market-status';
 import {
   calculateMispricing,
   formatPercentage,
@@ -14,8 +20,6 @@ import {
   getStatusDotClass,
 } from '@/lib/market-utils';
 import type { Market, MarketAimmStatus } from '@/types/market';
-import { useMarketsStatus } from '@/components/markets-status-context';
-import Link from 'next/link';
 
 interface MarketsTableProps {
   markets: Market[];
@@ -31,6 +35,11 @@ export function MarketsTable({
   sortBy = 'mispricing',
 }: MarketsTableProps) {
   const { getStatus: getAimmStatusOverride, setStatus: setAimmStatus } = useMarketsStatus();
+  const {
+    updateStatus: updateMarketStatus,
+    isPending: isUpdatingStatus,
+    isConfirming: isConfirmingStatus,
+  } = useUpdateMarketStatus();
 
   const filteredAndSortedMarkets = useMemo(() => {
     const withResolvedAimmStatus = markets.map(market => {
@@ -92,6 +101,8 @@ export function MarketsTable({
     return sorted;
   }, [getAimmStatusOverride, markets, platformFilter, sortBy, statusFilter]);
 
+  const hasFilteredMarkets = filteredAndSortedMarkets.length > 0;
+
   return (
     <div className='w-full overflow-x-auto'>
       <Table>
@@ -101,180 +112,196 @@ export function MarketsTable({
             <TableHead className='w-px text-right'>Live Price</TableHead>
             <TableHead className='w-px text-right'>AIMM Fair</TableHead>
             <TableHead className='w-px text-right'>Mispricing (Δ)</TableHead>
-            <TableHead className='w-px'>Position</TableHead>
             <TableHead className='w-px'>Last Run</TableHead>
             <TableHead className='w-px'>AIMM Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredAndSortedMarkets.map(entry => {
-            const { market, aimmStatus } = entry;
-            const hasPrices = market.livePrice != null && market.aimmFairPrice != null;
-            const mispricing = hasPrices
-              ? calculateMispricing(market.livePrice as number, market.aimmFairPrice as number)
-              : null;
+          {hasFilteredMarkets ? (
+            filteredAndSortedMarkets.map(entry => {
+              const { market, aimmStatus } = entry;
+              const hasPrices = market.livePrice != null && market.aimmFairPrice != null;
+              const mispricing = hasPrices
+                ? calculateMispricing(market.livePrice as number, market.aimmFairPrice as number)
+                : null;
 
-            return (
-              <TableRow key={market.id} className='group border-border hover:bg-muted/50 cursor-pointer'>
-                <TableCell className='w-full font-medium whitespace-normal'>
-                  <Link href={`/markets/${market.id}`} className='flex flex-col gap-1'>
-                    <span className='text-foreground group-hover:text-primary line-clamp-2 text-sm leading-snug transition-colors'>
-                      {market.marketName}
-                    </span>
-                    <div className='flex items-center gap-2'>
-                      <Badge
-                        variant='outline'
-                        className='text-muted-foreground border-border h-auto rounded-sm px-1.5 py-0 text-[10px] font-semibold tracking-wider uppercase'
-                      >
-                        {formatPlatformLabel(market.platform)}
-                      </Badge>
-                      <span className='text-muted-foreground font-mono text-xs'>{market.symbol}</span>
-                    </div>
-                  </Link>
-                </TableCell>
+              const isClosed = aimmStatus === 'EXTERNALLY_CLOSED' || aimmStatus === 'INTERNALLY_CLOSED';
+              const isStatusSelectDisabled = isClosed || isUpdatingStatus || isConfirmingStatus;
 
-                <TableCell className='text-muted-foreground w-px text-right font-mono' suppressHydrationWarning>
-                  <Link href={`/markets/${market.id}`} className='block w-full'>
-                    {market.livePrice != null ? formatPercentage(market.livePrice) : 'N/A'}
-                  </Link>
-                </TableCell>
+              return (
+                <TableRow key={market.id} className='group border-border hover:bg-muted/50 cursor-pointer'>
+                  <TableCell className='w-full font-medium whitespace-normal'>
+                    <Link href={`/markets/${market.id}`} className='flex items-start gap-3'>
+                      <PlatformAvatar platform={market.platform} size={28} />
+                      <div className='flex flex-1 flex-col gap-1.5'>
+                        <span className='text-foreground group-hover:text-primary line-clamp-2 text-sm leading-snug transition-colors'>
+                          {market.marketName}
+                        </span>
+                        {(() => {
+                          const trimmedTitle = market.title.trim();
+                          const trimmedName = market.marketName.trim();
+                          const hasSubtitle = trimmedTitle.length > 0 && trimmedTitle !== trimmedName;
 
-                <TableCell className='w-px text-right font-mono font-medium text-blue-400' suppressHydrationWarning>
-                  <Link href={`/markets/${market.id}`} className='block w-full'>
-                    {market.aimmFairPrice != null ? formatPercentage(market.aimmFairPrice) : 'N/A'}
-                  </Link>
-                </TableCell>
+                          if (!hasSubtitle) {
+                            return null;
+                          }
 
-                <TableCell className='w-px text-right'>
-                  <Link href={`/markets/${market.id}`} className='block w-full'>
-                    {mispricing ? (
-                      <Badge
-                        variant='secondary'
-                        className={cn(
-                          'rounded-full px-2 py-0.5 font-mono text-xs',
-                          Math.abs(mispricing.relative) > 10
-                            ? 'bg-green-500/10 text-green-400 hover:bg-green-500/20'
-                            : 'bg-muted text-muted-foreground hover:bg-muted'
-                        )}
-                        suppressHydrationWarning
-                      >
-                        {mispricing.relative > 0 ? '+' : ''}
-                        {mispricing.relative.toFixed(1)}%
-                      </Badge>
-                    ) : (
-                      <span className='text-muted-foreground text-xs'>N/A</span>
-                    )}
-                  </Link>
-                </TableCell>
+                          return (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className='text-muted-foreground line-clamp-2 text-left text-xs leading-snug'>
+                                  {trimmedTitle}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side='top' className='max-w-md wrap-break-word'>
+                                {trimmedTitle}
+                              </TooltipContent>
+                            </Tooltip>
+                          );
+                        })()}
+                        <div className='flex items-center gap-2'>
+                          <Badge
+                            variant='outline'
+                            className='text-muted-foreground border-border h-auto rounded-sm px-1.5 py-0 text-[10px] font-semibold tracking-wider uppercase'
+                          >
+                            {formatPlatformLabel(market.platform)}
+                          </Badge>
+                          <span className='text-muted-foreground font-mono text-xs'>{market.symbol}</span>
+                        </div>
+                      </div>
+                    </Link>
+                  </TableCell>
 
-                <TableCell className='w-px'>
-                  <Link href={`/markets/${market.id}`} className='flex h-full flex-col items-start'>
-                    {market.agentPosition ? (
-                      <>
-                        <span
+                  <TableCell className='text-muted-foreground w-px text-right font-mono' suppressHydrationWarning>
+                    <Link href={`/markets/${market.id}`} className='block w-full'>
+                      {market.livePrice != null ? formatPercentage(market.livePrice) : 'N/A'}
+                    </Link>
+                  </TableCell>
+
+                  <TableCell className='w-px text-right font-mono font-medium text-blue-400' suppressHydrationWarning>
+                    <Link href={`/markets/${market.id}`} className='block w-full'>
+                      {market.aimmFairPrice != null ? formatPercentage(market.aimmFairPrice) : 'N/A'}
+                    </Link>
+                  </TableCell>
+
+                  <TableCell className='w-px text-right'>
+                    <Link href={`/markets/${market.id}`} className='block w-full'>
+                      {mispricing ? (
+                        <Badge
+                          variant='secondary'
                           className={cn(
-                            'font-mono text-xs',
-                            market.agentPosition.includes('+')
-                              ? 'text-green-400'
-                              : market.agentPosition.includes('-')
-                                ? 'text-red-400'
-                                : 'text-muted-foreground'
+                            'rounded-full px-2 py-0.5 font-mono text-xs',
+                            Math.abs(mispricing.relative) > 10
+                              ? 'bg-green-500/10 text-green-400 hover:bg-green-500/20'
+                              : 'bg-muted text-muted-foreground hover:bg-muted'
                           )}
+                          suppressHydrationWarning
                         >
-                          {market.agentPosition}
-                        </span>
-                        <span className='text-muted-foreground text-[10px]'>{market.lastAction}</span>
-                      </>
-                    ) : (
-                      <span className='text-muted-foreground font-mono text-xs'>
-                        {market.agentPosition || '—'}
-                        <br />
-                        <span className='text-[10px]'>{market.lastAction ?? 'No recent trades'}</span>
+                          {mispricing.relative > 0 ? '+' : ''}
+                          {mispricing.relative.toFixed(1)}%
+                        </Badge>
+                      ) : (
+                        <span className='text-muted-foreground text-xs'>N/A</span>
+                      )}
+                    </Link>
+                  </TableCell>
+
+                  <TableCell className='w-px'>
+                    <Link href={`/markets/${market.id}`} className='flex h-full items-center gap-2'>
+                      <div
+                        className={cn(
+                          'h-1.5 w-1.5 rounded-full',
+                          market.aiRunStatus ? getStatusDotClass(market.aiRunStatus) : 'bg-muted-foreground/40'
+                        )}
+                      />
+                      <span className='text-muted-foreground text-xs' suppressHydrationWarning>
+                        {market.lastAIRun ? formatTimeAgo(market.lastAIRun) : 'N/A'}
                       </span>
-                    )}
-                  </Link>
-                </TableCell>
+                    </Link>
+                  </TableCell>
 
-                <TableCell className='w-px'>
-                  <Link href={`/markets/${market.id}`} className='flex h-full items-center gap-2'>
-                    <div
-                      className={cn(
-                        'h-1.5 w-1.5 rounded-full',
-                        market.aiRunStatus ? getStatusDotClass(market.aiRunStatus) : 'bg-muted-foreground/40'
-                      )}
-                    />
-                    <span className='text-muted-foreground text-xs' suppressHydrationWarning>
-                      {market.lastAIRun ? formatTimeAgo(market.lastAIRun) : 'N/A'}
-                    </span>
-                  </Link>
-                </TableCell>
+                  <TableCell className='w-px'>
+                    <Select
+                      value={aimmStatus}
+                      onValueChange={value => {
+                        const nextStatus = value as MarketAimmStatus;
 
-                <TableCell className='w-px'>
-                  <Select
-                    value={aimmStatus}
-                    onValueChange={value => {
-                      const nextStatus = value as MarketAimmStatus;
-                      setAimmStatus(market.id, nextStatus);
-                    }}
-                  >
-                    <SelectTrigger
-                      className={cn(
-                        'h-8 w-[140px] border px-2.5 text-xs font-medium transition-colors',
-                        aimmStatus === 'ACTIVE'
-                          ? 'border-green-500/30 bg-green-500/10 text-green-300 hover:bg-green-500/15'
-                          : aimmStatus === 'INACTIVE'
-                            ? 'border-muted bg-muted/30 text-muted-foreground hover:bg-muted/40'
-                            : 'border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/15'
-                      )}
-                      onClick={event => event.stopPropagation()}
+                        if (nextStatus === 'ACTIVE' || nextStatus === 'INACTIVE') {
+                          setAimmStatus(market.id, nextStatus);
+                          updateMarketStatus(market.id, nextStatus);
+                        }
+                      }}
+                      disabled={isStatusSelectDisabled}
                     >
-                      <SelectValue>
-                        <span className='flex items-center gap-1.5'>
-                          <span
-                            className={cn(
-                              'h-1.5 w-1.5 rounded-full',
-                              aimmStatus === 'ACTIVE'
-                                ? 'bg-green-400'
-                                : aimmStatus === 'INACTIVE'
-                                  ? 'bg-muted-foreground'
-                                  : 'bg-amber-400'
-                            )}
-                          />
-                          {getAimmStatusLabel(aimmStatus)}
-                        </span>
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value='ACTIVE' className='text-xs'>
-                        <span className='flex items-center gap-2'>
-                          <span className='h-1.5 w-1.5 rounded-full bg-green-400' />
-                          Active
-                        </span>
-                      </SelectItem>
-                      <SelectItem value='INACTIVE' className='text-xs'>
-                        <span className='flex items-center gap-2'>
-                          <span className='bg-muted-foreground h-1.5 w-1.5 rounded-full' />
-                          Inactive
-                        </span>
-                      </SelectItem>
-                      <SelectItem value='EXTERNALLY_CLOSED' className='text-xs'>
-                        <span className='flex items-center gap-2'>
-                          <span className='h-1.5 w-1.5 rounded-full bg-amber-400' />
-                          Externally closed
-                        </span>
-                      </SelectItem>
-                      <SelectItem value='INTERNALLY_CLOSED' className='text-xs'>
-                        <span className='flex items-center gap-2'>
-                          <span className='h-1.5 w-1.5 rounded-full bg-amber-400' />
-                          Internally closed
-                        </span>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-              </TableRow>
-            );
-          })}
+                      <SelectTrigger
+                        className={cn(
+                          'h-8 w-[140px] border px-2.5 text-xs font-medium transition-colors',
+                          aimmStatus === 'ACTIVE'
+                            ? 'border-green-500/30 bg-green-500/10 text-green-300 hover:bg-green-500/15'
+                            : aimmStatus === 'INACTIVE'
+                              ? 'border-muted bg-muted/30 text-muted-foreground hover:bg-muted/40'
+                              : 'border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/15'
+                        )}
+                        onClick={event => event.stopPropagation()}
+                      >
+                        <SelectValue>
+                          <span className='flex items-center gap-1.5'>
+                            <span
+                              className={cn(
+                                'h-1.5 w-1.5 rounded-full',
+                                aimmStatus === 'ACTIVE'
+                                  ? 'bg-green-400'
+                                  : aimmStatus === 'INACTIVE'
+                                    ? 'bg-muted-foreground'
+                                    : 'bg-amber-400'
+                              )}
+                            />
+                            {getAimmStatusLabel(aimmStatus)}
+                          </span>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value='ACTIVE' className='text-xs'>
+                          <span className='flex items-center gap-2'>
+                            <span className='h-1.5 w-1.5 rounded-full bg-green-400' />
+                            Active
+                          </span>
+                        </SelectItem>
+                        <SelectItem value='INACTIVE' className='text-xs'>
+                          <span className='flex items-center gap-2'>
+                            <span className='bg-muted-foreground h-1.5 w-1.5 rounded-full' />
+                            Inactive
+                          </span>
+                        </SelectItem>
+                        {isClosed ? (
+                          <>
+                            <SelectItem value='EXTERNALLY_CLOSED' className='text-xs' disabled>
+                              <span className='flex items-center gap-2'>
+                                <span className='h-1.5 w-1.5 rounded-full bg-amber-400' />
+                                Externally closed
+                              </span>
+                            </SelectItem>
+                            <SelectItem value='INTERNALLY_CLOSED' className='text-xs' disabled>
+                              <span className='flex items-center gap-2'>
+                                <span className='h-1.5 w-1.5 rounded-full bg-amber-400' />
+                                Internally closed
+                              </span>
+                            </SelectItem>
+                          </>
+                        ) : null}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                </TableRow>
+              );
+            })
+          ) : (
+            <TableRow>
+              <TableCell colSpan={6} className='text-muted-foreground py-12 text-center text-sm'>
+                No markets match your current filters. Try adjusting the AIMM status or platform filters above.
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
     </div>

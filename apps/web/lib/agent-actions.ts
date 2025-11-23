@@ -19,6 +19,11 @@ export interface AgentActionWithStepOutput {
   stepOutput: StepOutput;
 }
 
+export interface AgentActionsFilters {
+  readonly marketId?: string;
+  readonly marketTicker?: string;
+}
+
 interface AiAgentOutputFullRow extends QueryResultRow, AIAgentOutput {}
 
 function mapRowToAgentAction(row: AiAgentOutputFullRow): AgentActionWithStepOutput {
@@ -37,10 +42,28 @@ function mapRowToAgentAction(row: AiAgentOutputFullRow): AgentActionWithStepOutp
   };
 }
 
-export async function getRecentAgentActions(limit: number): Promise<AgentActionWithStepOutput[]> {
+export async function getRecentAgentActions(
+  limit: number,
+  filters?: AgentActionsFilters
+): Promise<AgentActionWithStepOutput[]> {
   if (!Number.isFinite(limit) || limit <= 0) {
     throw new Error('limit must be a positive, finite number');
   }
+
+  const whereParts: string[] = [];
+  const parameters: unknown[] = [];
+
+  if (filters?.marketId) {
+    whereParts.push(`market_id = $${parameters.length + 1}`);
+    parameters.push(filters.marketId);
+  }
+
+  if (filters?.marketTicker) {
+    whereParts.push(`market_ticker = $${parameters.length + 1}`);
+    parameters.push(filters.marketTicker);
+  }
+
+  const whereClause = whereParts.length > 0 ? `WHERE ${whereParts.join(' AND ')}` : '';
 
   const sql = `
     SELECT
@@ -60,11 +83,14 @@ export async function getRecentAgentActions(limit: number): Promise<AgentActionW
       price_scale,
       inserted_at
     FROM ai_agent_output
+    ${whereClause}
     ORDER BY inserted_at DESC
-    LIMIT $1
+    LIMIT $${parameters.length + 1}
   `;
 
-  const { rows } = await query<AiAgentOutputFullRow>(sql, [limit]);
+  parameters.push(limit);
+
+  const { rows } = await query<AiAgentOutputFullRow>(sql, parameters);
 
   return rows.map(mapRowToAgentAction);
 }

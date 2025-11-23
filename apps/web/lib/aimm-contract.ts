@@ -1,7 +1,7 @@
 import { aimmAbi } from './contract.types';
 
 export const AIMM_CONTRACT_CONFIG = {
-  address: '0x189E2026Ec14699185A6c97dFfdDfB3853FbD3a8' as const,
+  address: '0x53B3B952320E4e38887e85329a5A6E0dFBd5eF10' as const,
   abi: aimmAbi,
   chainId: 84532, // Base Sepolia
 } as const;
