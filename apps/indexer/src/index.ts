@@ -9,6 +9,20 @@ import {
   workflowResult,
 } from '../ponder.schema';
 
+// Utility function to get platform name from enum value
+function getPlatformName(platform: number): string {
+  switch (platform) {
+    case 0:
+      return 'Kalshi';
+    case 1:
+      return 'Limitless';
+    case 2:
+      return 'Trump.fun';
+    default:
+      return 'Unknown';
+  }
+}
+
 // Utility function to convert hex string to readable string
 function hexToString(hex: string): string {
   // If it doesn't look like hex, return as-is
@@ -49,61 +63,66 @@ function hexToString(hex: string): string {
 
 // Market Onboarded Event
 ponder.on('AIMM:MarketOnboarded', async ({ event, context }) => {
-  console.log('MarketOnboarded event received:', {
-    platform: event.args.platform,
-    externalMarketId: event.args.externalMarketId,
-    marketName: event.args.marketName,
-    optionA: event.args.optionA,
-    optionB: event.args.optionB,
-    blockNumber: event.block.number,
-  });
-
-  const { platform, externalMarketId, marketName, optionA, optionB, subtitle, eventTicker } = event.args;
+  const { platform, tickerHash, ticker, marketName, subtitle, eventTicker, volume, optionACurrentExternalPrice, optionBCurrentExternalPrice } = event.args;
   const { db } = context;
 
-  // Convert hex strings to readable strings
-  const platformStr = hexToString(platform);
-  const marketIdStr = hexToString(externalMarketId);
-  const marketNameStr = hexToString(marketName);
-  const optionAStr = hexToString(optionA);
-  const optionBStr = hexToString(optionB);
-  const subtitleStr = hexToString(subtitle);
-  const eventTickerStr = hexToString(eventTicker);
+  // Platform is now an enum (number), ticker is the readable string
+  const platformNum = Number(platform);
+  const platformName = getPlatformName(platformNum);
+  const marketIdStr = ticker;
+  const marketNameStr = marketName;
+  const subtitleStr = subtitle;
+  const eventTickerStr = eventTicker;
+
+  console.log('MarketOnboarded event received:', {
+    platform: `${platformNum} (${platformName})`,
+    ticker: marketIdStr,
+    marketName: marketNameStr,
+    subtitle: subtitleStr,
+    eventTicker: eventTickerStr,
+    volume: volume,
+    optionACurrentExternalPrice: optionACurrentExternalPrice,
+    optionBCurrentExternalPrice: optionBCurrentExternalPrice,
+    blockNumber: event.block.number,
+  });
 
   try {
     await db
       .insert(market)
       .values({
         id: marketIdStr,
-        platform: platformStr,
+        platform: platformNum,
+        platformName: platformName,
+        tickerHash: tickerHash,
         externalId: marketIdStr,
         marketName: marketNameStr,
-        optionAText: optionAStr,
-        optionBText: optionBStr,
+        optionAText: "Yes",
+        optionBText: "No",
         subtitle: subtitleStr,
         eventTicker: eventTickerStr,
         status: 0, // Default to Inactive status (0)
-        // Initialize prices as null
-        optionACurrentExternalPrice: 0n,
-        optionBCurrentExternalPrice: 0n,
-        lastExternalPriceUpdate: 0n,
+        // Use prices from the event
+        optionACurrentExternalPrice: optionACurrentExternalPrice,
+        optionBCurrentExternalPrice: optionBCurrentExternalPrice,
+        lastExternalPriceUpdate: event.block.timestamp,
         optionACurrentFairPrice: 0n,
         optionBCurrentFairPrice: 0n,
         lastFairPriceUpdate: 0n,
-        volume: 0n,
+        volume: volume,
         createdAt: event.block.timestamp,
         updatedAt: event.block.timestamp,
       })
       .onConflictDoUpdate({
-        target: 'id',
-        set: {
-          platform: platformStr,
-          externalId: marketIdStr,
-          marketName: marketNameStr,
-          optionAText: optionAStr,
-          optionBText: optionBStr,
-          updatedAt: event.block.timestamp,
-        },
+        platform: platformNum,
+        platformName: platformName,
+        tickerHash: tickerHash,
+        externalId: marketIdStr,
+        marketName: marketNameStr,
+        optionAText: "Yes",
+        optionBText: "No",
+        subtitle: subtitleStr,
+        eventTicker: eventTickerStr,
+        updatedAt: event.block.timestamp,
       });
 
     console.log('MarketOnboarded successfully processed:', marketIdStr);
@@ -115,16 +134,17 @@ ponder.on('AIMM:MarketOnboarded', async ({ event, context }) => {
 
 // Market Config Updated Event
 ponder.on('AIMM:MarketConfigUpdated', async ({ event, context }) => {
-  const { externalMarketId, platform, minPriceDiff, maxSpend, slippage } = event.args;
+  const { tickerHash, ticker, platform, minPriceDiff, maxSpend, slippage } = event.args;
   const { db } = context;
 
-  // Convert hex strings to readable strings
-  const marketIdStr = hexToString(externalMarketId);
-  const platformStr = hexToString(platform);
+  // Platform is now enum, ticker is readable string
+  const marketIdStr = ticker;
+  const platformNum = Number(platform);
+  const platformName = getPlatformName(platformNum);
 
   console.log('MarketConfigUpdated event received:', {
-    externalMarketId: marketIdStr,
-    platform: platformStr,
+    ticker: marketIdStr,
+    platform: `${platformNum} (${platformName})`,
     minPriceDiff,
     maxSpend,
     slippage,
@@ -135,7 +155,8 @@ ponder.on('AIMM:MarketConfigUpdated', async ({ event, context }) => {
   await db.insert(marketConfig).values({
     id: configId,
     marketId: marketIdStr,
-    platform: platformStr,
+    platform: platformNum,
+    platformName: platformName,
     minPriceDiff,
     maxSpend,
     slippage,
@@ -158,16 +179,17 @@ ponder.on('AIMM:MarketConfigUpdated', async ({ event, context }) => {
 
 // Current Prices Updated Event (External)
 ponder.on('AIMM:CurrentPricesUpdated', async ({ event, context }) => {
-  const { externalMarketId, platform, extPriceA, extPriceB } = event.args;
+  const { tickerHash, ticker, platform, extPriceA, extPriceB } = event.args;
   const { db } = context;
 
-  // Convert hex strings to readable strings
-  const marketIdStr = hexToString(externalMarketId);
-  const platformStr = hexToString(platform);
+  // Platform is now enum, ticker is readable string
+  const marketIdStr = ticker;
+  const platformNum = Number(platform);
+  const platformName = getPlatformName(platformNum);
 
   console.log('CurrentPricesUpdated event received:', {
-    externalMarketId: marketIdStr,
-    platform: platformStr,
+    ticker: marketIdStr,
+    platform: `${platformNum} (${platformName})`,
     extPriceA,
     extPriceB,
   });
@@ -178,7 +200,8 @@ ponder.on('AIMM:CurrentPricesUpdated', async ({ event, context }) => {
   await db.insert(priceUpdate).values({
     id: priceUpdateId,
     marketId: marketIdStr,
-    platform: platformStr,
+    platform: platformNum,
+    platformName: platformName,
     type: 'external',
     optionAPrice: extPriceA,
     optionBPrice: extPriceB,
@@ -203,16 +226,17 @@ ponder.on('AIMM:CurrentPricesUpdated', async ({ event, context }) => {
 
 // Fair Prices Updated Event
 ponder.on('AIMM:FairPricesUpdated', async ({ event, context }) => {
-  const { externalMarketId, platform, fairPriceA, fairPriceB } = event.args;
+  const { tickerHash, ticker, platform, fairPriceA, fairPriceB } = event.args;
   const { db } = context;
 
-  // Convert hex strings to readable strings
-  const marketIdStr = hexToString(externalMarketId);
-  const platformStr = hexToString(platform);
+  // Platform is now enum, ticker is readable string
+  const marketIdStr = ticker;
+  const platformNum = Number(platform);
+  const platformName = getPlatformName(platformNum);
 
   console.log('FairPricesUpdated event received:', {
-    externalMarketId: marketIdStr,
-    platform: platformStr,
+    ticker: marketIdStr,
+    platform: `${platformNum} (${platformName})`,
     fairPriceA,
     fairPriceB,
   });
@@ -222,7 +246,8 @@ ponder.on('AIMM:FairPricesUpdated', async ({ event, context }) => {
   await db.insert(priceUpdate).values({
     id: priceUpdateId,
     marketId: marketIdStr,
-    platform: platformStr,
+    platform: platformNum,
+    platformName: platformName,
     type: 'fair',
     optionAPrice: fairPriceA,
     optionBPrice: fairPriceB,
@@ -247,16 +272,17 @@ ponder.on('AIMM:FairPricesUpdated', async ({ event, context }) => {
 
 // Market Status Changed Event
 ponder.on('AIMM:MarketStatusChanged', async ({ event, context }) => {
-  const { externalMarketId, platform, newStatus } = event.args;
+  const { tickerHash, ticker, platform, newStatus } = event.args;
   const { db } = context;
 
-  // Convert hex strings to readable strings
-  const marketIdStr = hexToString(externalMarketId);
-  const platformStr = hexToString(platform);
+  // Platform is now enum, ticker is readable string
+  const marketIdStr = ticker;
+  const platformNum = Number(platform);
+  const platformName = getPlatformName(platformNum);
 
   console.log('MarketStatusChanged event received:', {
-    externalMarketId: marketIdStr,
-    platform: platformStr,
+    ticker: marketIdStr,
+    platform: `${platformNum} (${platformName})`,
     newStatus,
   });
   const statusChangeId = `${marketIdStr}-${event.block.number}-${event.log.logIndex}`;
@@ -264,7 +290,8 @@ ponder.on('AIMM:MarketStatusChanged', async ({ event, context }) => {
   await db.insert(marketStatusChange).values({
     id: statusChangeId,
     marketId: marketIdStr,
-    platform: platformStr,
+    platform: platformNum,
+    platformName: platformName,
     oldStatus: null, // Not provided in the new contract
     newStatus: Number(newStatus),
     timestamp: event.block.timestamp,
@@ -286,16 +313,17 @@ ponder.on('AIMM:MarketStatusChanged', async ({ event, context }) => {
 
 // Market Status Updated Event (New event from changeMarketStatus function)
 ponder.on('AIMM:MarketStatusUpdated', async ({ event, context }) => {
-  const { externalMarketId, platform, newStatus } = event.args;
+  const { tickerHash, ticker, platform, newStatus } = event.args;
   const { db } = context;
 
-  // Convert hex strings to readable strings
-  const marketIdStr = hexToString(externalMarketId);
-  const platformStr = hexToString(platform);
+  // Platform is now enum, ticker is readable string
+  const marketIdStr = ticker;
+  const platformNum = Number(platform);
+  const platformName = getPlatformName(platformNum);
 
   console.log('MarketStatusUpdated event received:', {
-    externalMarketId: marketIdStr,
-    platform: platformStr,
+    ticker: marketIdStr,
+    platform: `${platformNum} (${platformName})`,
     newStatus,
   });
   const statusChangeId = `${marketIdStr}-updated-${event.block.number}-${event.log.logIndex}`;
@@ -304,7 +332,8 @@ ponder.on('AIMM:MarketStatusUpdated', async ({ event, context }) => {
   await db.insert(marketStatusChange).values({
     id: statusChangeId,
     marketId: marketIdStr,
-    platform: platformStr,
+    platform: platformNum,
+    platformName: platformName,
     oldStatus: null, // Not provided in the event
     newStatus: Number(newStatus),
     timestamp: event.block.timestamp,
@@ -363,13 +392,10 @@ ponder.on('AIMM:ResultUpdated', async ({ event, context }) => {
       transactionHash: event.transaction.hash,
     })
     .onConflictDoUpdate({
-      target: 'id',
-      set: {
-        finalResult,
-        timestamp: event.block.timestamp,
-        blockNumber: event.block.number,
-        transactionHash: event.transaction.hash,
-      },
+      finalResult,
+      timestamp: event.block.timestamp,
+      blockNumber: event.block.number,
+      transactionHash: event.transaction.hash,
     });
 });
 

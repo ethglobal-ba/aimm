@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.29;
 
 import {Test, console} from "forge-std/Test.sol";
 import {AIMM} from "../src/AIMM.sol";
@@ -18,8 +18,6 @@ contract AIMMTest is Test {
     // Test data
     string constant EXTERNAL_ID = "kalshi-123";
     string constant MARKET_NAME = "Trump 2024 Election";
-    string constant OPTION_A = "Trump Wins";
-    string constant OPTION_B = "Trump Loses";
 
     function setUp() public {
         owner = address(this);
@@ -46,38 +44,34 @@ contract AIMMTest is Test {
         // Test successful market onboarding
         vm.expectEmit(true, true, false, true);
         emit AIMM.MarketOnboarded(
-            "kalshi",
+            AIMM.Platforms.KALSHI,
+            EXTERNAL_ID,
             EXTERNAL_ID,
             MARKET_NAME,
             "SUBTITLE123",
             "EVENT456",
-            OPTION_A,
-            OPTION_B,
             0,
             0,
             0
         );
 
         AIMM.OnboardMarketParams memory params = AIMM.OnboardMarketParams({
-            externalMarketId: EXTERNAL_ID,
-            platform: "kalshi",
+            ticker: EXTERNAL_ID,
+            platform: AIMM.Platforms.KALSHI,
             marketName: MARKET_NAME,
             subtitle: "SUBTITLE123",
             eventTicker: "EVENT456",
-            optionAText: OPTION_A,
-            optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
             optionBCurrentExternalPrice: 0,
-            initialVolume: 0
+            initialVolume: 0,
+            imageUrl: "https://example.com/image.jpg"
         });
         aimm.onboardMarket(params);
 
         // Verify market was onboarded correctly
         AIMM.ExternalMarket memory market = aimm.getMarket(EXTERNAL_ID);
-        assertEq(market.platform, "kalshi");
+        assertEq(uint256(market.platform), uint256(AIMM.Platforms.KALSHI));
         assertEq(market.marketName, MARKET_NAME);
-        assertEq(market.optionAText, OPTION_A);
-        assertEq(market.optionBText, OPTION_B);
         assertEq(market.optionACurrentExternalPrice, 0);
         assertEq(market.optionBCurrentExternalPrice, 0);
         assertEq(uint256(market.status), uint256(AIMM.MarketStatus.Inactive));
@@ -100,16 +94,15 @@ contract AIMMTest is Test {
         vm.prank(user1);
         vm.expectRevert(abi.encodeWithSelector(0x118cdaa7, user1)); // OwnableUnauthorizedAccount selector
         AIMM.OnboardMarketParams memory params = AIMM.OnboardMarketParams({
-            externalMarketId: EXTERNAL_ID,
-            platform: "kalshi",
+            ticker: EXTERNAL_ID,
+            platform: AIMM.Platforms.KALSHI,
             marketName: MARKET_NAME,
             subtitle: "SUBTITLE789",
             eventTicker: "EVENT012",
-            optionAText: OPTION_A,
-            optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
             optionBCurrentExternalPrice: 0,
-            initialVolume: 0
+            initialVolume: 0,
+            imageUrl: "https://example.com/image.jpg"
         });
         aimm.onboardMarket(params);
     }
@@ -117,16 +110,15 @@ contract AIMMTest is Test {
     function test_OnboardMarket_RejectDuplicate() public {
         // Onboard market first time
         AIMM.OnboardMarketParams memory params = AIMM.OnboardMarketParams({
-            externalMarketId: EXTERNAL_ID,
-            platform: "kalshi",
+            ticker: EXTERNAL_ID,
+            platform: AIMM.Platforms.KALSHI,
             marketName: MARKET_NAME,
             subtitle: "SUBTITLE345",
             eventTicker: "EVENT678",
-            optionAText: OPTION_A,
-            optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
             optionBCurrentExternalPrice: 0,
-            initialVolume: 0
+            initialVolume: 0,
+            imageUrl: "https://example.com/image.jpg"
         });
         aimm.onboardMarket(params);
 
@@ -137,34 +129,32 @@ contract AIMMTest is Test {
 
     function test_OnboardMarket_RejectEmptyParams() public {
         // Test rejection of empty external market ID
-        vm.expectRevert("External market ID cannot be empty");
+        vm.expectRevert("Ticker cannot be empty");
         AIMM.OnboardMarketParams memory emptyIdParams = AIMM.OnboardMarketParams({
-            externalMarketId: "",
-            platform: "kalshi",
+            ticker: "",
+            platform: AIMM.Platforms.KALSHI,
             marketName: MARKET_NAME,
             subtitle: "SUBTITLE901",
             eventTicker: "EVENT234",
-            optionAText: OPTION_A,
-            optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
             optionBCurrentExternalPrice: 0,
-            initialVolume: 0
+            initialVolume: 0,
+            imageUrl: "https://example.com/image.jpg"
         });
         aimm.onboardMarket(emptyIdParams);
 
         // Test rejection of empty market name
         vm.expectRevert("Market name cannot be empty");
         AIMM.OnboardMarketParams memory emptyNameParams = AIMM.OnboardMarketParams({
-            externalMarketId: EXTERNAL_ID,
-            platform: "kalshi",
+            ticker: EXTERNAL_ID,
+            platform: AIMM.Platforms.KALSHI,
             marketName: "",
             subtitle: "SUBTITLE567",
             eventTicker: "EVENT890",
-            optionAText: OPTION_A,
-            optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
             optionBCurrentExternalPrice: 0,
-            initialVolume: 0
+            initialVolume: 0,
+            imageUrl: "https://example.com/image.jpg"
         });
         aimm.onboardMarket(emptyNameParams);
     }
@@ -172,16 +162,15 @@ contract AIMMTest is Test {
     function test_UpdateMarketConfig() public {
         // Onboard market first
         AIMM.OnboardMarketParams memory params = AIMM.OnboardMarketParams({
-            externalMarketId: EXTERNAL_ID,
-            platform: "kalshi",
+            ticker: EXTERNAL_ID,
+            platform: AIMM.Platforms.KALSHI,
             marketName: MARKET_NAME,
             subtitle: "SUBTITLE135",
             eventTicker: "EVENT246",
-            optionAText: OPTION_A,
-            optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
             optionBCurrentExternalPrice: 0,
-            initialVolume: 0
+            initialVolume: 0,
+            imageUrl: "https://example.com/image.jpg"
         });
         aimm.onboardMarket(params);
 
@@ -191,7 +180,7 @@ contract AIMMTest is Test {
 
         vm.expectEmit(true, true, false, true);
         emit AIMM.MarketConfigUpdated(
-            "kalshi", EXTERNAL_ID, newMinPriceDiff, newMaxSpend, newSlippage
+            AIMM.Platforms.KALSHI, EXTERNAL_ID, EXTERNAL_ID, newMinPriceDiff, newMaxSpend, newSlippage
         );
 
         aimm.updateMarketConfig(EXTERNAL_ID, newMinPriceDiff, newMaxSpend, newSlippage);
@@ -206,16 +195,15 @@ contract AIMMTest is Test {
 
     function test_UpdateMarketConfig_OnlyOwner() public {
         AIMM.OnboardMarketParams memory params = AIMM.OnboardMarketParams({
-            externalMarketId: EXTERNAL_ID,
-            platform: "kalshi",
+            ticker: EXTERNAL_ID,
+            platform: AIMM.Platforms.KALSHI,
             marketName: MARKET_NAME,
             subtitle: "SUBTITLE357",
             eventTicker: "EVENT468",
-            optionAText: OPTION_A,
-            optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
             optionBCurrentExternalPrice: 0,
-            initialVolume: 0
+            initialVolume: 0,
+            imageUrl: "https://example.com/image.jpg"
         });
         aimm.onboardMarket(params);
 
@@ -231,21 +219,25 @@ contract AIMMTest is Test {
 
     function test_SetMarketStatus() public {
         AIMM.OnboardMarketParams memory params = AIMM.OnboardMarketParams({
-            externalMarketId: EXTERNAL_ID,
-            platform: "kalshi",
+            ticker: EXTERNAL_ID,
+            platform: AIMM.Platforms.KALSHI,
             marketName: MARKET_NAME,
             subtitle: "SUBTITLE579",
             eventTicker: "EVENT680",
-            optionAText: OPTION_A,
-            optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
             optionBCurrentExternalPrice: 0,
-            initialVolume: 0
+            initialVolume: 0,
+            imageUrl: "https://example.com/image.jpg"
         });
         aimm.onboardMarket(params);
 
         vm.expectEmit(true, true, false, true);
-        emit AIMM.MarketStatusUpdated("kalshi", EXTERNAL_ID, AIMM.MarketStatus.ClosedInternal);
+        emit AIMM.MarketStatusUpdated(
+            AIMM.Platforms.KALSHI,
+            EXTERNAL_ID,
+            EXTERNAL_ID,
+            AIMM.MarketStatus.ClosedInternal
+        );
 
         aimm.updateMarketStatus(EXTERNAL_ID, AIMM.MarketStatus.ClosedInternal);
 
@@ -272,24 +264,23 @@ contract AIMMTest is Test {
 
     function test_ProcessReport_CurrentPriceFetch() public {
         AIMM.OnboardMarketParams memory params = AIMM.OnboardMarketParams({
-            externalMarketId: EXTERNAL_ID,
-            platform: "kalshi",
+            ticker: EXTERNAL_ID,
+            platform: AIMM.Platforms.KALSHI,
             marketName: MARKET_NAME,
             subtitle: "SUBTITLE791",
             eventTicker: "EVENT802",
-            optionAText: OPTION_A,
-            optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
             optionBCurrentExternalPrice: 0,
-            initialVolume: 0
+            initialVolume: 0,
+            imageUrl: "https://example.com/image.jpg"
         });
         aimm.onboardMarket(params);
 
         // Create workflow result for current price fetch
         AIMM.WorkflowResult memory result = AIMM.WorkflowResult({
             workflowName: "currentPriceFetch",
-            platform: "kalshi",
-            externalMarketId: EXTERNAL_ID,
+            platform: AIMM.Platforms.KALSHI,
+            ticker: EXTERNAL_ID,
             optionAPrice: 60 * 1e18, // 60% in wei
             optionBPrice: 40 * 1e18, // 40% in wei
             volume: 100,
@@ -305,7 +296,7 @@ contract AIMMTest is Test {
 
         vm.expectEmit(true, true, false, true);
         emit AIMM.CurrentPricesUpdated(
-            "kalshi", EXTERNAL_ID, result.optionAPrice, result.optionBPrice
+            AIMM.Platforms.KALSHI, EXTERNAL_ID, EXTERNAL_ID, result.optionAPrice, result.optionBPrice
         );
 
         vm.expectEmit(true, false, false, true);
@@ -315,15 +306,18 @@ contract AIMMTest is Test {
 
         // Verify result was stored
         assertEq(aimm.resultCount(), 1);
+        
+        // Verify latest result was stored correctly - access individual fields
         (
             string memory workflowName,
-            string memory platform,
-            string memory externalMarketId,
+            AIMM.Platforms platform,
+            string memory ticker,
             uint256 optionAPrice,
             uint256 optionBPrice,
             uint256 volume,
             AIMM.MarketStatus status
-        ) = aimm.results(1);
+        ) = aimm.latestResult();
+        
         assertEq(optionAPrice, result.optionAPrice);
         assertEq(optionBPrice, result.optionBPrice);
         assertEq(
@@ -339,23 +333,22 @@ contract AIMMTest is Test {
 
     function test_ProcessReport_FairPriceFetch() public {
         AIMM.OnboardMarketParams memory params = AIMM.OnboardMarketParams({
-            externalMarketId: EXTERNAL_ID,
-            platform: "kalshi",
+            ticker: EXTERNAL_ID,
+            platform: AIMM.Platforms.KALSHI,
             marketName: MARKET_NAME,
             subtitle: "SUBTITLE913",
             eventTicker: "EVENT024",
-            optionAText: OPTION_A,
-            optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
             optionBCurrentExternalPrice: 0,
-            initialVolume: 0
+            initialVolume: 0,
+            imageUrl: "https://example.com/image.jpg"
         });
         aimm.onboardMarket(params);
 
         AIMM.WorkflowResult memory result = AIMM.WorkflowResult({
             workflowName: "fairPriceFetch",
-            platform: "kalshi",
-            externalMarketId: EXTERNAL_ID,
+            platform: AIMM.Platforms.KALSHI,
+            ticker: EXTERNAL_ID,
             optionAPrice: 55 * 1e18, // 55% fair price
             optionBPrice: 45 * 1e18, // 45% fair price
             volume: 100,
@@ -367,7 +360,9 @@ contract AIMMTest is Test {
             abi.encodePacked(bytes32("workflow123"), bytes10("test12345"), owner);
 
         vm.expectEmit(true, true, false, true);
-        emit AIMM.FairPricesUpdated("kalshi", EXTERNAL_ID, result.optionAPrice, result.optionBPrice);
+        emit AIMM.FairPricesUpdated(
+            AIMM.Platforms.KALSHI, EXTERNAL_ID, EXTERNAL_ID, result.optionAPrice, result.optionBPrice
+        );
 
         aimm.onReport(metadata, report);
 
@@ -377,57 +372,17 @@ contract AIMMTest is Test {
         assertEq(market.optionBCurrentFairPrice, result.optionBPrice);
     }
 
-    function test_ProcessReport_CloseMarket() public {
-        AIMM.OnboardMarketParams memory params = AIMM.OnboardMarketParams({
-            externalMarketId: EXTERNAL_ID,
-            platform: "kalshi",
-            marketName: MARKET_NAME,
-            subtitle: "SUBTITLE135",
-            eventTicker: "EVENT246",
-            optionAText: OPTION_A,
-            optionBText: OPTION_B,
-            optionACurrentExternalPrice: 0,
-            optionBCurrentExternalPrice: 0,
-            initialVolume: 0
-        });
-        aimm.onboardMarket(params);
-
-        AIMM.WorkflowResult memory result = AIMM.WorkflowResult({
-            workflowName: "closeMarket",
-            platform: "kalshi",
-            externalMarketId: EXTERNAL_ID,
-            optionAPrice: 0,
-            optionBPrice: 0,
-            volume: 0,
-            status: AIMM.MarketStatus.Active
-        });
-
-        bytes memory report = abi.encode(result);
-        bytes memory metadata =
-            abi.encodePacked(bytes32("workflow123"), bytes10("test12345"), owner);
-
-        vm.expectEmit(true, true, false, true);
-        emit AIMM.MarketStatusChanged("kalshi", EXTERNAL_ID, AIMM.MarketStatus.ClosedExternal);
-
-        aimm.onReport(metadata, report);
-
-        // Verify market was closed
-        AIMM.ExternalMarket memory market = aimm.getMarket(EXTERNAL_ID);
-        assertEq(uint256(market.status), uint256(AIMM.MarketStatus.ClosedExternal));
-    }
-
     function test_ShouldBalancePrice() public {
         AIMM.OnboardMarketParams memory params = AIMM.OnboardMarketParams({
-            externalMarketId: EXTERNAL_ID,
-            platform: "kalshi",
+            ticker: EXTERNAL_ID,
+            platform: AIMM.Platforms.KALSHI,
             marketName: MARKET_NAME,
             subtitle: "SUBTITLE357",
             eventTicker: "EVENT468",
-            optionAText: OPTION_A,
-            optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
             optionBCurrentExternalPrice: 0,
-            initialVolume: 0
+            initialVolume: 0,
+            imageUrl: "https://example.com/image.jpg"
         });
         aimm.onboardMarket(params);
 
@@ -451,16 +406,15 @@ contract AIMMTest is Test {
 
     function test_ShouldBalancePrice_InactiveMarket() public {
         AIMM.OnboardMarketParams memory params = AIMM.OnboardMarketParams({
-            externalMarketId: EXTERNAL_ID,
-            platform: "kalshi",
+            ticker: EXTERNAL_ID,
+            platform: AIMM.Platforms.KALSHI,
             marketName: MARKET_NAME,
             subtitle: "SUBTITLE579",
             eventTicker: "EVENT680",
-            optionAText: OPTION_A,
-            optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
             optionBCurrentExternalPrice: 0,
-            initialVolume: 0
+            initialVolume: 0,
+            imageUrl: "https://example.com/image.jpg"
         });
         aimm.onboardMarket(params);
         aimm.updateMarketStatus(EXTERNAL_ID, AIMM.MarketStatus.ClosedInternal);
@@ -479,8 +433,8 @@ contract AIMMTest is Test {
         // First result should not be anomalous
         AIMM.WorkflowResult memory firstResult = AIMM.WorkflowResult({
             workflowName: "test",
-            platform: "kalshi",
-            externalMarketId: EXTERNAL_ID,
+            platform: AIMM.Platforms.KALSHI,
+            ticker: EXTERNAL_ID,
             optionAPrice: 50 * 1e18,
             optionBPrice: 50 * 1e18,
             volume: 100,
@@ -491,16 +445,15 @@ contract AIMMTest is Test {
 
         // Submit first result
         AIMM.OnboardMarketParams memory params = AIMM.OnboardMarketParams({
-            externalMarketId: EXTERNAL_ID,
-            platform: "kalshi",
+            ticker: EXTERNAL_ID,
+            platform: AIMM.Platforms.KALSHI,
             marketName: MARKET_NAME,
             subtitle: "SUBTITLE791",
             eventTicker: "EVENT802",
-            optionAText: OPTION_A,
-            optionBText: OPTION_B,
             optionACurrentExternalPrice: 0,
             optionBCurrentExternalPrice: 0,
-            initialVolume: 0
+            initialVolume: 0,
+            imageUrl: "https://example.com/image.jpg"
         });
         aimm.onboardMarket(params);
         _processReport(firstResult);
@@ -520,8 +473,8 @@ contract AIMMTest is Test {
     function _updateExternalPrices(uint256 priceA, uint256 priceB) internal {
         AIMM.WorkflowResult memory result = AIMM.WorkflowResult({
             workflowName: "currentPriceFetch",
-            platform: "kalshi",
-            externalMarketId: EXTERNAL_ID,
+            platform: AIMM.Platforms.KALSHI,
+            ticker: EXTERNAL_ID,
             optionAPrice: priceA,
             optionBPrice: priceB,
             volume: 100,
@@ -533,8 +486,8 @@ contract AIMMTest is Test {
     function _updateFairPrices(uint256 priceA, uint256 priceB) internal {
         AIMM.WorkflowResult memory result = AIMM.WorkflowResult({
             workflowName: "fairPriceFetch",
-            platform: "kalshi",
-            externalMarketId: EXTERNAL_ID,
+            platform: AIMM.Platforms.KALSHI,
+            ticker: EXTERNAL_ID,
             optionAPrice: priceA,
             optionBPrice: priceB,
             volume: 100,

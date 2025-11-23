@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.29;
 
 import {IReceiverTemplate} from "./IReceiverTemplate.sol";
 
@@ -16,11 +16,16 @@ contract AIMM is IReceiverTemplate {
         ClosedInternal, // We have chosen to stop tracking the market irrespective of external status
         ClosedExternal // The external market has closed and we have chosen to stop tracking the market
     }
+    enum Platforms {
+        KALSHI,
+        LIMITLESS,
+        TRUMPFUN
+    }
 
     struct WorkflowResult {
         string workflowName; // currentPriceFetch, fairPriceFetch, closeMarket
-        string platform; // Platform name (e.g., "kalshi") used to calculate market ID
-        string externalMarketId; // External market ID used to calculate market ID
+        Platforms platform; // Platform name (e.g., "kalshi") used to calculate market ID
+        string ticker; // External market ID used to calculate market ID
         uint256 optionAPrice; // Price for option A
         uint256 optionBPrice; // Price for option B
         uint256 volume; // Trading volume
@@ -41,28 +46,42 @@ contract AIMM is IReceiverTemplate {
         uint256 slippageToleranceBps; // Slippage tolerance for this market
     }
 
-    // Input parameters for onboarding a market
-    struct OnboardMarketParams {
-        string externalMarketId;
-        string platform;
-        string marketName;
-        string subtitle;
-        string eventTicker;
-        string optionAText;
-        string optionBText;
+    // Price data for market onboarding
+    struct PriceData {
         uint256 optionACurrentExternalPrice;
         uint256 optionBCurrentExternalPrice;
         uint256 initialVolume;
     }
 
+    // Market metadata for onboarding
+    struct MarketData {
+        string ticker;
+        Platforms platform;
+        string marketName;
+        string subtitle;
+        string eventTicker;
+        string imageUrl;
+    }
+
+    // Input parameters for onboarding a market
+    struct OnboardMarketParams {
+        string ticker;
+        Platforms platform;
+        string marketName;
+        string subtitle;
+        string eventTicker;
+        uint256 optionACurrentExternalPrice;
+        uint256 optionBCurrentExternalPrice;
+        uint256 initialVolume;
+        string imageUrl;
+    }
+
     // Configuration and data for each external market
     struct ExternalMarket {
-        string platform; // Platform name (e.g., "kalshi", "polymarket")
+        Platforms platform; // Platform name (e.g., "kalshi", "polymarket")
         string marketName; // Human readable market name
         string subtitle; // Market subtitle
         string eventTicker; // Event ticker identifier
-        string optionAText; // Description of option A
-        string optionBText; // Description of option B
         uint256 optionACurrentExternalPrice; // Current price on external market
         uint256 optionBCurrentExternalPrice; // Current price on external market
         uint256 optionACurrentFairPrice; // Current fair price (internal)
@@ -70,11 +89,13 @@ contract AIMM is IReceiverTemplate {
         uint256 lastCurrentPriceUpdate; // Timestamp of last current price update
         uint256 lastFairPriceUpdate; // Timestamp of last fair price update
         uint256 volume; // Trading volume for this market
+        string imageUrl;
         MarketStatus status;
     }
 
     error MarketNotOpen(string marketId);
     error MarketAlreadyExists(string marketId);
+    error UnknownWorkflow(string workflowName);
 
     // --- State Variables ---
     WorkflowResult public latestResult;
@@ -91,42 +112,44 @@ contract AIMM is IReceiverTemplate {
     // --- Events ---
     event ResultUpdated(uint256 indexed resultId, uint256 finalResult);
     event MarketOnboarded(
-        string indexed platform,
-        string indexed externalMarketId,
+        Platforms indexed platform,
+        string indexed tickerHash,
+        string ticker,
         string marketName,
         string subtitle,
         string eventTicker,
-        string optionA,
-        string optionB,
-        uint volume,
-        uint optionACurrentExternalPrice,
-        uint optionBCurrentExternalPrice
+        uint256 volume,
+        uint256 optionACurrentExternalPrice,
+        uint256 optionBCurrentExternalPrice
     );
 
     event MarketConfigUpdated(
-        string indexed platform,
-        string indexed externalMarketId,
+        Platforms indexed platform,
+        string indexed tickerHash,
+        string ticker,
         uint256 minPriceDiff,
         uint256 maxSpend,
         uint256 slippage
     );
     event CurrentPricesUpdated(
-        string indexed platform,
-        string indexed externalMarketId,
+        Platforms indexed platform,
+        string indexed tickerHash,
+        string ticker,
         uint256 extPriceA,
         uint256 extPriceB
     );
     event FairPricesUpdated(
-        string indexed platform,
-        string indexed externalMarketId,
+        Platforms indexed platform,
+        string indexed tickerHash,
+        string ticker,
         uint256 fairPriceA,
         uint256 fairPriceB
     );
     event MarketStatusChanged(
-        string indexed platform, string indexed externalMarketId, MarketStatus newStatus
+        Platforms indexed platform, string indexed tickerHash, string ticker, MarketStatus newStatus
     );
     event MarketStatusUpdated(
-        string indexed platform, string indexed externalMarketId, MarketStatus newStatus
+        Platforms indexed platform, string indexed tickerHash, string ticker, MarketStatus newStatus
     );
     event DefaultConfigUpdated(uint256 driftPercentage, uint256 maxSpend, uint256 slippage);
 
@@ -150,14 +173,14 @@ contract AIMM is IReceiverTemplate {
 
     modifier marketNotExists(string memory externalMarketId) {
         require(
-            bytes(externalMarkets[externalMarketId].platform).length == 0, "Market already exists"
+            bytes(externalMarkets[externalMarketId].marketName).length == 0, "Market already exists"
         );
         _;
     }
 
     modifier marketMustExist(string memory externalMarketId) {
         require(
-            bytes(externalMarkets[externalMarketId].platform).length > 0, "Market does not exist"
+            bytes(externalMarkets[externalMarketId].marketName).length > 0, "Market does not exist"
         );
         _;
     }
@@ -169,18 +192,16 @@ contract AIMM is IReceiverTemplate {
     function onboardMarket(OnboardMarketParams calldata params)
         public
         onlyOwner
-        marketNotExists(params.externalMarketId)
+        marketNotExists(params.ticker)
     {
-        require(bytes(params.externalMarketId).length > 0, "External market ID cannot be empty");
+        require(bytes(params.ticker).length > 0, "Ticker cannot be empty");
         require(bytes(params.marketName).length > 0, "Market name cannot be empty");
 
-        externalMarkets[params.externalMarketId] = ExternalMarket({
+        externalMarkets[params.ticker] = ExternalMarket({
             platform: params.platform,
             marketName: params.marketName,
             subtitle: params.subtitle,
             eventTicker: params.eventTicker,
-            optionAText: params.optionAText,
-            optionBText: params.optionBText,
             optionACurrentExternalPrice: params.optionACurrentExternalPrice,
             optionBCurrentExternalPrice: params.optionBCurrentExternalPrice,
             optionACurrentFairPrice: 0,
@@ -188,25 +209,25 @@ contract AIMM is IReceiverTemplate {
             lastCurrentPriceUpdate: 0,
             lastFairPriceUpdate: 0,
             volume: params.initialVolume,
+            imageUrl: params.imageUrl,
             status: MarketStatus.Inactive
         });
 
-        marketConfigs[params.externalMarketId] = MarketConfig({
+        marketConfigs[params.ticker] = MarketConfig({
             minPriceDifference: defaultConfig.driftPercentagePoints,
             maxSpendAmount: defaultConfig.maxSpendAmount,
             slippageToleranceBps: defaultConfig.slippageToleranceBps
         });
 
-        externalMarketIds.push(params.externalMarketId);
+        externalMarketIds.push(params.ticker);
 
         emit MarketOnboarded(
             params.platform,
-            params.externalMarketId,
+            params.ticker,
+            params.ticker,
             params.marketName,
             params.subtitle,
             params.eventTicker,
-            params.optionAText,
-            params.optionBText,
             params.initialVolume,
             params.optionACurrentExternalPrice,
             params.optionBCurrentExternalPrice
@@ -228,7 +249,7 @@ contract AIMM is IReceiverTemplate {
         MarketStatus status
     ) private {
         require(
-            bytes(externalMarkets[externalMarketId].platform).length > 0, "Market does not exist"
+            bytes(externalMarkets[externalMarketId].marketName).length > 0, "Market does not exist"
         );
         ExternalMarket storage market = externalMarkets[externalMarketId];
         market.optionACurrentExternalPrice = optionAPrice;
@@ -236,7 +257,13 @@ contract AIMM is IReceiverTemplate {
         market.volume = volume;
         market.lastCurrentPriceUpdate = block.timestamp;
 
-        emit CurrentPricesUpdated(market.platform, externalMarketId, optionAPrice, optionBPrice);
+        emit CurrentPricesUpdated(
+            market.platform, // Platforms enum (indexed)
+            externalMarketId, // string tickerHash (indexed, hashed)
+            externalMarketId, // string ticker (readable)
+            optionAPrice, // uint256 extPriceA
+            optionBPrice // uint256 extPriceB
+        );
     }
 
     /**
@@ -251,7 +278,7 @@ contract AIMM is IReceiverTemplate {
         uint256 optionBFairPrice
     ) private {
         require(
-            bytes(externalMarkets[externalMarketId].platform).length > 0, "Market does not exist"
+            bytes(externalMarkets[externalMarketId].marketName).length > 0, "Market does not exist"
         );
         ExternalMarket storage market = externalMarkets[externalMarketId];
         market.optionACurrentFairPrice = optionAFairPrice;
@@ -259,7 +286,11 @@ contract AIMM is IReceiverTemplate {
         market.lastFairPriceUpdate = block.timestamp;
 
         emit FairPricesUpdated(
-            market.platform, externalMarketId, optionAFairPrice, optionBFairPrice
+            market.platform, // Platforms enum (indexed)
+            externalMarketId, // string tickerHash (indexed, hashed)
+            externalMarketId, // string ticker (readable)
+            optionAFairPrice, // uint256 fairPriceA
+            optionBFairPrice // uint256 fairPriceB
         );
     }
 
@@ -283,7 +314,12 @@ contract AIMM is IReceiverTemplate {
 
         ExternalMarket memory market = externalMarkets[externalMarketId];
         emit MarketConfigUpdated(
-            market.platform, externalMarketId, minPriceDiff, maxSpend, slippageBps
+            market.platform, // Platforms enum (indexed)
+            externalMarketId, // string tickerHash (indexed, hashed)
+            externalMarketId, // string ticker (readable)
+            minPriceDiff, // uint256 minPriceDiff
+            maxSpend, // uint256 maxSpend
+            slippageBps // uint256 slippage
         );
     }
 
@@ -299,7 +335,12 @@ contract AIMM is IReceiverTemplate {
     {
         ExternalMarket storage market = externalMarkets[externalMarketId];
         market.status = newStatus;
-    emit MarketStatusUpdated(market.platform, externalMarketId, newStatus);
+        emit MarketStatusUpdated(
+            market.platform, // Platforms enum (indexed)
+            externalMarketId, // string tickerHash (indexed, hashed)
+            externalMarketId, // string ticker (readable)
+            newStatus // MarketStatus newStatus
+        );
     }
 
     /**
@@ -314,7 +355,12 @@ contract AIMM is IReceiverTemplate {
     {
         ExternalMarket storage market = externalMarkets[externalMarketId];
         market.status = newStatus;
-        emit MarketStatusUpdated(market.platform, externalMarketId, newStatus);
+        emit MarketStatusUpdated(
+            market.platform, // Platforms enum (indexed)
+            externalMarketId, // string tickerHash (indexed, hashed)
+            externalMarketId, // string ticker (readable)
+            newStatus // MarketStatus newStatus
+        );
     }
 
     /**
@@ -401,48 +447,37 @@ contract AIMM is IReceiverTemplate {
      */
     function _processReport(bytes calldata report) internal override {
         // Decode the report bytes into our WorkflowResult struct
-        WorkflowResult memory calculatorResult = abi.decode(report, (WorkflowResult));
+        WorkflowResult memory creWorkflowResult = abi.decode(report, (WorkflowResult));
 
         // --- Core Logic ---
         // Update contract state with the new result
         resultCount++;
-        results[resultCount] = calculatorResult;
-        latestResult = calculatorResult;
+        results[resultCount] = creWorkflowResult;
+        latestResult = creWorkflowResult;
 
-        // Use externalMarketId directly
-        string memory externalMarketId = calculatorResult.externalMarketId;
+        // Use ticker directly
+        string memory externalMarketId = creWorkflowResult.ticker;
 
         // Handle different workflow types
-        bytes32 workflowNameHash = keccak256(abi.encodePacked(calculatorResult.workflowName));
+        bytes32 workflowNameHash = keccak256(abi.encodePacked(creWorkflowResult.workflowName));
 
         if (workflowNameHash == keccak256(abi.encodePacked("currentPriceFetch"))) {
             _updateExternalMarketData(
                 externalMarketId,
-                calculatorResult.optionAPrice,
-                calculatorResult.optionBPrice,
-                calculatorResult.volume,
-                calculatorResult.status
+                creWorkflowResult.optionAPrice,
+                creWorkflowResult.optionBPrice,
+                creWorkflowResult.volume,
+                creWorkflowResult.status
             );
         } else if (workflowNameHash == keccak256(abi.encodePacked("fairPriceFetch"))) {
             _updateFairPrices(
-                externalMarketId, calculatorResult.optionAPrice, calculatorResult.optionBPrice
+                externalMarketId, creWorkflowResult.optionAPrice, creWorkflowResult.optionBPrice
             );
-        } else if (workflowNameHash == keccak256(abi.encodePacked("closeMarket"))) {
-            _closeMarket(externalMarketId);
+        } else if (workflowNameHash == keccak256(abi.encodePacked("marketStatusUp"))) {
+            revert UnknownWorkflow(creWorkflowResult.workflowName);
         }
 
         emit ResultUpdated(resultCount, block.timestamp);
-    }
-
-    /**
-     * @notice Close a market (internal helper)
-     */
-    function _closeMarket(string memory externalMarketId) private {
-        if (bytes(externalMarkets[externalMarketId].platform).length > 0) {
-            ExternalMarket storage market = externalMarkets[externalMarketId];
-            market.status = MarketStatus.ClosedExternal;
-            emit MarketStatusChanged(market.platform, externalMarketId, MarketStatus.ClosedExternal);
-        }
     }
 
     // This function is a "dry-run" utility. It allows an offchain system to check

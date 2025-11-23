@@ -8,7 +8,7 @@ import { aimmAbi } from '../../packages/common/src/types/__generated__/contract.
 dotenv.config();
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
-const AIMM_CONTRACT_ADDRESS = '0xe09e0bee97a644fa4d6e0a99e6d61c8ca1c521a1' as Address;
+const AIMM_CONTRACT_ADDRESS = '0x7Eb455A7D85A0098714B3F682b3BE8c994c5A843' as Address;
 const KALSHI_API_BASE = 'https://api.elections.kalshi.com/trade-api/v2';
 
 interface KalshiMarket {
@@ -64,16 +64,15 @@ function mapKalshiMarketToParams(market: KalshiMarket) {
   const noPriceCents = market.no_ask > 0 ? market.no_ask : market.no_bid || 50;
 
   return {
-    externalMarketId: market.ticker,
-    platform: 'kalshi',
+    ticker: market.ticker,
+    platform: 0, // KALSHI enum value
     marketName: market.title,
     subtitle: market.subtitle,
     eventTicker: market.event_ticker, // Use the actual event_ticker from API
-    optionAText: 'Yes',
-    optionBText: 'No',
     optionACurrentExternalPrice: convertPriceToWei(yesPriceCents), //Adds 6 decimals to line up w/ USDC
     optionBCurrentExternalPrice: convertPriceToWei(noPriceCents), //Addds 6 decimals to line up w/ USDC
     initialVolume: BigInt(market.volume || 0),
+    imageUrl: 'https://trading.kalshi.com/favicon.ico', // Default Kalshi favicon
   };
 }
 
