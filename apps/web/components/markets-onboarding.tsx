@@ -45,7 +45,7 @@ const INTERVAL_OPTIONS: { value: AutomationInterval; label: string }[] = [
   { value: '1h', label: 'Every hour' },
 ];
 
-export function MarketsOnboarding() {
+export function MarketsOnboarding(): JSX.Element {
   const { isDemoOnboardingMode, toggleDemoOnboardingMode } = useDemoOnboarding();
 
   const { data, loading, error } = useGetMarketsQuery();

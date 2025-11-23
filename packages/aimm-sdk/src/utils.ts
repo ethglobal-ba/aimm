@@ -10,5 +10,7 @@ export const convertKalshiCREStatusToContractStatus = (status: string): MarketSt
       return MarketStatus.ClosedInternal;
     case 'closed_external':
       return MarketStatus.ClosedExternal;
+    default:
+      throw new Error(`Unknown Kalshi CRE status: ${status}`);
   }
 };

@@ -122,3 +122,57 @@ export function useAIMMUpdateDefaultConfig() {
   };
 }
 
+export function useAIMMUpdateExternalMarketData() {
+  const { writeContract, data: hash, ...rest } = useWriteContract();
+
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+
+  const updateExternalMarketData = (params: {
+    externalMarketId: string;
+    optionAPrice: bigint;
+    optionBPrice: bigint;
+    volume: bigint;
+    status: MarketStatus;
+  }) => {
+    writeContract({
+      ...AIMM_CONTRACT_CONFIG,
+      functionName: 'updateExternalMarketData',
+      args: [params.externalMarketId, params.optionAPrice, params.optionBPrice, params.volume, params.status],
+    });
+  };
+
+  return {
+    updateExternalMarketData,
+    hash,
+    isConfirming,
+    isConfirmed,
+    ...rest,
+  };
+}
+
+export function useAIMMUpdateFairPrices() {
+  const { writeContract, data: hash, ...rest } = useWriteContract();
+
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+
+  const updateFairPrices = (params: {
+    externalMarketId: string;
+    optionAFairPrice: bigint;
+    optionBFairPrice: bigint;
+  }) => {
+    writeContract({
+      ...AIMM_CONTRACT_CONFIG,
+      functionName: 'updateFairPrices',
+      args: [params.externalMarketId, params.optionAFairPrice, params.optionBFairPrice],
+    });
+  };
+
+  return {
+    updateFairPrices,
+    hash,
+    isConfirming,
+    isConfirmed,
+    ...rest,
+  };
+}
+

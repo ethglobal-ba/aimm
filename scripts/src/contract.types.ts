@@ -14,16 +14,6 @@ export const aimmAbi = [
   },
   {
     type: 'function',
-    inputs: [
-      { name: 'externalMarketId', internalType: 'string', type: 'string' },
-      { name: 'newStatus', internalType: 'enum AIMM.MarketStatus', type: 'uint8' },
-    ],
-    name: 'changeMarketStatus',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
     inputs: [],
     name: 'defaultConfig',
     outputs: [
@@ -297,6 +287,30 @@ export const aimmAbi = [
       { name: 'slippageBps', internalType: 'uint256', type: 'uint256' },
     ],
     name: 'updateDefaultConfig',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'externalMarketId', internalType: 'string', type: 'string' },
+      { name: 'optionAPrice', internalType: 'uint256', type: 'uint256' },
+      { name: 'optionBPrice', internalType: 'uint256', type: 'uint256' },
+      { name: 'volume', internalType: 'uint256', type: 'uint256' },
+      { name: 'status', internalType: 'enum AIMM.MarketStatus', type: 'uint8' },
+    ],
+    name: 'updateExternalMarketData',
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'externalMarketId', internalType: 'string', type: 'string' },
+      { name: 'optionAFairPrice', internalType: 'uint256', type: 'uint256' },
+      { name: 'optionBFairPrice', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'updateFairPrices',
     outputs: [],
     stateMutability: 'nonpayable',
   },

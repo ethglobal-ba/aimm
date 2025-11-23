@@ -27,7 +27,7 @@ interface MarketsStatusProviderProps {
  * contracts / indexer / backend. When that is wired, this provider should
  * become a thin adapter over those real data sources instead of local state.
  */
-export function MarketsStatusProvider({ children }: MarketsStatusProviderProps) {
+export function MarketsStatusProvider({ children }: MarketsStatusProviderProps): JSX.Element {
   const [statusesById, setStatusesById] = useState<Record<string, MarketAimmStatus>>({});
 
   const getStatus = useCallback(
@@ -59,7 +59,7 @@ export function MarketsStatusProvider({ children }: MarketsStatusProviderProps) 
     [statusesById, getStatus, setStatus]
   );
 
-  return <MarketsStatusContext.Provider value={value}>{children}</MarketsStatusContext.Provider>;
+  return <MarketsStatusContext.Provider value={value}>{children as any}</MarketsStatusContext.Provider>;
 }
 
 export function useMarketsStatus(): MarketsStatusState {

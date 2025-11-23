@@ -6,4 +6,4 @@ export enum ContractPlatforms {
   TRUMPFUN = 2,
 }
 
-export * from './src/types/__generated__/contract.types.js';
+export * from './src/types/__generated__/contract.types';

@@ -1,14 +1,6 @@
 'use client';
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 interface DemoOnboardingContextValue {
   isDemoOnboardingMode: boolean;
@@ -19,7 +11,7 @@ const DemoOnboardingContext = createContext<DemoOnboardingContextValue | undefin
 
 const STORAGE_KEY = 'aimmDemoOnboardingMode';
 
-export function DemoOnboardingProvider({ children }: { children: ReactNode }) {
+export function DemoOnboardingProvider({ children }: { children: React.ReactNode }): JSX.Element {
   const [isDemoOnboardingMode, setIsDemoOnboardingMode] = useState(false);
 
   useEffect(() => {
@@ -48,10 +40,10 @@ export function DemoOnboardingProvider({ children }: { children: ReactNode }) {
       isDemoOnboardingMode,
       toggleDemoOnboardingMode,
     }),
-    [isDemoOnboardingMode, toggleDemoOnboardingMode],
+    [isDemoOnboardingMode, toggleDemoOnboardingMode]
   );
 
-  return <DemoOnboardingContext.Provider value={value}>{children}</DemoOnboardingContext.Provider>;
+  return <DemoOnboardingContext.Provider value={value}>{children as any}</DemoOnboardingContext.Provider>;
 }
 
 export function useDemoOnboarding(): DemoOnboardingContextValue {
@@ -61,5 +53,3 @@ export function useDemoOnboarding(): DemoOnboardingContextValue {
   }
   return context;
 }
-
-

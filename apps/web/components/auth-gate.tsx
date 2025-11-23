@@ -1,21 +1,21 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
-import { ShieldKeyIcon } from 'hugeicons-react';
 import { useIsSignedIn } from '@coinbase/cdp-hooks';
 import { AuthButton } from '@coinbase/cdp-react/components/AuthButton';
+import { ShieldKeyIcon } from 'hugeicons-react';
+import { useEffect, useState } from 'react';
 
-import { MainLayout } from '@/components/layout/main-layout';
 import { DemoOnboardingProvider } from '@/components/demo-onboarding-context';
+import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from '@workspace/ui/components/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@workspace/ui/components/card';
 import { Text } from '@workspace/ui/components/text';
 
 interface AuthGateProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
-export function AuthGate({ children }: AuthGateProps) {
+export function AuthGate({ children }: AuthGateProps): JSX.Element {
   const { isSignedIn } = useIsSignedIn();
   const [hasContractBalance, setHasContractBalance] = useState<boolean | null>(null);
   const [hasConnectionSettled, setHasConnectionSettled] = useState(false);
@@ -85,9 +85,9 @@ export function AuthGate({ children }: AuthGateProps) {
 
   return (
     <div className='flex min-h-[70vh] items-center justify-center px-4 py-8'>
-      <Card className='w-full max-w-md border-border/60 bg-card/70 shadow-lg shadow-black/30'>
+      <Card className='border-border/60 bg-card/70 w-full max-w-md shadow-lg shadow-black/30'>
         <CardHeader className='space-y-2'>
-          <div className='inline-flex items-center gap-2 rounded-full bg-primary/10 px-2 py-1 text-xs text-primary'>
+          <div className='bg-primary/10 text-primary inline-flex items-center gap-2 rounded-full px-2 py-1 text-xs'>
             <ShieldKeyIcon className='size-3.5' />
             <span>Wallet access required</span>
           </div>
@@ -106,7 +106,7 @@ export function AuthGate({ children }: AuthGateProps) {
               <Text as='p' variant='body' muted>
                 {authState === 'disconnected'
                   ? 'AIMM uses your connected wallet to scope access to markets and manage positions.'
-                  : 'This looks like your first time here. Before the agent can trade on your behalf, you\'ll deposit into the AIMM vault contract.'}
+                  : "This looks like your first time here. Before the agent can trade on your behalf, you'll deposit into the AIMM vault contract."}
               </Text>
             </>
           )}
@@ -119,7 +119,8 @@ export function AuthGate({ children }: AuthGateProps) {
           ) : authState === 'disconnected' ? (
             <div className='flex flex-col gap-3'>
               <Text as='p' variant='caption' muted>
-                Click below to sign in with Coinbase CDP embedded wallets. We&apos;ll create a wallet for you under the hood.
+                Click below to sign in with Coinbase CDP embedded wallets. We&apos;ll create a wallet for you under the
+                hood.
               </Text>
               <div className='flex justify-start'>
                 <AuthButton />
@@ -131,14 +132,14 @@ export function AuthGate({ children }: AuthGateProps) {
                 For this hackathon build we simulate the vault balance locally. In the full version, this step will
                 check your deposited balance in the AIMM contract on-chain.
               </Text>
-              <ul className='list-disc space-y-1 pl-4 text-xs text-muted-foreground'>
+              <ul className='text-muted-foreground list-disc space-y-1 pl-4 text-xs'>
                 <li>Your wallet stays in control of funds.</li>
                 <li>The agent only trades using funds you deposit into the vault.</li>
               </ul>
             </div>
           )}
         </CardContent>
-        <CardFooter className='flex flex-col items-stretch gap-2 border-t border-border/50 bg-muted/5 px-6 py-4'>
+        <CardFooter className='border-border/50 bg-muted/5 flex flex-col items-stretch gap-2 border-t px-6 py-4'>
           {authState === 'disconnected' ? (
             <Text as='p' variant='caption' muted>
               Once connected, you&apos;ll see your AIMM dashboard here.
@@ -162,5 +163,3 @@ export function AuthGate({ children }: AuthGateProps) {
     </div>
   );
 }
-
-

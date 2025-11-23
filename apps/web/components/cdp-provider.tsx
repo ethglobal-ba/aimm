@@ -1,13 +1,12 @@
 'use client';
 
-import type { ReactNode } from 'react';
 import { CDPReactProvider } from '@coinbase/cdp-react';
 
 interface CdpProviderProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
-export function CdpProvider({ children }: CdpProviderProps) {
+export function CdpProvider({ children }: CdpProviderProps): JSX.Element {
   const projectId = process.env.NEXT_PUBLIC_CDP_PROJECT_ID ?? 'eba3698b-ef14-48d0-8a32-85ed0bfd3339';
   const appName = process.env.NEXT_PUBLIC_CDP_APP_NAME ?? 'AIMM Dashboard';
 

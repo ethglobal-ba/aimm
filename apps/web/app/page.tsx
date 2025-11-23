@@ -15,7 +15,7 @@ import { useDemoOnboarding } from '@/components/demo-onboarding-context';
 import { useGetMarketsQuery } from '@/lib/generated/hooks';
 import { mapIndexerMarketToMarket } from '@/lib/indexer-market-adapter';
 
-export default function Home() {
+export default function Home(): JSX.Element {
   const [platformFilter, setPlatformFilter] = useState('all');
   type AimmStatusFilter = 'all' | MarketAimmStatus;
   const [statusFilter, setStatusFilter] = useState<AimmStatusFilter>('ACTIVE');
