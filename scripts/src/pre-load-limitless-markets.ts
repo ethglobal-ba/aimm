@@ -1,11 +1,16 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
+import { createWalletClient, http, publicActions, type Address } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { baseSepolia } from 'viem/chains';
+import { aimmAbi } from './contract.types';
 
 dotenv.config();
 
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
+const AIMM_CONTRACT_ADDRESS = '0x64F65c2366BEFC2540c9312A794f0DAb5c3952F4' as Address;
 const LIMITLESS_API_BASE = 'https://api.limitless.exchange';
 
-// Based on Limitless API response structure
 interface LimitlessMarket {
   id: number;
   slug: string;
@@ -43,101 +48,112 @@ interface LimitlessMarketsResponse {
   totalMarketsCount: number;
 }
 
+async function getMarketsFromLast24Hours(): Promise<LimitlessMarket[]> {
+  const now = new Date();
+  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-/**
- * Fetch active markets from Limitless Exchange
- */
-async function getActiveMarketsFromLimitless(): Promise<LimitlessMarket[]> {
+  console.log('Fetching markets from Limitless API...');
+
   try {
-    const headers = {
-      'Accept': 'application/json',
-    };
+    const response = await axios.get<LimitlessMarketsResponse>(`${LIMITLESS_API_BASE}/markets/active`, {
+      headers: {
+        'Accept': 'application/json',
+      }
+    });
 
-    console.log('Fetching markets from Limitless API...');
+    // Filter markets created in the last 24 hours
+    const allMarkets = response.data.data.filter(market => {
+      const createdAt = new Date(market.createdAt);
+      return createdAt > twentyFourHoursAgo;
+    });
 
-    const response = await axios.get<LimitlessMarketsResponse>(
-      `${LIMITLESS_API_BASE}/markets/active`,
-      { headers }
-    );
+    // Pick a random set of 25 markets from the filtered list (or fewer if <25 returned)
+    const shuffled = allMarkets.slice().sort(() => Math.random() - 0.5);
+    const selectedMarkets = shuffled.slice(0, 25);
 
-    console.log(`Found ${response.data.data.length} active markets from Limitless`);
-    return response.data.data;
-
+    console.log(`Found ${selectedMarkets.length} markets created in the last 24 hours`);
+    return selectedMarkets;
   } catch (error) {
     console.error('Error fetching Limitless markets:', error);
     throw error;
   }
 }
 
-/**
- * Process and display market data
- */
-function processMarketData(markets: LimitlessMarket[]): void {
-  console.log('\n📊 Processing market data...');
-
-  for (const market of markets) {
-    const yesPrice = market.prices?.[0] ? market.prices[0] / 100 : 0.5;
-    const noPrice = market.prices?.[1] ? market.prices[1] / 100 : 0.5;
-    const volume = market.volume ? parseFloat(market.volume) : 0;
-
-    console.log(`\n📋 Market: ${market.title}`);
-    console.log(`  Slug: ${market.slug}`);
-    console.log(`  Type: ${market.tradeType.toUpperCase()}`);
-    console.log(`  YES price: ${yesPrice.toFixed(3)}`);
-    console.log(`  NO price: ${noPrice.toFixed(3)}`);
-    console.log(`  Volume: ${market.volumeFormatted || '0'}`);
-    console.log(`  Category: ${market.categories?.[0] || 'Unknown'}`);
-    console.log(`  Status: ${market.status}`);
-  }
-
-  console.log(`\n✅ Processed ${markets.length} markets from Limitless Exchange`);
+function convertPriceToWei(price: number): bigint {
+  return BigInt(Math.round(price * 10 ** 6)); // USDC decimals
 }
 
-/**
- * Filter markets for the last 24 hours (optional)
- */
-function filterMarketsFromLast24Hours(markets: LimitlessMarket[]): LimitlessMarket[] {
-  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+function mapLimitlessMarketToParams(market: LimitlessMarket) {
+  // Extract YES/NO prices from array, fallback to 50/50 if not available
+  const yesPrice = market.prices?.[0] ? market.prices[0] / 100 : 0.5;
+  const noPrice = market.prices?.[1] ? market.prices[1] / 100 : 0.5;
 
-  return markets.filter(market => {
-    const createdAt = new Date(market.createdAt);
-    return createdAt > twentyFourHoursAgo;
-  });
+  // Parse volume from string format
+  const volume = market.volume ? parseFloat(market.volume) : 0;
+
+  return {
+    ticker: market.slug,
+    platform: 2, // LIMITLESS enum value
+    marketName: market.title,
+    subtitle: market.description || '',
+    eventTicker: market.categories?.[0] || 'LIMITLESS',
+    optionACurrentExternalPrice: convertPriceToWei(yesPrice),
+    optionBCurrentExternalPrice: convertPriceToWei(noPrice),
+    initialVolume: BigInt(Math.round(volume)),
+    imageUrl: market.logo || 'https://limitless.exchange/favicon.ico',
+  };
+}
+
+async function onboardMarketsToAIMM(markets: LimitlessMarket[]): Promise<void> {
+  if (!PRIVATE_KEY) {
+    throw new Error('PRIVATE_KEY environment variable is required');
+  }
+
+  const account = privateKeyToAccount(PRIVATE_KEY as `0x${string}`);
+  const client = createWalletClient({
+    account,
+    chain: baseSepolia,
+    transport: http(),
+  }).extend(publicActions);
+
+  console.log(`Onboarding ${markets.length} markets to AIMM contract...`);
+
+  for (const market of markets) {
+    try {
+      const params = mapLimitlessMarketToParams(market);
+
+      console.log(`Onboarding market: ${params.marketName} (${params.ticker})`);
+
+      const hash = await client.writeContract({
+        address: AIMM_CONTRACT_ADDRESS,
+        abi: aimmAbi,
+        functionName: 'onboardMarket',
+        args: [params],
+      });
+
+      console.log(`✓ Market onboarded successfully. Transaction hash: ${hash}`);
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } catch (error) {
+      console.error(`✗ Failed to onboard market ${market.slug}:`, error);
+    }
+  }
 }
 
 async function main() {
   try {
-    console.log('🚀 Starting Limitless markets data fetching script...');
-
-    // Fetch active markets
-    console.log('📊 Fetching active markets from Limitless Exchange...');
-    const allMarkets = await getActiveMarketsFromLimitless();
-
-    if (allMarkets.length === 0) {
-      console.log('No active markets found');
-      return;
-    }
-
-    // Optional: Filter for recent markets only
-    const USE_24H_FILTER = process.env.LIMITLESS_24H_FILTER === 'true';
-    const markets = USE_24H_FILTER ? filterMarketsFromLast24Hours(allMarkets) : allMarkets;
-
-    if (USE_24H_FILTER) {
-      console.log(`Filtered to ${markets.length} markets created in the last 24 hours`);
-    }
+    console.log('Fetching Limitless markets from the last 24 hours...');
+    const markets = await getMarketsFromLast24Hours();
 
     if (markets.length === 0) {
-      console.log('No markets found matching filter criteria');
+      console.log('No new markets found in the last 24 hours');
       return;
     }
 
-    // Process and display market data
-    processMarketData(markets);
-
-    console.log('\n✅ Script completed successfully');
-
+    await onboardMarketsToAIMM(markets);
+    console.log('Script completed successfully');
   } catch (error) {
-    console.error('❌ Script failed:', error);
+    console.error('Script failed:', error);
     process.exit(1);
   }
 }
