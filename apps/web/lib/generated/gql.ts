@@ -14,10 +14,10 @@ import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/
  * Learn more about it here: https://the-guild.dev/graphql/codegen/plugins/presets/preset-client#reducing-bundle-size
  */
 type Documents = {
-    "query GetMarkets {\n  marketss {\n    items {\n      externalId\n      marketName\n      optionAText\n      optionBText\n      platform\n    }\n  }\n}": typeof types.GetMarketsDocument,
+    "query GetMarkets {\n  markets {\n    items {\n      externalId\n      marketName\n      optionAText\n      optionBText\n      platform\n    }\n  }\n}": typeof types.GetMarketsDocument,
 };
 const documents: Documents = {
-    "query GetMarkets {\n  marketss {\n    items {\n      externalId\n      marketName\n      optionAText\n      optionBText\n      platform\n    }\n  }\n}": types.GetMarketsDocument,
+    "query GetMarkets {\n  markets {\n    items {\n      externalId\n      marketName\n      optionAText\n      optionBText\n      platform\n    }\n  }\n}": types.GetMarketsDocument,
 };
 
 /**
@@ -37,7 +37,7 @@ export function gql(source: string): unknown;
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function gql(source: "query GetMarkets {\n  marketss {\n    items {\n      externalId\n      marketName\n      optionAText\n      optionBText\n      platform\n    }\n  }\n}"): (typeof documents)["query GetMarkets {\n  marketss {\n    items {\n      externalId\n      marketName\n      optionAText\n      optionBText\n      platform\n    }\n  }\n}"];
+export function gql(source: "query GetMarkets {\n  markets {\n    items {\n      externalId\n      marketName\n      optionAText\n      optionBText\n      platform\n    }\n  }\n}"): (typeof documents)["query GetMarkets {\n  markets {\n    items {\n      externalId\n      marketName\n      optionAText\n      optionBText\n      platform\n    }\n  }\n}"];
 
 export function gql(source: string) {
   return (documents as any)[source] ?? {};
