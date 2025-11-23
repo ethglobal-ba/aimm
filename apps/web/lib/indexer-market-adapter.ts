@@ -79,7 +79,22 @@ function deriveAIRunStatus(lastFairRun: Date | null): AIRunStatus | null {
   return 'stale';
 }
 
-export function mapIndexerMarketToMarket(item: IndexerMarket): Market {
+type IndexerMarketSource = Pick<
+  IndexerMarket,
+  | 'id'
+  | 'externalId'
+  | 'marketName'
+  | 'subtitle'
+  | 'platformName'
+  | 'status'
+  | 'optionACurrentExternalPrice'
+  | 'optionACurrentFairPrice'
+  | 'lastExternalPriceUpdate'
+  | 'lastFairPriceUpdate'
+  | 'volume'
+>;
+
+export function mapIndexerMarketToMarket(item: IndexerMarketSource): Market {
   const livePrice = fromPercentFixed6(item.optionACurrentExternalPrice);
   const fairPrice = fromPercentFixed6(item.optionACurrentFairPrice);
   const lastExternalUpdate = fromTimestampSeconds(item.lastExternalPriceUpdate);

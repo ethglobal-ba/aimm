@@ -3,6 +3,7 @@
 import { formatUSD, mockPortfolioBalance } from '@/lib/mock-balance';
 import { cn } from '@workspace/ui/lib/utils';
 import { TradeDownIcon, TradeUpIcon } from 'hugeicons-react';
+import type { JSX } from 'react';
 
 /**
  * MOCK: Portfolio Balance card component.

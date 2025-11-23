@@ -1,5 +1,6 @@
 import { gql } from '@apollo/client';
 import * as Apollo from '@apollo/client';
+import * as Types from './graphql';
 const defaultOptions = {} as const;
 
 export const GetMarketsDocument = gql`

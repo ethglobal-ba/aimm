@@ -23,7 +23,6 @@ import {
   BrainIcon,
   FlashIcon,
   LinkSquare01Icon,
-  ListViewIcon,
   PlayCircleIcon,
   RefreshIcon,
 } from 'hugeicons-react';
@@ -52,7 +51,7 @@ import {
   getStatusDotClass,
 } from '@/lib/market-utils';
 import { useUpdateMarketAutomationConfig } from '@/hooks/use-update-market-automation-config';
-import type { MarketDetailData, TradeEvent } from '@/lib/mock-market-detail';
+import type { AgentRun, MarketDetailData, TradeEvent } from '@/lib/mock-market-detail';
 
 const platformLabels: Record<Market['platform'], string> = {
   limitless: 'Limitless',
@@ -745,16 +744,6 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps): JSX
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function OrderBookRow({ level, side }: { level: OrderBookLevel; side: 'bid' | 'ask' }) {
-  const color = side === 'bid' ? 'bg-green-500/20 text-green-200' : 'bg-red-500/20 text-red-200';
-  return (
-    <div className='border-border/60 flex items-center justify-between rounded-md border px-2 py-1.5 text-[13px]'>
-      <div className={`rounded-sm px-1.5 py-0.5 font-mono text-xs ${color}`}>{level.price.toFixed(3)}</div>
-      <div className='text-muted-foreground'>{formatSize(level.size)}</div>
     </div>
   );
 }
