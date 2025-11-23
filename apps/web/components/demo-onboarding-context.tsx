@@ -11,7 +11,7 @@ const DemoOnboardingContext = createContext<DemoOnboardingContextValue | undefin
 
 const STORAGE_KEY = 'aimmDemoOnboardingMode';
 
-export function DemoOnboardingProvider({ children }: { children: React.ReactNode }): JSX.Element {
+export function DemoOnboardingProvider({ children }: { children: React.ReactNode }) {
   const [isDemoOnboardingMode, setIsDemoOnboardingMode] = useState(false);
 
   useEffect(() => {

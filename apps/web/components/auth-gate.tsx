@@ -15,7 +15,7 @@ interface AuthGateProps {
   children: React.ReactNode;
 }
 
-export function AuthGate({ children }: AuthGateProps): JSX.Element {
+export function AuthGate({ children }: AuthGateProps) {
   const { isSignedIn } = useIsSignedIn();
   const [hasContractBalance, setHasContractBalance] = useState<boolean | null>(null);
   const [hasConnectionSettled, setHasConnectionSettled] = useState(false);

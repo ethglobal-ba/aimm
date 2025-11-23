@@ -52,7 +52,7 @@ function getStatusBadgeClass(status: AgentActionStatus): string {
  * simulated timestamp updates. In production, this will be replaced by a live
  * WebSocket connection or polling mechanism.
  */
-export function LiveAgentActions(): JSX.Element {
+export function LiveAgentActions() {
   // Force re-render every second to update relative timestamps
   const [now, setNow] = useState(new Date());
 

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Button } from '@workspace/ui/components/button';
 import { useDemoOnboarding } from '@/components/demo-onboarding-context';
 
-export function Footer(): JSX.Element {
+export function Footer() {
   const { isDemoOnboardingMode, toggleDemoOnboardingMode } = useDemoOnboarding();
 
   return (

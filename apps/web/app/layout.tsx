@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Bricolage_Grotesque, Geist_Mono } from 'next/font/google';
 import '@workspace/ui/globals.css';
 import { Providers } from '@/components/providers';
@@ -17,8 +18,8 @@ const fontMono = Geist_Mono({
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
-}>): JSX.Element {
+  children: ReactNode;
+}>) {
   return (
     <html lang='en' className='dark' suppressHydrationWarning>
       <head>

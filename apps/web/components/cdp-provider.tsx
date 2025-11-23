@@ -6,7 +6,7 @@ interface CdpProviderProps {
   children: React.ReactNode;
 }
 
-export function CdpProvider({ children }: CdpProviderProps): JSX.Element {
+export function CdpProvider({ children }: CdpProviderProps) {
   const projectId = process.env.NEXT_PUBLIC_CDP_PROJECT_ID ?? 'eba3698b-ef14-48d0-8a32-85ed0bfd3339';
   const appName = process.env.NEXT_PUBLIC_CDP_APP_NAME ?? 'AIMM Dashboard';
 

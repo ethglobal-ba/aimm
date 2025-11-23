@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu';
 
-export function Header(): JSX.Element {
+export function Header() {
   const pathname = usePathname();
   const { evmAddress } = useEvmAddress();
   const { signOut } = useSignOut();

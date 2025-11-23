@@ -30,13 +30,13 @@
     "@wagmi/core": "^3.0.0"
   },
   "peerDependencies": {
-    "react": "^18.0.0",
+    "react": "^19.0.0",
     "wagmi": "^3.0.0",
     "viem": "^2.0.0"
   },
   "devDependencies": {
     "@workspace/typescript-config": "workspace:*",
-    "@types/react": "^18.0.0",
+    "@types/react": "^19.1.9",
     "@types/node": "^20.0.0",
     "typescript": "^5.0.0"
   },
