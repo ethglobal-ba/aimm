@@ -2,7 +2,7 @@ import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { baseSepolia } from 'viem/chains';
 import axios from 'axios';
-import { aimmAbi } from '../common/src/types/__generated__/contract.types';
+import { aimmAbi } from '@aimm/common';
 
 const AIMM_CONTRACT_ADDRESS = '0xEC767714Eb59B730e0Ec1d8d713ba3b3F2822fe0' as const;
 const KALSHI_API_URL = 'https://api.elections.kalshi.com/trade-api/v2';
