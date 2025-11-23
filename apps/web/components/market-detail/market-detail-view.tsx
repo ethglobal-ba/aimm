@@ -38,6 +38,7 @@ import type { AgentRun, MarketDetailData, OrderBookLevel, TradeEvent } from '@/l
 import {
   calculateMispricing,
   formatCompactUsd,
+  formatIdentifierWithEllipsis,
   formatPercentage,
   formatRelativeTime,
   formatSize,
@@ -134,10 +135,13 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps) {
 
   const { getStatus: getAimmStatusOverride, setStatus: setAimmStatus } = useMarketsStatus();
 
-  const mispricing = useMemo(
-    () => calculateMispricing(market.livePrice, market.aimmFairPrice),
-    [market.livePrice, market.aimmFairPrice]
-  );
+  const mispricing = useMemo(() => {
+    if (market.livePrice == null || market.aimmFairPrice == null) {
+      return null;
+    }
+
+    return calculateMispricing(market.livePrice, market.aimmFairPrice);
+  }, [market.livePrice, market.aimmFairPrice]);
 
   const latestRun = detail.runs[0];
   const aimmStatus: MarketAimmStatus = useMemo(() => {
@@ -227,7 +231,7 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps) {
           <div className='flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between'>
             <div className='space-y-2'>
               <div className='flex flex-wrap items-center gap-3'>
-                <h1 className='text-foreground text-2xl font-semibold tracking-tight'>{market.title}</h1>
+                <h1 className='text-foreground text-2xl font-semibold tracking-tight'>{market.marketName}</h1>
                 <Badge variant='outline' className={statusBadgeClass}>
                   {market.status === 'open' ? 'Open' : market.status === 'suspended' ? 'Suspended' : 'Closed'}
                 </Badge>
@@ -244,9 +248,9 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps) {
                   {platformLabel}
                 </span>
                 <span className='text-muted-foreground/50'>•</span>
-                <span className='font-mono text-[11px]'>{market.symbol}</span>
+                <span className='font-mono text-[11px]'>{formatIdentifierWithEllipsis(market.symbol)}</span>
                 <span className='text-muted-foreground/50'>•</span>
-                <span>Closes {formatTimeRemaining(market.timeToClose)}</span>
+                <span>Closes {market.timeToClose ? formatTimeRemaining(market.timeToClose) : 'N/A'}</span>
                 <span className='text-muted-foreground/50'>•</span>
                 <Link
                   href={externalUrl}
@@ -303,7 +307,7 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps) {
                   </SelectItem>
                   <SelectItem value='INACTIVE' className='text-xs'>
                     <span className='flex items-center gap-2'>
-                      <span className='h-2 w-2 rounded-full bg-muted-foreground' />
+                      <span className='bg-muted-foreground h-2 w-2 rounded-full' />
                       Inactive
                     </span>
                   </SelectItem>
@@ -352,7 +356,9 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps) {
           <Card className='bg-card/40'>
             <CardContent className='p-4'>
               <p className='text-muted-foreground text-[11px] tracking-wide uppercase'>Live price</p>
-              <p className='text-foreground font-mono text-2xl font-semibold'>{formatPercentage(market.livePrice)}</p>
+              <p className='text-foreground font-mono text-2xl font-semibold'>
+                {market.livePrice != null ? formatPercentage(market.livePrice) : 'N/A'}
+              </p>
             </CardContent>
           </Card>
 
@@ -362,32 +368,42 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps) {
                 <BrainIcon className='size-16 text-blue-500' />
               </div>
               <p className='text-[11px] tracking-wide text-blue-300 uppercase'>AIMM fair price</p>
-              <p className='font-mono text-2xl font-semibold text-blue-300'>{formatPercentage(market.aimmFairPrice)}</p>
+              <p className='font-mono text-2xl font-semibold text-blue-300'>
+                {market.aimmFairPrice != null ? formatPercentage(market.aimmFairPrice) : 'N/A'}
+              </p>
             </CardContent>
           </Card>
 
           <Card className='bg-card/40'>
             <CardContent className='p-4'>
               <p className='text-muted-foreground text-[11px] tracking-wide uppercase'>Mispricing (Δ)</p>
-              <p
-                className={`font-mono text-2xl font-semibold ${
-                  mispricing.relative >= 0 ? 'text-green-400' : 'text-red-400'
-                }`}
-              >
-                {mispricing.relative >= 0 ? '+' : ''}
-                {mispricing.relative.toFixed(1)}%
-              </p>
-              <p className='text-muted-foreground text-[11px]'>
-                {mispricing.absolute >= 0 ? '+' : ''}
-                {(mispricing.absolute * 100).toFixed(1)} pts
-              </p>
+              {mispricing ? (
+                <>
+                  <p
+                    className={`font-mono text-2xl font-semibold ${
+                      mispricing.relative >= 0 ? 'text-green-400' : 'text-red-400'
+                    }`}
+                  >
+                    {mispricing.relative >= 0 ? '+' : ''}
+                    {mispricing.relative.toFixed(1)}%
+                  </p>
+                  <p className='text-muted-foreground text-[11px]'>
+                    {mispricing.absolute >= 0 ? '+' : ''}
+                    {(mispricing.absolute * 100).toFixed(1)} pts
+                  </p>
+                </>
+              ) : (
+                <p className='text-muted-foreground text-sm'>N/A</p>
+              )}
             </CardContent>
           </Card>
 
           <Card className='bg-card/40'>
             <CardContent className='p-4'>
               <p className='text-muted-foreground text-[11px] tracking-wide uppercase'>24h volume</p>
-              <p className='text-foreground text-2xl font-semibold'>{formatUsd(market.volume24h)}</p>
+              <p className='text-foreground text-2xl font-semibold'>
+                {market.volume24h != null ? formatUsd(market.volume24h) : 'N/A'}
+              </p>
               <p className='text-muted-foreground text-[11px]'>Across Limitless & partners</p>
             </CardContent>
           </Card>
@@ -396,7 +412,9 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps) {
             <CardContent className='space-y-3 p-4'>
               <div>
                 <p className='text-muted-foreground text-[11px] tracking-wide uppercase'>Time to close</p>
-                <p className='text-foreground text-2xl font-semibold'>{formatTimeRemaining(market.timeToClose)}</p>
+                <p className='text-foreground text-2xl font-semibold'>
+                  {market.timeToClose ? formatTimeRemaining(market.timeToClose) : 'N/A'}
+                </p>
               </div>
               <div className='space-y-1'>
                 <div className='text-muted-foreground flex items-center justify-between text-[11px]'>
@@ -447,7 +465,7 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps) {
                     />
                     <YAxis
                       domain={[0, 1]}
-                      tickFormatter={value => `${Math.round((value as number) * 100)}%`}
+                      tickFormatter={value => Math.round((value as number) * 100).toString()}
                       tickLine={false}
                       axisLine={false}
                       width={48}
@@ -705,8 +723,12 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps) {
                     Agent reasoning
                   </CardTitle>
                   <div className='text-muted-foreground flex items-center gap-2 text-[11px]'>
-                    <span className={`h-2 w-2 rounded-full ${getStatusDotClass(market.aiRunStatus)}`} />
-                    Last run {formatRelativeTime(market.lastAIRun)}
+                    <span
+                      className={`h-2 w-2 rounded-full ${
+                        market.aiRunStatus ? getStatusDotClass(market.aiRunStatus) : 'bg-muted-foreground/40'
+                      }`}
+                    />
+                    <span>Last run {market.lastAIRun ? formatRelativeTime(market.lastAIRun) : 'N/A'}</span>
                   </div>
                 </div>
               </CardHeader>

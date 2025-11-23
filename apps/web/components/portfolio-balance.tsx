@@ -36,9 +36,9 @@ export function PortfolioBalance() {
           )}
         >
           {balance.isProfitable ? (
-            <TradeUpIcon className='h-3 w-3' variant='solid' />
+            <TradeUpIcon className='h-3 w-3' />
           ) : (
-            <TradeDownIcon className='h-3 w-3' variant='solid' />
+            <TradeDownIcon className='h-3 w-3' />
           )}
           <span className='font-mono'>
             {balance.isProfitable ? '+' : ''}

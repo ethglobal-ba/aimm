@@ -72,7 +72,7 @@ export function LiveAgentActions() {
       {/* Header */}
       <div className='border-border flex items-center justify-between border-b px-3 py-2.5'>
         <div className='flex items-center gap-1.5'>
-          <FlashIcon className='text-yellow-400 h-4 w-4' variant='solid' />
+          <FlashIcon className='text-yellow-400 h-4 w-4' />
           <h2 className='text-foreground text-sm font-semibold'>Live Agent Actions</h2>
         </div>
         <Badge className='bg-green-500/10 text-green-400 border-green-500/30 h-5 gap-1 border px-1.5 text-[10px] font-medium'>

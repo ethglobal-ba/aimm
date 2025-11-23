@@ -10,10 +10,10 @@ import { MarketsTable } from '@/components/markets-table';
 import { MarketsOnboarding } from '@/components/markets-onboarding';
 import { LiveAgentActions } from '@/components/live-agent-actions';
 import { PortfolioBalance } from '@/components/portfolio-balance';
-import { useMarkets } from '@workspace/aimm-sdk';
-import type { Market, MarketAimmStatus } from '@/types/market';
+import type { MarketAimmStatus, Market } from '@/types/market';
 import { useDemoOnboarding } from '@/components/demo-onboarding-context';
-import { mockMarkets } from '@/lib/mock-data';
+import { useGetMarketsQuery } from '@/lib/generated/hooks';
+import { mapIndexerMarketToMarket } from '@/lib/indexer-market-adapter';
 
 export default function Home() {
   const [platformFilter, setPlatformFilter] = useState('all');
@@ -22,26 +22,19 @@ export default function Home() {
   const [sortBy, setSortBy] = useState<'mispricing' | 'timeToClose' | 'volume'>('mispricing');
   const { isDemoOnboardingMode } = useDemoOnboarding();
 
-  const { data: contractMarkets, isLoading: isMarketsLoading, error: marketsError } = useMarkets();
+  const { data, loading, error } = useGetMarketsQuery();
 
-  const marketsFromContract: Market[] = Array.isArray(contractMarkets) ? contractMarkets : [];
-  const hasContractMarkets = marketsFromContract.length > 0;
+  const marketsFromIndexer: Market[] =
+    data?.markets?.items?.map(mapIndexerMarketToMarket) ?? [];
+  const hasIndexerMarkets = marketsFromIndexer.length > 0;
   const shouldShowOnboarding =
-    isDemoOnboardingMode || (!isMarketsLoading && !marketsError && marketsFromContract.length === 0);
-
-  /**
-   * MOCK: While the AIMM contracts / indexer wiring is still in flux, the
-   * overview table is driven from `mockMarkets`. When real contract markets
-   * are available and stable, this should be switched to prefer
-   * `marketsFromContract` and only fall back to mocks.
-   */
-  const tableMarkets: Market[] = mockMarkets;
+    isDemoOnboardingMode || (!loading && !error && marketsFromIndexer.length === 0);
 
   const subtitle = isDemoOnboardingMode
     ? 'Demo onboarding mode – configure which markets AIMM should manage.'
-    : hasContractMarkets
-      ? `Monitoring ${marketsFromContract.length} on-chain markets.`
-      : 'No on-chain markets are available yet. Configure AIMM and indexer to begin monitoring.';
+    : hasIndexerMarkets
+      ? `Monitoring ${marketsFromIndexer.length} indexed markets.`
+      : 'No indexed markets are available yet. Configure AIMM and indexer to begin monitoring.';
 
   return (
     <div className='bg-background mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col p-6'>
@@ -126,14 +119,14 @@ export default function Home() {
       </div>
 
       <div className='flex min-h-0 flex-1 gap-4'>
-        {/* Left: Markets table card (~70% width) */}
+        {/* Left: Markets table / onboarding card (~70% width) */}
         <Card className='border-border bg-card/50 flex min-w-0 flex-1 flex-col overflow-hidden'>
           <CardContent className='flex-1 overflow-auto p-0'>
             {shouldShowOnboarding ? (
               <MarketsOnboarding />
             ) : (
               <MarketsTable
-                markets={tableMarkets}
+                markets={marketsFromIndexer}
                 platformFilter={platformFilter}
                 statusFilter={statusFilter}
                 sortBy={sortBy}
@@ -141,35 +134,43 @@ export default function Home() {
             )}
           </CardContent>
 
-          <CardFooter className='border-border text-muted-foreground bg-muted/20 flex items-center justify-between border-t p-3 text-xs'>
-            <span>Showing {tableMarkets.length} on-chain markets</span>
-            <div className='flex items-center gap-2'>
-              <Button variant='ghost' size='sm' disabled className='h-7 text-xs'>
-                Previous
-              </Button>
-              <Button variant='ghost' size='sm' disabled className='h-7 text-xs'>
-                Next
-              </Button>
-            </div>
-          </CardFooter>
+          {!shouldShowOnboarding && (
+            <CardFooter className='border-border text-muted-foreground bg-muted/20 flex items-center justify-between border-t p-3 text-xs'>
+              <span>
+                {loading && !error
+                  ? 'Loading markets from the indexer…'
+                  : `Showing ${marketsFromIndexer.length} indexed markets`}
+              </span>
+              <div className='flex items-center gap-2'>
+                <Button variant='ghost' size='sm' disabled className='h-7 text-xs'>
+                  Previous
+                </Button>
+                <Button variant='ghost' size='sm' disabled className='h-7 text-xs'>
+                  Next
+                </Button>
+              </div>
+            </CardFooter>
+          )}
         </Card>
 
-        {/* Right: Balance and Live Agent Actions cards */}
-        <div className='flex w-[340px] shrink-0 flex-col gap-4'>
-          {/* Portfolio Balance card */}
-          <Card className='border-border bg-card/50 overflow-hidden'>
-            <CardContent className='p-0'>
-              <PortfolioBalance />
-            </CardContent>
-          </Card>
+        {/* Right: Balance and Live Agent Actions cards (hidden during onboarding) */}
+        {!shouldShowOnboarding && (
+          <div className='flex w-[340px] shrink-0 flex-col gap-4'>
+            {/* Portfolio Balance card */}
+            <Card className='border-border bg-card/50 overflow-hidden'>
+              <CardContent className='p-0'>
+                <PortfolioBalance />
+              </CardContent>
+            </Card>
 
-          {/* Live Agent Actions card */}
-          <Card className='border-border bg-card/50 flex flex-1 overflow-hidden'>
-            <CardContent className='flex h-full flex-col p-0'>
-              <LiveAgentActions />
-            </CardContent>
-          </Card>
-        </div>
+            {/* Live Agent Actions card */}
+            <Card className='border-border bg-card/50 flex flex-1 overflow-hidden'>
+              <CardContent className='flex h-full flex-col p-0'>
+                <LiveAgentActions />
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

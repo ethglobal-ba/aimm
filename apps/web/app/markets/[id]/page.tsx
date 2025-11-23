@@ -5,7 +5,6 @@ interface MarketDetailPageProps {
 }
 
 export default async function MarketDetailPage({ params }: MarketDetailPageProps) {
-  const resolvedParams = await params;
-
-  return <MarketDetailClient marketId={resolvedParams.id} />;
+  const { id } = await params;
+  return <MarketDetailClient marketId={id} />;
 }
