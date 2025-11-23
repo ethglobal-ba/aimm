@@ -4,10 +4,14 @@ Fetch all markets from GraphQL endpoint.
 
 import requests
 import json
+import os
 from typing import List, Dict, Optional
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
-GRAPHQL_ENDPOINT = "http://88.99.96.175:42069/graphql"
+GRAPHQL_ENDPOINT = os.getenv("GRAPHQL_ENDPOINT", "https://aimm.lat/graphql")
 
 
 def fetch_all_markets(limit: int = 100, offset: int = 0) -> List[Dict]:
@@ -102,7 +106,7 @@ def fetch_all_markets_paginated() -> List[Dict]:
     """
     all_markets = []
     offset = 0
-    page_size = 100
+    page_size = 1000
 
     print(f"Fetching markets from {GRAPHQL_ENDPOINT}...")
 

@@ -209,6 +209,19 @@ def get_step_metadata(step_name: str, state: Dict[str, Any]) -> Dict[str, str]:
             "get_summary": lambda s: f"Calculated baseline fair price of {s.get('baseline_fair_price', 0):.1f}¢ with {s.get('baseline_spread', 0):.1f}¢ spread based on research sources.",
             "get_direction": lambda s: "lean_yes" if s.get('baseline_fair_price', 0) > 50 else ("lean_no" if s.get('baseline_fair_price', 0) < 50 else "neutral"),
         },
+        "step_6.5_fetch_external_prices": {
+            "kind": "FETCH_EXTERNAL_PRICES",
+            "loading_headline": "Fetching external price data from Pyth Network...",
+            "get_headline": lambda s: f"Fetched {len(s.get('pyth_prices', {}))} external price feeds" if s.get('pyth_prices') else "No external price data available",
+            "get_summary": lambda s: f"Retrieved {len(s.get('pyth_prices', {}))} price feeds from Pyth Network for cross-reference." if s.get('pyth_prices') else "No relevant external price data found for this market.",
+        },
+        "step_6.75_recalibrate": {
+            "kind": "BAYESIAN_RECALIBRATION",
+            "loading_headline": "Recalibrating baseline using Bayesian updating...",
+            "get_headline": lambda s: f"Recalibrated: {s.get('recalibrated_price', 0):.1f}¢ ({s.get('orderbook_weight', 0):.0f}% orderbook)",
+            "get_summary": lambda s: f"Applied Bayesian recalibration: {s.get('orderbook_weight', 0):.0f}% orderbook weight, {s.get('baseline_weight', 0):.0f}% baseline weight → {s.get('recalibrated_price', 0):.1f}¢",
+            "get_direction": lambda s: "lean_yes" if s.get('recalibrated_price', 0) > 50 else ("lean_no" if s.get('recalibrated_price', 0) < 50 else "neutral"),
+        },
         "step_7_analyze_orderbook": {
             "kind": "ANALYZE_ORDERBOOK",
             "loading_headline": "Analyzing current orderbook...",

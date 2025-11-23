@@ -21,6 +21,12 @@ interface LiveAgentAction {
   stepOutput: StepOutput;
 }
 
+interface LiveAgentActionsProps {
+  readonly marketId?: string;
+  readonly marketTicker?: string;
+  readonly hideHeader?: boolean;
+}
+
 /**
  * Get the dot color class based on how recent the action timestamp is.
  */
@@ -117,11 +123,12 @@ function getStatusBadgeClass(status: string): string {
  * MOCK: Live Agent Actions panel component.
  *
  * This component displays a real-time feed of agent actions happening across
- * the AIMM system. Currently uses mock data from `mock-agent-actions.ts` with
- * simulated timestamp updates. In production, this will be replaced by a live
- * WebSocket connection or polling mechanism.
+ * the AIMM system. It polls the `/api/ai-agent-output/actions` endpoint and can
+ * optionally be scoped to a specific market via `marketId` and/or
+ * `marketTicker` query parameters. The header can be hidden for embedded
+ * placements via the `hideHeader` prop.
  */
-export function LiveAgentActions() {
+export function LiveAgentActions({ marketId, marketTicker, hideHeader }: LiveAgentActionsProps) {
   // Force re-render every second to update relative timestamps
   const [now, setNow] = useState(new Date());
   const [actions, setActions] = useState<LiveAgentAction[]>([]);
@@ -157,9 +164,20 @@ export function LiveAgentActions() {
 
     const fetchActions = async (): Promise<void> => {
       try {
-        const response = await fetch('/api/ai-agent-output/actions?limit=20');
+        const searchParams = new URLSearchParams({ limit: '20' });
+
+        if (marketId) {
+          searchParams.set('marketId', marketId);
+        }
+
+        if (marketTicker) {
+          searchParams.set('marketTicker', marketTicker);
+        }
+
+        const response = await fetch(`/api/ai-agent-output/actions?${searchParams.toString()}`);
 
         if (!response.ok) {
+          // eslint-disable-next-line no-console
           console.error('Failed to fetch recent agent actions', response.statusText);
           setHasError(true);
           return;
@@ -184,6 +202,7 @@ export function LiveAgentActions() {
         setActions(hydratedActions);
         setHasError(false);
       } catch (error: unknown) {
+        // eslint-disable-next-line no-console
         console.error('Error while fetching recent agent actions', error);
         setHasError(true);
       }
@@ -196,21 +215,22 @@ export function LiveAgentActions() {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [marketId, marketTicker]);
 
   return (
     <div className='flex h-full flex-col'>
-      {/* Header */}
-      <div className='border-border flex items-center justify-between border-b px-3 py-2.5'>
-        <div className='flex items-center gap-1.5'>
-          <FlashIcon className='h-4 w-4 text-yellow-400' />
-          <h2 className='text-foreground text-sm font-semibold'>Live Agent Actions</h2>
+      {hideHeader ? null : (
+        <div className='border-border flex items-center justify-between border-b px-3 py-2.5'>
+          <div className='flex items-center gap-1.5'>
+            <FlashIcon className='h-4 w-4 text-yellow-400' />
+            <h2 className='text-foreground text-sm font-semibold'>Live Agent Actions</h2>
+          </div>
+          <Badge className='h-5 gap-1 border border-green-500/30 bg-green-500/10 px-1.5 text-[10px] font-medium text-green-400'>
+            <span className='h-1 w-1 rounded-full bg-green-400' />
+            Active
+          </Badge>
         </div>
-        <Badge className='h-5 gap-1 border border-green-500/30 bg-green-500/10 px-1.5 text-[10px] font-medium text-green-400'>
-          <span className='h-1 w-1 rounded-full bg-green-400' />
-          Active
-        </Badge>
-      </div>
+      )}
 
       {/* Actions List */}
       <div className='flex-1 space-y-0 overflow-y-auto'>

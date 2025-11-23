@@ -1,5 +1,5 @@
 """
-Workflow nodes for the market maker agent (12-step workflow).
+Workflow nodes for the market maker agent (13-step workflow with Bayesian recalibration).
 
 Each node represents one step in the analysis pipeline.
 """
@@ -10,6 +10,7 @@ from .search_popular_tweets import search_popular_tweets
 from .search_web_news import search_web_news
 from .score_baseline import score_baseline_sources
 from .calculate_baseline_price import calculate_baseline_fair_price
+from .recalibrate_baseline import recalibrate_baseline
 from .fetch_external_prices import fetch_external_prices
 from .analyze_orderbook import analyze_orderbook
 from .search_recent_tweets import search_recent_tweets
@@ -25,6 +26,7 @@ __all__ = [
     "search_web_news",
     "score_baseline_sources",
     "calculate_baseline_fair_price",
+    "recalibrate_baseline",
     "fetch_external_prices",
     "analyze_orderbook",
     "search_recent_tweets",

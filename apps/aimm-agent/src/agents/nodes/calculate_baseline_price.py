@@ -4,7 +4,7 @@ Step 6: Calculate baseline fair price from scored sources.
 
 from typing import Dict
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from ..state import MarketState
 from ..models import FairPriceEstimate

@@ -34,13 +34,21 @@ class MarketState(TypedDict):
     baseline_summary: Dict
     baseline_scores: List[Dict]
 
-    # Step 6: Baseline fair price
+    # Step 6: Baseline fair price (from news only)
     baseline_fair_price: float
     baseline_spread: float
     baseline_reasoning: str
 
     # Step 6.5: External price data (Pyth Network)
     pyth_prices: Dict
+
+    # Step 6.75: Bayesian recalibration (orderbook prior + news evidence)
+    recalibrated_price: float
+    recalibrated_spread: float
+    orderbook_weight: float
+    baseline_weight: float
+    recalibration_reasoning: str
+    confidence_adjustment: str
 
     # Step 7: Orderbook analysis
     orderbook_mid_price: float

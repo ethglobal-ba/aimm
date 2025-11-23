@@ -108,6 +108,17 @@ class DeltaAdjustment(BaseModel):
     confidence: str = Field(..., description="Confidence level: 'high', 'medium', or 'low'")
 
 
+class RecalibratedPrice(BaseModel):
+    """Bayesian recalibration of baseline price using orderbook as prior"""
+    recalibrated_price: float = Field(..., ge=0, le=100, description="Bayesian posterior price in cents")
+    recalibrated_spread: float = Field(..., ge=0, description="Adjusted spread based on signal convergence")
+    orderbook_weight: float = Field(..., ge=0, le=100, description="Percentage weight given to orderbook")
+    baseline_weight: float = Field(..., ge=0, le=100, description="Percentage weight given to baseline")
+    reasoning: str = Field(..., description="Detailed explanation of weight allocation")
+    confidence_adjustment: str = Field(..., description="How baseline research affects confidence in orderbook")
+    recommended_action: str = Field(..., description="TRUST_ORDERBOOK, BLEND_SIGNALS, or TRUST_BASELINE")
+
+
 class FinalPriceAdjustment(BaseModel):
     """Final price combining baseline, delta, and orderbook"""
     price_delta: float = Field(..., description="Total price adjustment from baseline")

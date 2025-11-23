@@ -9,18 +9,21 @@ import { Label } from '@workspace/ui/components/label';
 import { Text } from '@workspace/ui/components/text';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@workspace/ui/components/select';
 import { useDemoOnboarding } from '@/components/demo-onboarding-context';
+import { useMarketsStatus } from '@/components/markets-status-context';
+import { PlatformAvatar } from '@/components/platform-avatar';
+import { useUpdateMarketStatus } from '@/hooks/use-update-market-status';
 import { formatIdentifierWithEllipsis } from '@/lib/market-utils';
 import { useGetMarketsQuery } from '@/lib/generated/hooks';
+import { mapIndexerPlatformToPlatform } from '@/lib/indexer-market-adapter';
 import type { GetMarketsQuery } from '@/lib/generated/graphql';
-import { useMarketsStatus } from '@/components/markets-status-context';
-import type { MarketAimmStatus } from '@/types/market';
+import type { MarketAimmStatus, Platform } from '@/types/market';
 
 type AutomationInterval = 'on_price_update' | '5m' | '15m' | '1h';
 
 interface OnboardingMarket {
   id: string;
   title: string;
-  platform: string;
+  platform: Platform;
   symbol: string;
 }
 
@@ -50,20 +53,27 @@ export function MarketsOnboarding() {
 
   const { data, loading, error } = useGetMarketsQuery();
   const { setStatus: setAimmStatus } = useMarketsStatus();
+  const { updateStatus: updateMarketStatus } = useUpdateMarketStatus();
 
   const indexerMarkets: OnboardingMarket[] = useMemo(() => {
     if (!data?.markets?.items) {
       return [];
     }
 
-    return data.markets.items.map(
-      (item: GetMarketsQuery['markets']['items'][number]): OnboardingMarket => ({
-        id: item.id,
-        title: item.marketName,
-        platform: item.platformName,
-        symbol: item.externalId,
+    return data.markets.items
+      .map((item: GetMarketsQuery['markets']['items'][number]) => {
+        const platform = mapIndexerPlatformToPlatform(item.platform, item.platformName);
+
+        const market: OnboardingMarket = {
+          id: item.id,
+          title: item.marketName,
+          platform,
+          symbol: item.externalId,
+        };
+
+        return market;
       })
-    );
+      .filter((market): market is OnboardingMarket => market !== null);
   }, [data]);
 
   const candidateMarkets: OnboardingMarket[] = indexerMarkets;
@@ -137,31 +147,19 @@ export function MarketsOnboarding() {
       return;
     }
 
-    // MOCK: Persist selected markets + config locally for demo purposes.
-    // In production this will be replaced by AIMM contract writes + backend storage.
-    if (typeof window !== 'undefined') {
-      const payload = {
-        selectedMarketIds,
-        configsByMarket,
-        updatedAt: new Date().toISOString(),
-      };
-      window.localStorage.setItem('aimmDemoOnboardingConfig', JSON.stringify(payload));
-    }
-
-    /**
-     * MOCK: Map the onboarding selection into AIMM activation statuses.
-     *
-     * In this demo build, we treat selected markets as ACTIVE and all other
-     * candidates as INACTIVE. This is purely a UI affordance; in production the
-     * real activation state will be controlled by AIMM contracts / indexer.
-     */
+    // Map the onboarding selection into AIMM activation statuses.
+    // Selected markets become ACTIVE and all other candidates become INACTIVE.
+    // The source of truth is the AIMM contract + indexer; this function only
+    // issues writes and updates local in-memory UI state.
     const selectedSet = new Set<string>(selectedMarketIds);
     const nextActiveStatus: MarketAimmStatus = 'ACTIVE';
     const nextInactiveStatus: MarketAimmStatus = 'INACTIVE';
 
     candidateMarkets.forEach(market => {
       const nextStatus = selectedSet.has(market.id) ? nextActiveStatus : nextInactiveStatus;
+
       setAimmStatus(market.id, nextStatus);
+      updateMarketStatus(market.id, nextStatus);
     });
 
     // In demo mode, automatically flip back to the markets table after onboarding.
@@ -248,6 +246,7 @@ export function MarketsOnboarding() {
                       onClick={event => event.stopPropagation()}
                       aria-label={`Toggle ${market.title}`}
                     />
+                    <PlatformAvatar platform={market.platform as never} size={24} />
                     <div className='flex flex-col gap-0.5'>
                       <span className='text-foreground text-xs font-medium'>{market.title}</span>
                       <div className='flex items-center gap-2'>
