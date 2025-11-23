@@ -286,9 +286,9 @@ contract AIMM is IReceiverTemplate {
         uint256 optionAFairPrice,
         uint256 optionBFairPrice
     ) public {
-        // require(
-        // bytes(externalMarkets[externalMarketId].marketName).length > 0, "Market does not exist"
-        // );
+        require(
+            bytes(externalMarkets[externalMarketId].marketName).length > 0, "Market does not exist"
+        );
         ExternalMarket storage market = externalMarkets[externalMarketId];
         market.optionACurrentFairPrice = optionAFairPrice;
         market.optionBCurrentFairPrice = optionBFairPrice;

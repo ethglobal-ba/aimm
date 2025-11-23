@@ -16,6 +16,7 @@ services:
       interval: 2s
       timeout: 5s
       retries: 10
+      start_period: 30s # Add this - gives postgres 30s to start before checking health
   #agent:
   #  build:
   #    context: ./apps/aimm-agent
@@ -34,9 +35,9 @@ services:
     build:
       context: .
       dockerfile: ./apps/indexer/Dockerfile
-    # Internal only - Caddy handles external traffic
-    expose:
-      - "42069"
+    # Expose directly for HTTP access, Caddy handles HTTPS
+    ports:
+      - "42069:42069"
     environment:
       - NODE_ENV=production
     env_file:
@@ -46,21 +47,5 @@ services:
       postgres:
         condition: service_healthy
 
-  caddy:
-    image: caddy:2-alpine
-    container_name: aimm-caddy
-    ports:
-      - "443:443"
-      - "80:80"
-    volumes:
-      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - indexer
-    restart: unless-stopped
-
 volumes:
   postgres_data:
-  caddy_data:
-  caddy_config:

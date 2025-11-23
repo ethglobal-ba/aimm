@@ -52,7 +52,8 @@ contract AIMMTest is Test {
             "EVENT456",
             0,
             0,
-            0
+            0,
+            "https://example.com/image.jpg"
         );
 
         AIMM.OnboardMarketParams memory params = AIMM.OnboardMarketParams({

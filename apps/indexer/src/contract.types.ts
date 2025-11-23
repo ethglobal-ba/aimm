@@ -383,6 +383,7 @@ export const aimmAbi = [
       { name: 'volume', internalType: 'uint256', type: 'uint256', indexed: false },
       { name: 'optionACurrentExternalPrice', internalType: 'uint256', type: 'uint256', indexed: false },
       { name: 'optionBCurrentExternalPrice', internalType: 'uint256', type: 'uint256', indexed: false },
+      { name: 'imageUrl', internalType: 'string', type: 'string', indexed: false },
     ],
     name: 'MarketOnboarded',
   },
