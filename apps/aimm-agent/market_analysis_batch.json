@@ -1,0 +1,101 @@
+{
+  "total_analyzed": 4,
+  "successful": 4,
+  "failed": 0,
+  "results": [
+    {
+      "external_id": "KXTRUMPENDORSE-26SEP15-ABAR",
+      "market_name": "Will Donald Trump endorse Andy Barr in the 2026 Kentucky Senate Republican primary before May 19, 2026?",
+      "platform": "Kalshi",
+      "analysis": {
+        "run_id": "63ea5e44-32f2-4666-8a74-7b0dcb7386f5",
+        "baseline_fair_price": 15.0,
+        "final_fair_price": 56.7,
+        "final_spread": 9.0,
+        "final_orders": {
+          "yes_bid": 51.35,
+          "yes_bid_size": 30,
+          "yes_ask": 62.05,
+          "yes_ask_size": 30,
+          "no_bid": 37.95,
+          "no_bid_size": 40,
+          "no_ask": 48.65,
+          "no_ask_size": 40,
+          "reasoning": "The final order recommendations are based on the calculated fair price and spread. The YES bid and ask are competitive with the current orderbook, and the NO bid and ask are also competitive. The position sizes are determined based on the confidence level and orderbook liquidity, with larger sizes on the NO side due to more market activity."
+        }
+      },
+      "success": true
+    },
+    {
+      "external_id": "KXTRUMPENDORSE-26SEP15-BCAR",
+      "market_name": "Will Donald Trump endorse Buddy Carter in the 2026 Georgia Senate Republican primary before May 19, 2026?",
+      "platform": "Kalshi",
+      "analysis": {
+        "run_id": "0f9dd8e9-1b3b-47a9-bc76-b135e7fb8e19",
+        "baseline_fair_price": 35.0,
+        "final_fair_price": 30.0,
+        "final_spread": 4.0,
+        "final_orders": {
+          "yes_bid": 28.0,
+          "yes_bid_size": 20,
+          "yes_ask": 32.0,
+          "yes_ask_size": 20,
+          "no_bid": 68.0,
+          "no_bid_size": 50,
+          "no_ask": 72.0,
+          "no_ask_size": 50,
+          "reasoning": "The fair price is 30.00\u00a2 and the recommended spread is 4.00\u00a2. Given the current orderbook, the YES bid and ask are calculated as 28 and 32 respectively. The NO bid and ask are calculated as 68 and 72 respectively. The position sizes are determined based on the confidence level and orderbook liquidity. The YES bid and ask sizes are set to 20, and the NO bid and ask sizes are set to 50, considering the market activity on the NO side."
+        }
+      },
+      "success": true
+    },
+    {
+      "external_id": "KXTRUMPENDORSE-26SEP15-BMOR",
+      "market_name": "Will Donald Trump endorse Barry Moore in the 2026 Alabama Senate Republican primary before May 19, 2026?",
+      "platform": "Kalshi",
+      "analysis": {
+        "run_id": "b88b6784-f2cf-4a1a-96fc-5329d9746da8",
+        "baseline_fair_price": 35.0,
+        "final_fair_price": 30.8,
+        "final_spread": 8.0,
+        "final_orders": {
+          "yes_bid": 23.4,
+          "yes_bid_size": 30,
+          "yes_ask": 38.2,
+          "yes_ask_size": 30,
+          "no_bid": 61.8,
+          "no_bid_size": 50,
+          "no_ask": 76.6,
+          "no_ask_size": 50,
+          "reasoning": "The YES bid and ask are calculated based on the fair price and recommended spread. The NO bid and ask are calculated based on the YES ask and bid, ensuring that YES + NO = 100. Position sizes are determined based on confidence levels and orderbook liquidity, with larger sizes placed on the NO side due to its higher market activity. The orders are competitive on both sides, do not cross the market, and prioritize competitive NO pricing for the low-probability event."
+        }
+      },
+      "success": true
+    },
+    {
+      "external_id": "KXTRUMPENDORSE-26SEP15-JLET",
+      "market_name": "Will Donald Trump endorse Julia Letlow in the 2026 Louisiana Senate Republican primary before May 16, 2026?",
+      "platform": "Kalshi",
+      "analysis": {
+        "run_id": "1352abf2-b221-4e01-86a2-b23f552259d2",
+        "baseline_fair_price": 15.0,
+        "final_fair_price": 15.0,
+        "final_spread": 4.0,
+        "final_orders": {
+          "yes_bid": 13.0,
+          "yes_bid_size": 30,
+          "yes_ask": 17.0,
+          "yes_ask_size": 30,
+          "no_bid": 83.0,
+          "no_bid_size": 50,
+          "no_ask": 87.0,
+          "no_ask_size": 50,
+          "reasoning": "The fair price is set at 15.00\u00a2 and the recommended spread at 4.00\u00a2. Given the YES mid price matches the fair price and the spread is wider than recommended, we adjust our YES bid and ask to be competitive, at 13 and 17 respectively. For NO, considering the sum of YES and NO should equal 100, we derive NO bid and ask as 83 and 87. Position sizes are determined based on the confidence level and orderbook liquidity, prioritizing competitiveness on both sides without crossing the market."
+        }
+      },
+      "success": true
+    }
+  ],
+  "failures": [],
+  "timestamp": "2025-11-23 04:17:03"
+}

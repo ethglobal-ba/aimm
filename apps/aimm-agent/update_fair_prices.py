@@ -12,12 +12,14 @@ from decimal import Decimal
 from web3 import Web3
 from dotenv import load_dotenv
 
+
 # Load environment variables
 load_dotenv()
 
 # Contract configuration
-CONTRACT_ADDRESS = "0x185D4f91D3D53a7523d312BbCa5c0B8ac2cEe32b"
+CONTRACT_ADDRESS = "0x64F65c2366BEFC2540c9312A794f0DAb5c3952F4"
 RPC_URL = os.getenv("RPC_URL", "https://sepolia.base.org")  # Base Sepolia default
+
 
 # Load contract ABI from generated JSON file
 def load_contract_abi():
@@ -26,9 +28,9 @@ def load_contract_abi():
     abi_path = os.path.join(current_dir, "src", "types", "__generated__", "AIMM.json")
 
     try:
-        with open(abi_path, 'r') as f:
+        with open(abi_path, "r") as f:
             contract_data = json.load(f)
-            return contract_data.get('abi', [])
+            return contract_data.get("abi", [])
     except FileNotFoundError:
         print(f"Error: ABI file not found at {abi_path}")
         print("Please run 'generate-contract-types.sh' to generate the ABI file")
@@ -37,13 +39,18 @@ def load_contract_abi():
         print(f"Error: Invalid JSON in ABI file: {e}")
         sys.exit(1)
 
+
 CONTRACT_ABI = load_contract_abi()
 
 
 def main():
     if len(sys.argv) != 4:
-        print("Usage: python update_market_config.py <market_id> <option_a_fair_price> <option_b_fair_price>")
-        print("Example: python update_market_config.py 'polymarket-123' 500000000000000000 500000000000000000")
+        print(
+            "Usage: python update_market_config.py <market_id> <option_a_fair_price> <option_b_fair_price>"
+        )
+        print(
+            "Example: python update_market_config.py 'polymarket-123' 500000000000000000 500000000000000000"
+        )
         print("\nParameters:")
         print("  market_id: External market identifier (string)")
         print("  option_a_fair_price: Fair price for option A in wei (uint256)")
@@ -58,7 +65,9 @@ def main():
     private_key = os.getenv("PRIVATE_KEY")
     if not private_key:
         print("Error: PRIVATE_KEY environment variable is required")
-        print("Please set your private key in the .env file or as an environment variable")
+        print(
+            "Please set your private key in the .env file or as an environment variable"
+        )
         sys.exit(1)
 
     # Initialize Web3 connection
@@ -83,8 +92,7 @@ def main():
     # Initialize contract
     try:
         contract = w3.eth.contract(
-            address=Web3.to_checksum_address(CONTRACT_ADDRESS),
-            abi=CONTRACT_ABI
+            address=Web3.to_checksum_address(CONTRACT_ADDRESS), abi=CONTRACT_ABI
         )
         print(f"Contract loaded at: {CONTRACT_ADDRESS}")
     except Exception as e:
@@ -117,12 +125,14 @@ def main():
         # Build the transaction
         transaction = contract.functions.updateFairPrices(
             market_id, option_a_fair_price, option_b_fair_price
-        ).build_transaction({
-            "from": account.address,
-            "gas": gas_limit,
-            "gasPrice": gas_price,
-            "nonce": nonce,
-        })
+        ).build_transaction(
+            {
+                "from": account.address,
+                "gas": gas_limit,
+                "gasPrice": gas_price,
+                "nonce": nonce,
+            }
+        )
 
         print(f"Transaction built successfully")
         print(f"Parameters:")
@@ -135,11 +145,11 @@ def main():
         sys.exit(1)
 
     # Confirm before sending
-    total_cost = w3.from_wei(gas_limit * gas_price, 'ether')
+    total_cost = w3.from_wei(gas_limit * gas_price, "ether")
     print(f"\nTransaction cost: ~{total_cost} ETH")
 
     confirm = input("Send this transaction? (y/N): ")
-    if confirm.lower() != 'y':
+    if confirm.lower() != "y":
         print("Transaction cancelled")
         sys.exit(0)
 

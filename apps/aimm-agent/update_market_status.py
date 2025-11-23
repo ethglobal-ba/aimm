@@ -10,20 +10,24 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-CONTRACT_ADDRESS = os.getenv("CONTRACT_ADDRESS", "0x185D4f91D3D53a7523d312BbCa5c0B8ac2cEe32b")
+CONTRACT_ADDRESS = os.getenv(
+    "CONTRACT_ADDRESS", "0x64F65c2366BEFC2540c9312A794f0DAb5c3952F4"
+)
 RPC_URL = os.getenv("RPC_URL", "https://sepolia.base.org")
 PRIVATE_KEY = os.getenv("PRIVATE_KEY")
+
 
 def load_abi():
     """Load contract ABI"""
     abi_path = os.path.join(os.path.dirname(__file__), "src", "types", "AIMM.json")
-    with open(abi_path, 'r') as f:
-        return json.load(f).get('abi', [])
+    with open(abi_path, "r") as f:
+        return json.load(f).get("abi", [])
+
 
 def main():
-    print("="*80)
+    print("=" * 80)
     print("UPDATING MARKET STATUS")
-    print("="*80)
+    print("=" * 80)
 
     # Connect to Web3
     w3 = Web3(Web3.HTTPProvider(RPC_URL))
@@ -35,8 +39,7 @@ def main():
     # Load contract
     abi = load_abi()
     contract = w3.eth.contract(
-        address=Web3.to_checksum_address(CONTRACT_ADDRESS),
-        abi=abi
+        address=Web3.to_checksum_address(CONTRACT_ADDRESS), abi=abi
     )
 
     market_id = "TEST-MARKET-001"
@@ -64,12 +67,14 @@ def main():
         # Build transaction
         transaction = contract.functions.updateMarketStatus(
             market_id, new_status
-        ).build_transaction({
-            "from": account.address,
-            "gas": gas_limit,
-            "gasPrice": gas_price,
-            "nonce": nonce,
-        })
+        ).build_transaction(
+            {
+                "from": account.address,
+                "gas": gas_limit,
+                "gasPrice": gas_price,
+                "nonce": nonce,
+            }
+        )
 
         # Sign and send
         signed_txn = w3.eth.account.sign_transaction(transaction, PRIVATE_KEY)
@@ -91,7 +96,8 @@ def main():
     except Exception as e:
         print(f"❌ Error: {e}")
 
-    print("="*80)
+    print("=" * 80)
+
 
 if __name__ == "__main__":
     main()

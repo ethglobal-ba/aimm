@@ -315,7 +315,7 @@ contract AIMM is IReceiverTemplate {
         uint256 minPriceDiff,
         uint256 maxSpend,
         uint256 slippageBps
-    ) public onlyOwner marketMustExist(externalMarketId) {
+    ) public marketMustExist(externalMarketId) {
         MarketConfig storage config = marketConfigs[externalMarketId];
         config.minPriceDifference = minPriceDiff;
         config.maxSpendAmount = maxSpend;
@@ -339,7 +339,6 @@ contract AIMM is IReceiverTemplate {
      */
     function updateMarketStatus(string memory externalMarketId, MarketStatus newStatus)
         public
-        onlyOwner
         marketMustExist(externalMarketId)
     {
         ExternalMarket storage market = externalMarkets[externalMarketId];

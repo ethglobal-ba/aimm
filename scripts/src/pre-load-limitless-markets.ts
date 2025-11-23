@@ -8,7 +8,7 @@ import { aimmAbi } from './contract.types';
 dotenv.config();
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
-const AIMM_CONTRACT_ADDRESS = '0x64F65c2366BEFC2540c9312A794f0DAb5c3952F4' as Address;
+const AIMM_CONTRACT_ADDRESS = '0x53B3B952320E4e38887e85329a5A6E0dFBd5eF10.' as Address;
 const LIMITLESS_API_BASE = 'https://api.limitless.exchange';
 
 interface LimitlessMarket {

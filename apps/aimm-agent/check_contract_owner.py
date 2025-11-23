@@ -10,7 +10,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-CONTRACT_ADDRESS = os.getenv("CONTRACT_ADDRESS", "0x185D4f91D3D53a7523d312BbCa5c0B8ac2cEe32b")
+CONTRACT_ADDRESS = os.getenv(
+    "CONTRACT_ADDRESS", "0x64F65c2366BEFC2540c9312A794f0DAb5c3952F4"
+)
 RPC_URL = os.getenv("RPC_URL", "https://sepolia.base.org")
 PRIVATE_KEY = os.getenv("PRIVATE_KEY")
 

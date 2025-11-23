@@ -14,19 +14,23 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 load_dotenv()
 
-CONTRACT_ADDRESS = os.getenv("CONTRACT_ADDRESS", "0x185D4f91D3D53a7523d312BbCa5c0B8ac2cEe32b")
+CONTRACT_ADDRESS = os.getenv(
+    "CONTRACT_ADDRESS", "0x64F65c2366BEFC2540c9312A794f0DAb5c3952F4"
+)
 RPC_URL = os.getenv("RPC_URL", "https://sepolia.base.org")
+
 
 def load_abi():
     """Load contract ABI"""
     abi_path = os.path.join(os.path.dirname(__file__), "src", "types", "AIMM.json")
-    with open(abi_path, 'r') as f:
-        return json.load(f).get('abi', [])
+    with open(abi_path, "r") as f:
+        return json.load(f).get("abi", [])
+
 
 def main():
-    print("="*80)
+    print("=" * 80)
     print("CHECKING MARKETS ON CONTRACT")
-    print("="*80)
+    print("=" * 80)
     print(f"Contract: {CONTRACT_ADDRESS}")
     print(f"RPC: {RPC_URL}\n")
 
@@ -41,8 +45,7 @@ def main():
     # Load contract
     abi = load_abi()
     contract = w3.eth.contract(
-        address=Web3.to_checksum_address(CONTRACT_ADDRESS),
-        abi=abi
+        address=Web3.to_checksum_address(CONTRACT_ADDRESS), abi=abi
     )
 
     # Get all market IDs
@@ -67,9 +70,9 @@ def main():
             except Exception as e:
                 print(f"   Error getting details: {e}")
 
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print(f"Total: {len(market_ids)} markets")
-        print("="*80)
+        print("=" * 80)
 
     except Exception as e:
         print(f"❌ Error calling getAllMarketIds(): {e}")
@@ -77,6 +80,7 @@ def main():
         print("  1. The contract doesn't have this function")
         print("  2. You're connected to the wrong contract")
         print("  3. The contract address in .env is incorrect")
+
 
 if __name__ == "__main__":
     main()

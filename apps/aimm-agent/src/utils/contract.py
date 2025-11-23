@@ -12,7 +12,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Contract configuration
-CONTRACT_ADDRESS = os.getenv("CONTRACT_ADDRESS", "0x185D4f91D3D53a7523d312BbCa5c0B8ac2cEe32b")  # Default to Base Sepolia contract
+CONTRACT_ADDRESS = os.getenv(
+    "CONTRACT_ADDRESS", "0x64F65c2366BEFC2540c9312A794f0DAb5c3952F4"
+)  # Default to Base Sepolia contract
 RPC_URL = os.getenv("RPC_URL", "https://sepolia.base.org")  # Base Sepolia default
 
 
@@ -24,12 +26,14 @@ def load_contract_abi():
     abi_path = os.path.join(project_root, "src", "types", "AIMM.json")
 
     try:
-        with open(abi_path, 'r') as f:
+        with open(abi_path, "r") as f:
             contract_data = json.load(f)
-            return contract_data.get('abi', [])
+            return contract_data.get("abi", [])
     except FileNotFoundError:
         print(f"Warning: ABI file not found at {abi_path}")
-        print("Contract interaction will be skipped. Run 'generate-contract-types.sh' to generate the ABI file")
+        print(
+            "Contract interaction will be skipped. Run 'generate-contract-types.sh' to generate the ABI file"
+        )
         return None
     except json.JSONDecodeError as e:
         print(f"Warning: Invalid JSON in ABI file: {e}")
@@ -49,7 +53,7 @@ def cents_to_wei(cents: float) -> int:
     # Convert cents to 8 decimal format to match external prices
     # 35.5 cents = 35500000 (8 decimals)
     # 20 cents = 20000000 (8 decimals)
-    scaled_value = int(Decimal(str(cents)) * Decimal('10') ** Decimal('6'))
+    scaled_value = int(Decimal(str(cents)) * Decimal("10") ** Decimal("6"))
     return scaled_value
 
 
@@ -57,7 +61,7 @@ def update_fair_prices(
     market_id: str,
     option_a_fair_price_cents: float,
     option_b_fair_price_cents: float,
-    dry_run: bool = False
+    dry_run: bool = False,
 ) -> dict:
     """
     Update fair prices on the AIMM contract.
@@ -77,7 +81,7 @@ def update_fair_prices(
         return {
             "success": False,
             "error": "Contract ABI not available",
-            "skipped": True
+            "skipped": True,
         }
 
     # Get private key from environment
@@ -88,32 +92,33 @@ def update_fair_prices(
         return {
             "success": False,
             "error": "PRIVATE_KEY not configured",
-            "skipped": True
+            "skipped": True,
         }
 
     # Convert cents to wei
     option_a_wei = cents_to_wei(option_a_fair_price_cents)
     option_b_wei = cents_to_wei(option_b_fair_price_cents)
 
-    print(f"\n" + "="*80)
+    print(f"\n" + "=" * 80)
     print("UPDATING FAIR PRICES ON CONTRACT")
-    print("="*80)
+    print("=" * 80)
     print(f"Market ID: {market_id}")
-    print(f"Option A: {option_a_fair_price_cents:.2f}¢ ({option_a_wei} with 8 decimals)")
-    print(f"Option B: {option_b_fair_price_cents:.2f}¢ ({option_b_wei} with 8 decimals)")
+    print(
+        f"Option A: {option_a_fair_price_cents:.2f}¢ ({option_a_wei} with 8 decimals)"
+    )
+    print(
+        f"Option B: {option_b_fair_price_cents:.2f}¢ ({option_b_wei} with 8 decimals)"
+    )
     print(f"Contract: {CONTRACT_ADDRESS}")
     print(f"RPC: {RPC_URL}")
     print(f"Dry run: {dry_run}")
-    print("="*80)
+    print("=" * 80)
 
     try:
         # Initialize Web3 connection
         w3 = Web3(Web3.HTTPProvider(RPC_URL))
         if not w3.is_connected():
-            return {
-                "success": False,
-                "error": f"Unable to connect to RPC at {RPC_URL}"
-            }
+            return {"success": False, "error": f"Unable to connect to RPC at {RPC_URL}"}
 
         # Get account from private key
         account = w3.eth.account.from_key(private_key)
@@ -121,8 +126,7 @@ def update_fair_prices(
 
         # Initialize contract
         contract = w3.eth.contract(
-            address=Web3.to_checksum_address(CONTRACT_ADDRESS),
-            abi=contract_abi
+            address=Web3.to_checksum_address(CONTRACT_ADDRESS), abi=contract_abi
         )
 
         # Get current gas price and nonce
@@ -145,14 +149,16 @@ def update_fair_prices(
         # Build the transaction
         transaction = contract.functions.updateFairPrices(
             market_id, option_a_wei, option_b_wei
-        ).build_transaction({
-            "from": account.address,
-            "gas": gas_limit,
-            "gasPrice": gas_price,
-            "nonce": nonce,
-        })
+        ).build_transaction(
+            {
+                "from": account.address,
+                "gas": gas_limit,
+                "gasPrice": gas_price,
+                "nonce": nonce,
+            }
+        )
 
-        total_cost = w3.from_wei(gas_limit * gas_price, 'ether')
+        total_cost = w3.from_wei(gas_limit * gas_price, "ether")
         print(f"Transaction cost: ~{total_cost} ETH")
 
         if dry_run:
@@ -167,7 +173,7 @@ def update_fair_prices(
                 "option_b_wei": option_b_wei,
                 "gas_estimate": gas_estimate,
                 "gas_limit": gas_limit,
-                "estimated_cost_eth": float(total_cost)
+                "estimated_cost_eth": float(total_cost),
             }
 
         # Sign and send transaction
@@ -203,7 +209,7 @@ def update_fair_prices(
                 "option_b_cents": option_b_fair_price_cents,
                 "option_a_wei": option_a_wei,
                 "option_b_wei": option_b_wei,
-                "basescan_url": f"https://sepolia.basescan.org/tx/{tx_hash.hex()}"
+                "basescan_url": f"https://sepolia.basescan.org/tx/{tx_hash.hex()}",
             }
         else:
             print(f"\n{'='*80}")
@@ -217,14 +223,11 @@ def update_fair_prices(
                 "error": "Transaction reverted",
                 "tx_hash": tx_hash.hex(),
                 "basescan_url": f"https://sepolia.basescan.org/tx/{tx_hash.hex()}",
-                "receipt": str(receipt)
+                "receipt": str(receipt),
             }
 
     except Exception as e:
         print(f"\n{'='*80}")
         print(f"❌ ERROR: {e}")
         print(f"{'='*80}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
