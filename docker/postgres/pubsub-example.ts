@@ -8,8 +8,9 @@ import { Client } from 'pg';
 interface AIAgentNotification {
   table: string;
   action: 'INSERT' | 'UPDATE' | 'DELETE';
-  run_id: string;  // Part of composite key
-  step_index: number;  // Part of composite key
+  id: number;  // Primary key
+  run_id: string;
+  step_index: number;
   market_id: string;
   market_ticker?: string;
   step_kind: string;
@@ -88,17 +89,17 @@ class AIAgentPubSub {
     confidence?: number;
     price_scale?: string;
     run_started_at?: Date;
-    run_finished_at?: Date;
-  }): Promise<void> {
+  }): Promise<number> {
     if (!this.isConnected) {
       throw new Error('Client not connected');
     }
 
-    await this.client.query(
+    const result = await this.client.query(
       `INSERT INTO ai_agent_output
        (run_id, step_index, market_id, market_ticker, step_kind, step_output, headline, summary, direction,
-        agent_version, model_version, confidence, price_scale, run_started_at, run_finished_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+        agent_version, model_version, confidence, price_scale, step_created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, COALESCE($14, CURRENT_TIMESTAMP))
+       RETURNING id`,
       [
         data.run_id,
         data.step_index,
@@ -113,10 +114,11 @@ class AIAgentPubSub {
         data.model_version,
         data.confidence,
         data.price_scale || 'cents',
-        data.run_started_at,
-        data.run_finished_at,
+        data.run_started_at || new Date(),
       ]
     );
+
+    return result.rows[0].id;
   }
 
   /**
@@ -163,7 +165,7 @@ class AIAgentPubSub {
       params.push(filters.min_confidence);
     }
 
-    query += ' ORDER BY run_started_at DESC, step_index ASC';
+    query += ' ORDER BY step_created_at DESC, step_index ASC';
 
     if (filters.limit) {
       query += ` LIMIT $${++paramCount}`;
@@ -203,7 +205,7 @@ async function example() {
     });
 
     // Example: Insert some test data
-    await pubsub.insertAIAgentOutput({
+    const agentOutputId = await pubsub.insertAIAgentOutput({
       run_id: 'test_run_001',
       step_index: 1,
       market_id: 'TEST_MARKET_001',
@@ -235,7 +237,7 @@ async function example() {
       run_started_at: new Date()
     });
 
-    console.log('Inserted AI agent output step 1');
+    console.log('Inserted AI agent output with ID:', agentOutputId);
 
     // Query the data
     const results = await pubsub.queryAIAgentOutput({
