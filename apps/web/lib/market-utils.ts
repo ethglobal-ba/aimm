@@ -1,4 +1,4 @@
-import type { Market, MarketAimmStatus } from '@/types/market';
+import type { Market, MarketAimmStatus, Platform } from '@/types/market';
 import type { AgentRun } from '@/lib/mock-market-detail';
 
 export function formatPercentage(value: number): string {
@@ -154,6 +154,19 @@ export function getPositionBadgeClass(position: Market['agentPosition']): string
     return 'border-red-500/30 bg-red-500/10 text-red-300';
   }
   return 'border-border bg-muted text-muted-foreground';
+}
+
+export function formatPlatformLabel(platform: Platform): string {
+  switch (platform) {
+    case 'kalshi':
+      return 'Kalshi';
+    case 'limitless':
+      return 'Limitless';
+    case 'polymarket':
+      return 'Polymarket';
+    case 'trump.fun':
+      return 'Trump.fun';
+  }
 }
 
 /**

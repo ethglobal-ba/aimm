@@ -11,6 +11,7 @@ import {
   type AgentAction,
   type AgentActionStatus,
 } from '@/lib/mock-agent-actions';
+import type { Direction } from '@/lib/ai-agent-output-types';
 
 /**
  * Get the dot color class based on how recent the action timestamp is.
@@ -66,6 +67,45 @@ export function LiveAgentActions() {
 
   // MOCK: Using static mock data. In production, this would come from a live data source.
   const actions: AgentAction[] = mockAgentActions;
+
+  useEffect(() => {
+    interface LatestRunStep {
+      runId: string;
+      marketTicker: string;
+      stepIndex: number;
+      stepKind: string;
+      headline: string | null;
+      direction: Direction | null;
+      // Dates are serialized as ISO strings over the network.
+      insertedAt: string;
+    }
+
+    interface LatestRunsResponse {
+      steps: LatestRunStep[];
+    }
+
+    const fetchLatestRuns = async (): Promise<void> => {
+      try {
+        const response = await fetch('/api/ai-agent-output/latest?limitPerMarket=5');
+
+        if (!response.ok) {
+          // eslint-disable-next-line no-console
+          console.error('Failed to fetch latest ai_agent_output runs', response.statusText);
+          return;
+        }
+
+        const data: LatestRunsResponse = await response.json();
+
+        // eslint-disable-next-line no-console
+        console.log('Latest ai_agent_output runs', data.steps);
+      } catch (error: unknown) {
+        // eslint-disable-next-line no-console
+        console.error('Error while fetching latest ai_agent_output runs', error);
+      }
+    };
+
+    void fetchLatestRuns();
+  }, []);
 
   return (
     <div className='flex h-full flex-col'>

@@ -7,8 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { cn } from '@workspace/ui/lib/utils';
 import {
   calculateMispricing,
-  formatIdentifierWithEllipsis,
   formatPercentage,
+  formatPlatformLabel,
   formatTimeAgo,
   getAimmStatusLabel,
   getStatusDotClass,
@@ -20,13 +20,8 @@ import Link from 'next/link';
 interface MarketsTableProps {
   markets: Market[];
   platformFilter?: string;
-  /**
-   * AIMM status filter coming from the overview page.
-   * - 'all' → include all AIMM statuses
-   * - otherwise → match a specific MarketAimmStatus
-   */
   statusFilter?: 'all' | MarketAimmStatus;
-  sortBy?: 'mispricing' | 'timeToClose' | 'volume';
+  sortBy?: 'mispricing' | 'alphabetical' | 'volume';
 }
 
 export function MarketsTable({
@@ -81,10 +76,8 @@ export function MarketsTable({
           );
           return bMispricing - aMispricing;
         }
-        case 'timeToClose': {
-          const aTime = a.market.timeToClose?.getTime() ?? Number.POSITIVE_INFINITY;
-          const bTime = b.market.timeToClose?.getTime() ?? Number.POSITIVE_INFINITY;
-          return aTime - bTime;
+        case 'alphabetical': {
+          return a.market.marketName.localeCompare(b.market.marketName);
         }
         case 'volume': {
           const aVolume = a.market.volume24h ?? 0;
@@ -133,7 +126,7 @@ export function MarketsTable({
                         variant='outline'
                         className='text-muted-foreground border-border h-auto rounded-sm px-1.5 py-0 text-[10px] font-semibold tracking-wider uppercase'
                       >
-                        {market.platform}
+                        {formatPlatformLabel(market.platform)}
                       </Badge>
                       <span className='text-muted-foreground font-mono text-xs'>{market.symbol}</span>
                     </div>

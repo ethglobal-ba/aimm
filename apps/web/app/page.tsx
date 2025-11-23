@@ -19,7 +19,7 @@ export default function Home() {
   const [platformFilter, setPlatformFilter] = useState('all');
   type AimmStatusFilter = 'all' | MarketAimmStatus;
   const [statusFilter, setStatusFilter] = useState<AimmStatusFilter>('ACTIVE');
-  const [sortBy, setSortBy] = useState<'mispricing' | 'timeToClose' | 'volume'>('mispricing');
+  const [sortBy, setSortBy] = useState<'mispricing' | 'alphabetical' | 'volume'>('mispricing');
   const { isDemoOnboardingMode } = useDemoOnboarding();
 
   const { data, loading, error } = useGetMarketsQuery();
@@ -115,7 +115,7 @@ export default function Home() {
               </SelectTrigger>
               <SelectContent position='popper' align='start' sideOffset={4}>
                 <SelectItem value='mispricing'>Mispricing</SelectItem>
-                <SelectItem value='timeToClose'>Closing Soon</SelectItem>
+                <SelectItem value='alphabetical'>Name (A–Z)</SelectItem>
                 <SelectItem value='volume'>Volume</SelectItem>
               </SelectContent>
             </Select>

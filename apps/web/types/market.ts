@@ -55,5 +55,5 @@ export interface MarketFilters {
   search: string;
   platforms: Platform[];
   statuses: MarketStatus[];
-  sortBy: 'mispricing' | 'timeToClose' | 'volume';
+  sortBy: 'mispricing' | 'alphabetical' | 'volume';
 }
