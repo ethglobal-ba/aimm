@@ -79,7 +79,7 @@ BEGIN
         'step_loading', COALESCE(NEW.step_loading, OLD.step_loading),
         'headline', COALESCE(NEW.headline, OLD.headline),
         'direction', COALESCE(NEW.direction, OLD.direction),
-        'timestamp', EXTRACT(epoch FROM COALESCE(NEW.step_created_at, OLD.step_created_at))
+        'timestamp', EXTRACT(epoch FROM COALESCE(NEW.inserted_at, OLD.inserted_at))
     );
 
     -- Send notification on the ai_agent_output channel
