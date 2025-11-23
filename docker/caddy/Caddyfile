@@ -21,7 +21,17 @@
 	}
 }
 
-# HTTP redirect to HTTPS
+# HTTP also serves the indexer (no redirect)
 :80 {
-	redir https://{host}{uri} permanent
+	# Reverse proxy to indexer service
+	reverse_proxy indexer:42069
+
+	# Enable compression
+	encode gzip
+
+	# Logging
+	log {
+		output stdout
+		format console
+	}
 }

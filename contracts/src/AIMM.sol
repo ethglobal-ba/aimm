@@ -123,7 +123,8 @@ contract AIMM is IReceiverTemplate {
         string eventTicker,
         uint256 volume,
         uint256 optionACurrentExternalPrice,
-        uint256 optionBCurrentExternalPrice
+        uint256 optionBCurrentExternalPrice,
+        string imageUrl
     );
 
     event MarketConfigUpdated(
@@ -236,7 +237,8 @@ contract AIMM is IReceiverTemplate {
             params.eventTicker,
             params.initialVolume,
             params.optionACurrentExternalPrice,
-            params.optionBCurrentExternalPrice
+            params.optionBCurrentExternalPrice,
+            params.imageUrl
         );
     }
 
@@ -284,9 +286,9 @@ contract AIMM is IReceiverTemplate {
         uint256 optionAFairPrice,
         uint256 optionBFairPrice
     ) public {
-        require(
-            bytes(externalMarkets[externalMarketId].marketName).length > 0, "Market does not exist"
-        );
+        // require(
+        // bytes(externalMarkets[externalMarketId].marketName).length > 0, "Market does not exist"
+        // );
         ExternalMarket storage market = externalMarkets[externalMarketId];
         market.optionACurrentFairPrice = optionAFairPrice;
         market.optionBCurrentFairPrice = optionBFairPrice;

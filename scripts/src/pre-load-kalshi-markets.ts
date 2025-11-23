@@ -3,12 +3,12 @@ import dotenv from 'dotenv';
 import { createWalletClient, http, publicActions, type Address } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { baseSepolia } from 'viem/chains';
-import { aimmAbi } from '../../packages/common/src/types/__generated__/contract.types';
+import { aimmAbi } from './contract.types';
 
 dotenv.config();
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
-const AIMM_CONTRACT_ADDRESS = '0x13D5bb3827415170399649c4213ff6E6f5837741' as Address;
+const AIMM_CONTRACT_ADDRESS = '0x3f63C6C97E4229718ccdde12244559261158310b' as Address;
 const KALSHI_API_BASE = 'https://api.elections.kalshi.com/trade-api/v2';
 
 interface KalshiMarket {
@@ -38,7 +38,7 @@ async function getMarketsFromLast24Hours(): Promise<KalshiMarket[]> {
   const params = {
     status: 'open',
     mve_filter: 'exclude',
-    limit: 100,
+    limit: 1000,
     min_created_ts: minCreatedTs,
   };
   console.log('Kalshi markets fetch params:', params);
@@ -46,6 +46,12 @@ async function getMarketsFromLast24Hours(): Promise<KalshiMarket[]> {
     const response = await axios.get<KalshiMarketsResponse>(`${KALSHI_API_BASE}/markets`, {
       params,
     });
+    // Pick a random set of 25 markets from the full list (or fewer if <25 returned)
+    const allMarkets = response.data.markets;
+    const shuffled = allMarkets.slice().sort(() => Math.random() - 0.5);
+    const selectedMarkets = shuffled.slice(0, 25);
+    // Replace response.data.markets with selectedMarkets for downstream logic
+    response.data.markets = selectedMarkets;
 
     console.log(`Found ${response.data.markets.length} markets created in the last 24 hours`);
     return response.data.markets;
@@ -94,7 +100,7 @@ async function onboardMarketsToAIMM(markets: KalshiMarket[]): Promise<void> {
     try {
       const params = mapKalshiMarketToParams(market);
 
-      console.log(`Onboarding market: ${params.marketName} (${params.externalMarketId})`);
+      console.log(`Onboarding market: ${params.marketName} (${params.ticker})`);
 
       const hash = await client.writeContract({
         address: AIMM_CONTRACT_ADDRESS,
