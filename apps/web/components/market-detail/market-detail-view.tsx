@@ -52,7 +52,7 @@ import {
   getStatusDotClass,
 } from '@/lib/market-utils';
 import { useUpdateMarketAutomationConfig } from '@/hooks/use-update-market-automation-config';
-import type { MarketDetailData, OrderBookLevel, TradeEvent } from '@/lib/mock-market-detail';
+import type { MarketDetailData, TradeEvent } from '@/lib/mock-market-detail';
 
 const platformLabels: Record<Market['platform'], string> = {
   limitless: 'Limitless',
@@ -151,9 +151,6 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps): JSX
   const statusBadgeClass = getStatusBadgeClass(market.status);
   const platformLabel = platformLabels[market.platform];
   const externalUrl = `${platformLinks[market.platform]}/markets/${market.symbol.toLowerCase()}`;
-  const bestBid = detail.orderBook.bids[0];
-  const bestAsk = detail.orderBook.asks[0];
-  const spreadBps = bestBid && bestAsk ? ((bestAsk.price - bestBid.price) * 100).toFixed(1) : null;
 
   const automationSummary = useMemo(() => {
     return `${driftThresholdPts.toFixed(1)} pts drift • $${formatCompactUsd(maxSpendUsd)} max • ${slippagePts.toFixed(2)} pts slip`;
@@ -434,7 +431,7 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps): JSX
 
         <div className='grid grid-cols-1 gap-6 lg:grid-cols-12'>
           <div className='flex flex-col gap-6 lg:col-span-8'>
-            <Card className='bg-card/40 h-full'>
+            <Card className='bg-card/40'>
               <CardHeader className='border-border/60 flex flex-row items-center justify-between gap-4 border-b pb-3'>
                 <div className='flex items-center gap-2 text-sm font-medium'>
                   <Activity02Icon className='text-muted-foreground size-4' />
@@ -442,11 +439,17 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps): JSX
                 </div>
                 <div className='text-muted-foreground flex items-center gap-4 text-xs'>
                   <div className='flex items-center gap-1'>
-                    <span className='h-2 w-2 rounded-full bg-(--color-livePrice)' />
+                    <span
+                      className='h-2 w-2 rounded-full'
+                      style={{ backgroundColor: priceChartConfig.livePrice.color }}
+                    />
                     Live
                   </div>
                   <div className='flex items-center gap-1'>
-                    <span className='h-2 w-2 rounded-full bg-(--color-fairPrice)' />
+                    <span
+                      className='h-2 w-2 rounded-full'
+                      style={{ backgroundColor: priceChartConfig.fairPrice.color }}
+                    />
                     AIMM
                   </div>
                 </div>
@@ -454,14 +457,13 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps): JSX
               <CardContent className='pt-6'>
                 <ChartContainer config={priceChartConfig} className='h-[320px] w-full'>
                   <LineChart data={detail.priceHistory} margin={{ left: 0, right: 0, top: 10, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray='4 4' stroke='hsl(var(--border))' />
+                    <CartesianGrid strokeDasharray='4 4' stroke='var(--border)' />
                     <XAxis
                       dataKey='timestamp'
                       tickLine={false}
                       axisLine={false}
                       tickMargin={8}
-                      fontSize={11}
-                      stroke='hsl(var(--muted-foreground))'
+                      tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
                     />
                     <YAxis
                       domain={[0, 1]}
@@ -469,8 +471,7 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps): JSX
                       tickLine={false}
                       axisLine={false}
                       width={48}
-                      fontSize={11}
-                      stroke='hsl(var(--muted-foreground))'
+                      tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
                     />
                     <ChartTooltip
                       cursor={{ strokeDasharray: '4 4' }}
@@ -515,29 +516,152 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps): JSX
 
             <div className='grid grid-cols-1 gap-6 lg:grid-cols-2'>
               <Card className='bg-card/40'>
-                <CardHeader className='border-border/60 flex flex-row items-center justify-between gap-2 border-b pb-3'>
-                  <div className='flex items-center gap-2 text-sm font-medium'>
-                    <ListViewIcon className='text-muted-foreground size-4' />
-                    Order book depth
+                <CardHeader className='border-border/60 border-b pb-3'>
+                  <div className='flex flex-col gap-1.5'>
+                    <CardTitle className='text-sm font-medium'>Automation settings</CardTitle>
+                    <p className='text-muted-foreground text-xs'>
+                      When should the agent auto-rebalance this market? UI-only in this build.
+                    </p>
+                    <div className='bg-muted/60 text-muted-foreground mt-1 inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[11px]'>
+                      <span className='h-1.5 w-1.5 rounded-full bg-emerald-400/80' />
+                      <span className='font-mono'>{automationSummary}</span>
+                    </div>
                   </div>
-                  <div className='text-muted-foreground text-xs'>Spread {spreadBps ?? '—'} bps</div>
                 </CardHeader>
-                <CardContent className='pt-4'>
-                  <div className='text-muted-foreground grid grid-cols-2 gap-4 text-[11px] uppercase'>
-                    <span>Bids</span>
-                    <span>Asks</span>
+                <CardContent className='space-y-4 pt-4'>
+                  <div className='flex flex-wrap items-center gap-2 text-[11px]'>
+                    <span className='text-muted-foreground'>Quick presets:</span>
+                    {(['conservative', 'balanced', 'aggressive'] as AutomationPresetKey[]).map(key => {
+                      const preset = automationPresets[key];
+                      return (
+                        <Button
+                          key={key}
+                          type='button'
+                          variant='outline'
+                          size='sm'
+                          className='border-border/60 bg-transparent px-2.5 py-0 text-[11px] font-medium'
+                          onClick={() => {
+                            setDriftThresholdPts(preset.driftThresholdPts);
+                            setMaxSpendUsd(preset.maxSpendUsd);
+                            setSlippagePts(preset.slippagePts);
+                          }}
+                        >
+                          {preset.label}
+                        </Button>
+                      );
+                    })}
                   </div>
-                  <div className='mt-3 grid grid-cols-2 gap-4 text-xs font-medium'>
-                    <div className='space-y-2'>
-                      {detail.orderBook.bids.map(level => (
-                        <OrderBookRow key={`bid-${level.price}`} level={level} side='bid' />
-                      ))}
+
+                  <div className='grid grid-cols-1 gap-4 text-sm sm:grid-cols-2'>
+                    <div className='space-y-1'>
+                      <Label htmlFor='drift-threshold' className='text-xs'>
+                        Drift threshold
+                      </Label>
+                      <InputGroup>
+                        <InputGroupAddon>
+                          <InputGroupText className='text-[11px]'>Trigger when</InputGroupText>
+                        </InputGroupAddon>
+                        <InputGroupInput
+                          id='drift-threshold'
+                          type='number'
+                          min={0}
+                          step={0.1}
+                          value={driftThresholdPts.toString()}
+                          onChange={event => {
+                            const value = Number(event.target.value);
+                            setDriftThresholdPts(Number.isNaN(value) ? 0 : value);
+                          }}
+                          className='text-right text-sm'
+                        />
+                        <InputGroupAddon align='inline-end'>
+                          <InputGroupText className='text-[11px]'>pts mispricing</InputGroupText>
+                        </InputGroupAddon>
+                      </InputGroup>
+                      <p className='text-muted-foreground text-[11px]'>
+                        Minimum gap between live and AIMM fair price before the agent is allowed to act.
+                      </p>
                     </div>
-                    <div className='space-y-2'>
-                      {detail.orderBook.asks.map(level => (
-                        <OrderBookRow key={`ask-${level.price}`} level={level} side='ask' />
-                      ))}
+
+                    <div className='space-y-1'>
+                      <Label htmlFor='max-spend' className='text-xs'>
+                        Max spend per rebalance
+                      </Label>
+                      <InputGroup>
+                        <InputGroupAddon>
+                          <InputGroupText className='text-[11px]'>$</InputGroupText>
+                        </InputGroupAddon>
+                        <InputGroupInput
+                          id='max-spend'
+                          type='number'
+                          min={0}
+                          step={100}
+                          value={maxSpendUsd.toString()}
+                          onChange={event => {
+                            const value = Number(event.target.value);
+                            setMaxSpendUsd(Number.isNaN(value) ? 0 : value);
+                          }}
+                          className='text-right text-sm'
+                        />
+                        <InputGroupAddon align='inline-end'>
+                          <InputGroupText className='text-[11px]'>per rebalance</InputGroupText>
+                        </InputGroupAddon>
+                      </InputGroup>
+                      <p className='text-muted-foreground text-[11px]'>
+                        Hard cap on notional inventory the agent can deploy in a single run.
+                      </p>
                     </div>
+
+                    <div className='space-y-1 sm:col-span-2'>
+                      <Label htmlFor='slippage-tolerance' className='text-xs'>
+                        Slippage tolerance
+                      </Label>
+                      <InputGroup>
+                        <InputGroupAddon>
+                          <InputGroupText className='text-[11px]'>Allow up to</InputGroupText>
+                        </InputGroupAddon>
+                        <InputGroupInput
+                          id='slippage-tolerance'
+                          type='number'
+                          min={0}
+                          step={0.05}
+                          value={slippagePts.toString()}
+                          onChange={event => {
+                            const value = Number(event.target.value);
+                            setSlippagePts(Number.isNaN(value) ? 0 : value);
+                          }}
+                          className='text-right text-sm'
+                        />
+                        <InputGroupAddon align='inline-end'>
+                          <InputGroupText className='text-[11px]'>pts of price move</InputGroupText>
+                        </InputGroupAddon>
+                      </InputGroup>
+                      <p className='text-muted-foreground text-[11px]'>
+                        How far execution can drift from target fair price while orders are filled.
+                      </p>
+                    </div>
+                  </div>
+                  <div className='flex flex-col gap-2 pt-2 sm:flex-row sm:items-center sm:justify-between'>
+                    <Button
+                      type='button'
+                      className='bg-primary text-primary-foreground shadow-primary/30 hover:bg-primary/90 min-w-[160px] gap-2 px-4 text-xs shadow-lg'
+                      disabled={isSavingAutomation || isConfirmingAutomation}
+                      onClick={() =>
+                        updateAutomationConfig({
+                          driftThresholdPts,
+                          maxSpendUsd,
+                          slippagePts,
+                        })
+                      }
+                    >
+                      {isSavingAutomation || isConfirmingAutomation
+                        ? 'Saving to contract…'
+                        : isAutomationSaved
+                          ? 'Saved to contract'
+                          : 'Save automation to contract'}
+                    </Button>
+                    {automationError ? (
+                      <p className='text-destructive text-[11px] sm:text-right'>{automationError.message}</p>
+                    ) : null}
                   </div>
                 </CardContent>
               </Card>
@@ -564,157 +688,6 @@ export function MarketDetailView({ market, detail }: MarketDetailViewProps): JSX
           </div>
 
           <div className='flex flex-col gap-6 lg:col-span-4'>
-            <Card className='bg-card/40'>
-              <CardHeader className='border-border/60 border-b pb-3'>
-                <div className='flex flex-col gap-1.5'>
-                  <CardTitle className='text-sm font-medium'>Automation settings</CardTitle>
-                  <p className='text-muted-foreground text-xs'>
-                    When should the agent auto-rebalance this market? UI-only in this build.
-                  </p>
-                  <div className='bg-muted/60 text-muted-foreground mt-1 inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[11px]'>
-                    <span className='h-1.5 w-1.5 rounded-full bg-emerald-400/80' />
-                    <span className='font-mono'>{automationSummary}</span>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className='space-y-4 pt-4'>
-                <div className='flex flex-wrap items-center gap-2 text-[11px]'>
-                  <span className='text-muted-foreground'>Quick presets:</span>
-                  {(['conservative', 'balanced', 'aggressive'] as AutomationPresetKey[]).map(key => {
-                    const preset = automationPresets[key];
-                    return (
-                      <Button
-                        key={key}
-                        type='button'
-                        variant='outline'
-                        size='sm'
-                        className='border-border/60 bg-transparent px-2.5 py-0 text-[11px] font-medium'
-                        onClick={() => {
-                          setDriftThresholdPts(preset.driftThresholdPts);
-                          setMaxSpendUsd(preset.maxSpendUsd);
-                          setSlippagePts(preset.slippagePts);
-                        }}
-                      >
-                        {preset.label}
-                      </Button>
-                    );
-                  })}
-                </div>
-
-                <div className='grid grid-cols-1 gap-4 text-sm sm:grid-cols-2'>
-                  <div className='space-y-1'>
-                    <Label htmlFor='drift-threshold' className='text-xs'>
-                      Drift threshold
-                    </Label>
-                    <InputGroup>
-                      <InputGroupAddon>
-                        <InputGroupText className='text-[11px]'>Trigger when</InputGroupText>
-                      </InputGroupAddon>
-                      <InputGroupInput
-                        id='drift-threshold'
-                        type='number'
-                        min={0}
-                        step={0.1}
-                        value={driftThresholdPts.toString()}
-                        onChange={event => {
-                          const value = Number(event.target.value);
-                          setDriftThresholdPts(Number.isNaN(value) ? 0 : value);
-                        }}
-                        className='text-right text-sm'
-                      />
-                      <InputGroupAddon align='inline-end'>
-                        <InputGroupText className='text-[11px]'>pts mispricing</InputGroupText>
-                      </InputGroupAddon>
-                    </InputGroup>
-                    <p className='text-muted-foreground text-[11px]'>
-                      Minimum gap between live and AIMM fair price before the agent is allowed to act.
-                    </p>
-                  </div>
-
-                  <div className='space-y-1'>
-                    <Label htmlFor='max-spend' className='text-xs'>
-                      Max spend per rebalance
-                    </Label>
-                    <InputGroup>
-                      <InputGroupAddon>
-                        <InputGroupText className='text-[11px]'>$</InputGroupText>
-                      </InputGroupAddon>
-                      <InputGroupInput
-                        id='max-spend'
-                        type='number'
-                        min={0}
-                        step={100}
-                        value={maxSpendUsd.toString()}
-                        onChange={event => {
-                          const value = Number(event.target.value);
-                          setMaxSpendUsd(Number.isNaN(value) ? 0 : value);
-                        }}
-                        className='text-right text-sm'
-                      />
-                      <InputGroupAddon align='inline-end'>
-                        <InputGroupText className='text-[11px]'>per rebalance</InputGroupText>
-                      </InputGroupAddon>
-                    </InputGroup>
-                    <p className='text-muted-foreground text-[11px]'>
-                      Hard cap on notional inventory the agent can deploy in a single run.
-                    </p>
-                  </div>
-
-                  <div className='space-y-1 sm:col-span-2'>
-                    <Label htmlFor='slippage-tolerance' className='text-xs'>
-                      Slippage tolerance
-                    </Label>
-                    <InputGroup>
-                      <InputGroupAddon>
-                        <InputGroupText className='text-[11px]'>Allow up to</InputGroupText>
-                      </InputGroupAddon>
-                      <InputGroupInput
-                        id='slippage-tolerance'
-                        type='number'
-                        min={0}
-                        step={0.05}
-                        value={slippagePts.toString()}
-                        onChange={event => {
-                          const value = Number(event.target.value);
-                          setSlippagePts(Number.isNaN(value) ? 0 : value);
-                        }}
-                        className='text-right text-sm'
-                      />
-                      <InputGroupAddon align='inline-end'>
-                        <InputGroupText className='text-[11px]'>pts of price move</InputGroupText>
-                      </InputGroupAddon>
-                    </InputGroup>
-                    <p className='text-muted-foreground text-[11px]'>
-                      How far execution can drift from target fair price while orders are filled.
-                    </p>
-                  </div>
-                </div>
-                <div className='flex flex-col gap-2 pt-2 sm:flex-row sm:items-center sm:justify-between'>
-                  <Button
-                    type='button'
-                    className='bg-primary text-primary-foreground shadow-primary/30 hover:bg-primary/90 min-w-[160px] gap-2 px-4 text-xs shadow-lg'
-                    disabled={isSavingAutomation || isConfirmingAutomation}
-                    onClick={() =>
-                      updateAutomationConfig({
-                        driftThresholdPts,
-                        maxSpendUsd,
-                        slippagePts,
-                      })
-                    }
-                  >
-                    {isSavingAutomation || isConfirmingAutomation
-                      ? 'Saving to contract…'
-                      : isAutomationSaved
-                        ? 'Saved to contract'
-                        : 'Save automation to contract'}
-                  </Button>
-                  {automationError ? (
-                    <p className='text-destructive text-[11px] sm:text-right'>{automationError.message}</p>
-                  ) : null}
-                </div>
-              </CardContent>
-            </Card>
-
             <Card className='bg-card/40'>
               <CardHeader className='border-border/60 border-b pb-3'>
                 <div className='flex items-center justify-between gap-2'>
