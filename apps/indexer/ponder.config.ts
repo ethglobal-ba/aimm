@@ -1,4 +1,3 @@
-// import { aimmAbi } from '@aimm/common';
 import { createConfig } from 'ponder';
 import { aimmAbi } from './src/contract.types';
 
@@ -19,8 +18,8 @@ export default createConfig({
     AIMM: {
       chain: 'baseSepolia',
       abi: aimmAbi,
-      address: '0x189E2026Ec14699185A6c97dFfdDfB3853FbD3a8', // Latest contract deployment
-      startBlock: 34045730, // Block where latest contract was deployed
+      address: '0x13D5bb3827415170399649c4213ff6E6f5837741', // Latest contract deployment
+      startBlock: 34048878, // Block where latest contract was deployed
     },
   },
 });

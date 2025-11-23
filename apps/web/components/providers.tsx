@@ -1,12 +1,12 @@
 'use client';
 
-import * as React from 'react';
-import { ThemeProvider as NextThemesProvider } from 'next-themes';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ApolloClient, ApolloProvider, HttpLink, InMemoryCache } from '@apollo/client';
-import { WagmiProvider } from 'wagmi';
-import { wagmiConfig } from '@/wagmi-config';
 import { MarketsStatusProvider } from '@/components/markets-status-context';
+import { wagmiConfig } from '@/wagmi-config';
+import { ApolloClient, ApolloProvider, HttpLink, InMemoryCache } from '@apollo/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider as NextThemesProvider } from 'next-themes';
+import * as React from 'react';
+import { WagmiProvider } from 'wagmi';
 
 const queryClient = new QueryClient();
 
@@ -18,7 +18,7 @@ const apolloClient = new ApolloClient({
   connectToDevTools: process.env.NODE_ENV === 'development',
 });
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children }: { children: React.ReactNode }): JSX.Element {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>

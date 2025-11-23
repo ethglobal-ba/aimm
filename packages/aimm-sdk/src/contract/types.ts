@@ -1,4 +1,4 @@
-import { aimmAbi } from '@aimm/common';
+import { aimmAbi } from './contract.types';
 
 export const AIMM_CONTRACT_CONFIG = {
   address: '0x189E2026Ec14699185A6c97dFfdDfB3853FbD3a8' as const,

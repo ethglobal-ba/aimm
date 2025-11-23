@@ -1,7 +1,0 @@
-{
-  "extends": "../typescript-config/base.json",
-  "compilerOptions": {
-    "noEmit": true,
-    "types": ["bun"]
-  }
-}

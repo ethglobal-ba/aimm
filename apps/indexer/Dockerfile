@@ -9,25 +9,18 @@ WORKDIR /app
 
 # Copy workspace package files first (for better layer caching)
 COPY package.json bun.lock ./
-COPY packages/common/package.json ./packages/common/
-COPY packages/eslint-config/package.json ./packages/eslint-config/
-COPY packages/typescript-config/package.json ./packages/typescript-config/
+
+# Copy all workspace packages (they have config files needed during install)
+COPY packages/eslint-config ./packages/eslint-config
+COPY packages/typescript-config ./packages/typescript-config
+COPY packages/aimm-sdk ./packages/aimm-sdk
+
+# Copy indexer package.json
 COPY apps/indexer/package.json ./apps/indexer/
 
 # Install dependencies from the root (this handles workspace deps)
-RUN bun install
-
-# Copy workspace packages source code
-COPY packages/common ./packages/common
-COPY packages/eslint-config ./packages/eslint-config
-COPY packages/typescript-config ./packages/typescript-config
-
-# Build the common package
-WORKDIR /app/packages/common
-RUN bun run build
-
-# Switch back to app directory
-WORKDIR /app
+# Try normal install first, fall back to ignore-scripts if needed
+RUN bun install || bun install --ignore-scripts
 
 # Copy indexer source code
 COPY apps/indexer ./apps/indexer
@@ -41,5 +34,5 @@ EXPOSE 42069
 # Set environment to production
 ENV NODE_ENV=production
 
-# Start the indexer
-CMD ["bun", "run", "start"]
+# Start the indexer using npx to ensure ponder is found
+CMD ["npx", "ponder", "start"]

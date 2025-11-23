@@ -11,8 +11,7 @@
   "dependencies": {
     "@chainlink/cre-sdk": "^1.0.0",
     "viem": "2.34.0",
-    "zod": "3.25.76",
-    "@aimm/common": "workspace:*"
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@types/bun": "1.2.21"

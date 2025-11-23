@@ -8,7 +8,7 @@ import { aimmAbi } from '../../packages/common/src/types/__generated__/contract.
 dotenv.config();
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
-const AIMM_CONTRACT_ADDRESS = '0x7Eb455A7D85A0098714B3F682b3BE8c994c5A843' as Address;
+const AIMM_CONTRACT_ADDRESS = '0x13D5bb3827415170399649c4213ff6E6f5837741' as Address;
 const KALSHI_API_BASE = 'https://api.elections.kalshi.com/trade-api/v2';
 
 interface KalshiMarket {

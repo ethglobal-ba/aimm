@@ -1,8 +1,8 @@
 'use client';
 
-import { TradeUpIcon, TradeDownIcon } from 'hugeicons-react';
+import { formatUSD, mockPortfolioBalance } from '@/lib/mock-balance';
 import { cn } from '@workspace/ui/lib/utils';
-import { mockPortfolioBalance, formatUSD } from '@/lib/mock-balance';
+import { TradeDownIcon, TradeUpIcon } from 'hugeicons-react';
 
 /**
  * MOCK: Portfolio Balance card component.
@@ -15,7 +15,7 @@ interface PortfolioBalanceProps {
   compact?: boolean;
 }
 
-export function PortfolioBalance({ compact }: PortfolioBalanceProps) {
+export function PortfolioBalance({ compact }: PortfolioBalanceProps): JSX.Element {
   // MOCK: Using static mock data. In production, this would come from a live data source.
   const balance = mockPortfolioBalance;
 
@@ -23,12 +23,10 @@ export function PortfolioBalance({ compact }: PortfolioBalanceProps) {
     return (
       <div className='flex h-full min-h-[84px] items-center justify-between gap-4 px-5 py-3'>
         <div className='flex flex-col justify-center gap-1'>
-          <div className='text-muted-foreground text-[10px] font-medium uppercase tracking-wider'>
+          <div className='text-muted-foreground text-[10px] font-medium tracking-wider uppercase'>
             Portfolio Balance
           </div>
-          <div className='text-foreground text-2xl font-bold tracking-tight'>
-            {formatUSD(balance.totalBalance)}
-          </div>
+          <div className='text-foreground text-2xl font-bold tracking-tight'>{formatUSD(balance.totalBalance)}</div>
         </div>
 
         <div
@@ -37,11 +35,7 @@ export function PortfolioBalance({ compact }: PortfolioBalanceProps) {
             balance.isProfitable ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
           )}
         >
-          {balance.isProfitable ? (
-            <TradeUpIcon className='h-3.5 w-3.5' />
-          ) : (
-            <TradeDownIcon className='h-3.5 w-3.5' />
-          )}
+          {balance.isProfitable ? <TradeUpIcon className='h-3.5 w-3.5' /> : <TradeDownIcon className='h-3.5 w-3.5' />}
           <span className='font-mono font-semibold'>
             {balance.isProfitable ? '+' : ''}
             {formatUSD(balance.profitLoss)}
@@ -58,7 +52,7 @@ export function PortfolioBalance({ compact }: PortfolioBalanceProps) {
   return (
     <div className='flex flex-col gap-3 p-4'>
       {/* Label */}
-      <div className='text-muted-foreground text-xs font-medium uppercase tracking-wider'>Portfolio Balance</div>
+      <div className='text-muted-foreground text-xs font-medium tracking-wider uppercase'>Portfolio Balance</div>
 
       {/* Total Balance */}
       <div className='flex items-baseline gap-2'>
@@ -70,16 +64,10 @@ export function PortfolioBalance({ compact }: PortfolioBalanceProps) {
         <div
           className={cn(
             'flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium',
-            balance.isProfitable
-              ? 'bg-green-500/10 text-green-400'
-              : 'bg-red-500/10 text-red-400'
+            balance.isProfitable ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
           )}
         >
-          {balance.isProfitable ? (
-            <TradeUpIcon className='h-3 w-3' />
-          ) : (
-            <TradeDownIcon className='h-3 w-3' />
-          )}
+          {balance.isProfitable ? <TradeUpIcon className='h-3 w-3' /> : <TradeDownIcon className='h-3 w-3' />}
           <span className='font-mono'>
             {balance.isProfitable ? '+' : ''}
             {formatUSD(balance.profitLoss)}
@@ -93,4 +81,3 @@ export function PortfolioBalance({ compact }: PortfolioBalanceProps) {
     </div>
   );
 }
-

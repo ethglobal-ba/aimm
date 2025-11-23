@@ -1,7 +1,21 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
-import Link from 'next/link';
+import { Badge } from '@workspace/ui/components/badge';
+import { Button } from '@workspace/ui/components/button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@workspace/ui/components/card';
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@workspace/ui/components/chart';
+import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@workspace/ui/components/input-group';
+import { Label } from '@workspace/ui/components/label';
+import { ScrollArea } from '@workspace/ui/components/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@workspace/ui/components/select';
+import { Separator } from '@workspace/ui/components/separator';
+import { cn } from '@workspace/ui/lib/utils';
 import {
   Activity02Icon,
   ArrowLeft01Icon,
@@ -13,28 +27,14 @@ import {
   PlayCircleIcon,
   RefreshIcon,
 } from 'hugeicons-react';
-import { Badge } from '@workspace/ui/components/badge';
-import { Button } from '@workspace/ui/components/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@workspace/ui/components/card';
-import { Label } from '@workspace/ui/components/label';
-import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@workspace/ui/components/input-group';
-import { ScrollArea } from '@workspace/ui/components/scroll-area';
-import { Separator } from '@workspace/ui/components/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@workspace/ui/components/select';
-import { cn } from '@workspace/ui/lib/utils';
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@workspace/ui/components/chart';
-import { Line, LineChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import Link from 'next/link';
+import { JSX, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts';
 
 import type { Market, MarketAimmStatus } from '@/types/market';
 // MOCK: MarketDetailData and related types currently come from seeded mock data in `@/lib/mock-market-detail`.
 // When wiring real data, swap this to use the AIMM indexer / backend API response types instead.
-import type { AgentRun, MarketDetailData, OrderBookLevel, TradeEvent } from '@/lib/mock-market-detail';
+import { useMarketsStatus } from '@/components/markets-status-context';
 import {
   calculateMispricing,
   formatCompactUsd,
@@ -51,8 +51,8 @@ import {
   getStatusBadgeClass,
   getStatusDotClass,
 } from '@/lib/market-utils';
+import type { AgentRun, MarketDetailData, OrderBookLevel, TradeEvent } from '@/lib/mock-market-detail';
 import { useUpdateMarketAutomationConfig } from '@workspace/aimm-sdk';
-import { useMarketsStatus } from '@/components/markets-status-context';
 
 const platformLabels: Record<Market['platform'], string> = {
   limitless: 'Limitless',
@@ -109,7 +109,7 @@ interface MarketDetailViewProps {
   detail: MarketDetailData;
 }
 
-export function MarketDetailView({ market, detail }: MarketDetailViewProps) {
+export function MarketDetailView({ market, detail }: MarketDetailViewProps): JSX.Element {
   const [recomputeState, setRecomputeState] = useState<'idle' | 'running' | 'success'>('idle');
   const [rebalanceState, setRebalanceState] = useState<'idle' | 'executing' | 'success'>('idle');
   const [rebalanceMode, setRebalanceMode] = useState<RebalanceMode>('auto');

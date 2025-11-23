@@ -14,8 +14,7 @@
   "dependencies": {
     "ponder": "^0.15.10",
     "hono": "^4.5.0",
-    "viem": "^2.21.3",
-    "@aimm/common": "workspace:*"
+    "viem": "^2.21.3"
 
   },
   "devDependencies": {
