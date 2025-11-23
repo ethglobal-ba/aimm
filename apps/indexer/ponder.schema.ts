@@ -44,13 +44,27 @@ export const marketConfig = onchainTable('market_config', t => ({
   transactionHash: t.hex().notNull(),
 }));
 
-// Price updates (external)
-export const priceUpdate = onchainTable('price_update', t => ({
+// Current price updates (external)
+export const currentPriceUpdate = onchainTable('current_price_update', t => ({
   id: t.text().primaryKey(), // `${marketId}-external-${blockNumber}-${logIndex}`
   marketId: t.text().notNull(),
   platform: t.integer().notNull(), // Platform enum
   platformName: t.text().notNull(), // Human readable platform name
-  type: t.text().notNull(), // 'external' or 'fair'
+  type: t.text().notNull(), // 'external'
+  optionAPrice: t.bigint().notNull(),
+  optionBPrice: t.bigint().notNull(),
+  timestamp: t.bigint().notNull(),
+  blockNumber: t.bigint().notNull(),
+  transactionHash: t.hex().notNull(),
+}));
+
+// Fair market price updates
+export const fairMarketPriceUpdate = onchainTable('fair_market_price_update', t => ({
+  id: t.text().primaryKey(), // `${marketId}-fair-${blockNumber}-${logIndex}`
+  marketId: t.text().notNull(),
+  platform: t.integer().notNull(), // Platform enum
+  platformName: t.text().notNull(), // Human readable platform name
+  type: t.text().notNull(), // 'fair'
   optionAPrice: t.bigint().notNull(),
   optionBPrice: t.bigint().notNull(),
   timestamp: t.bigint().notNull(),

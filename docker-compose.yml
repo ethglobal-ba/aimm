@@ -6,21 +6,24 @@ services:
       - ./apps/indexer/.env.docker
     ports:
       - "5432:5432"
-    # volumes:
-    # - postgres_data:/var/lib/postgresql/data
-  # agent:
-  #   build:
-  #     context: ./apps/aimm-agent
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "5002:5000"
-  #   environment:
-  #     - FLASK_ENV=development
-  #   volumes:
-  #     - ./apps/aimm-agent:/app
-  #   restart: unless-stopped
-  #   depends_on:
-  #     - postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./docker/postgres/init-aimm-db.sh:/docker-entrypoint-initdb.d/init-aimm-db.sh
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+  #agent:
+  #  build:
+  #    context: ./apps/aimm-agent
+  #    dockerfile: Dockerfile
+  #  ports:
+  #    - "5002:5000"
+  #  environment:
+  #    - FLASK_ENV=development
+  #  volumes:
+  #    - ./apps/aimm-agent:/app
+  #  restart: unless-stopped
+  #  depends_on:
+  #    - postgres
 
   indexer:
     build:
@@ -35,5 +38,5 @@ services:
     restart: unless-stopped
     depends_on:
       - postgres
-# volumes:
-# postgres_data:
+volumes:
+  postgres_data:
