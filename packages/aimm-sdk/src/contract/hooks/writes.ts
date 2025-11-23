@@ -1,39 +1,43 @@
-'use client'
+'use client';
 
-import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
-import { AIMM_CONTRACT_CONFIG } from '../types'
+import { useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import { AIMM_CONTRACT_CONFIG, MarketStatus, Platform } from '../types';
 
 export function useAIMMOnboardMarket() {
-  const { writeContract, data: hash, ...rest } = useWriteContract()
+  const { writeContract, data: hash, ...rest } = useWriteContract();
 
-  const { isLoading: isConfirming, isSuccess: isConfirmed } =
-    useWaitForTransactionReceipt({ hash })
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
 
   const onboardMarket = (params: {
-    marketId: string
-    externalId: string
-    marketName: string
-    optionAText: string
-    optionBText: string
-    optionACurrentExternalPrice: bigint
-    optionBCurrentExternalPrice: bigint
-    initialVolume: bigint
+    ticker: string;
+    platform: Platform;
+    marketName: string;
+    subtitle: string;
+    eventTicker: string;
+    optionACurrentExternalPrice: bigint;
+    optionBCurrentExternalPrice: bigint;
+    initialVolume: bigint;
+    imageUrl: string;
   }) => {
+    // Contract expects OnboardMarketParams struct
+    const onboardParams = {
+      ticker: params.ticker,
+      platform: params.platform,
+      marketName: params.marketName,
+      subtitle: params.subtitle,
+      eventTicker: params.eventTicker,
+      optionACurrentExternalPrice: params.optionACurrentExternalPrice,
+      optionBCurrentExternalPrice: params.optionBCurrentExternalPrice,
+      initialVolume: params.initialVolume,
+      imageUrl: params.imageUrl,
+    };
+
     writeContract({
       ...AIMM_CONTRACT_CONFIG,
       functionName: 'onboardMarket',
-      args: [
-        params.marketId,
-        params.externalId,
-        params.marketName,
-        params.optionAText,
-        params.optionBText,
-        params.optionACurrentExternalPrice,
-        params.optionBCurrentExternalPrice,
-        params.initialVolume,
-      ],
-    })
-  }
+      args: [onboardParams],
+    });
+  };
 
   return {
     onboardMarket,
@@ -41,32 +45,26 @@ export function useAIMMOnboardMarket() {
     isConfirming,
     isConfirmed,
     ...rest,
-  }
+  };
 }
 
 export function useAIMMUpdateMarketConfig() {
-  const { writeContract, data: hash, ...rest } = useWriteContract()
+  const { writeContract, data: hash, ...rest } = useWriteContract();
 
-  const { isLoading: isConfirming, isSuccess: isConfirmed } =
-    useWaitForTransactionReceipt({ hash })
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
 
   const updateMarketConfig = (params: {
-    marketId: string
-    minPriceDiff: bigint
-    maxSpend: bigint
-    slippageBps: bigint
+    marketId: string;
+    minPriceDiff: bigint;
+    maxSpend: bigint;
+    slippageBps: bigint;
   }) => {
     writeContract({
       ...AIMM_CONTRACT_CONFIG,
       functionName: 'updateMarketConfig',
-      args: [
-        params.marketId,
-        params.minPriceDiff,
-        params.maxSpend,
-        params.slippageBps,
-      ],
-    })
-  }
+      args: [params.marketId, params.minPriceDiff, params.maxSpend, params.slippageBps],
+    });
+  };
 
   return {
     updateMarketConfig,
@@ -74,25 +72,24 @@ export function useAIMMUpdateMarketConfig() {
     isConfirming,
     isConfirmed,
     ...rest,
-  }
+  };
 }
 
 export function useAIMMUpdateMarketStatus() {
-  const { writeContract, data: hash, ...rest } = useWriteContract()
+  const { writeContract, data: hash, ...rest } = useWriteContract();
 
-  const { isLoading: isConfirming, isSuccess: isConfirmed } =
-    useWaitForTransactionReceipt({ hash })
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
 
   const updateMarketStatus = (params: {
-    marketId: string
-    newStatus: 0 | 1 | 2 // MarketStatus enum values
+    marketId: string;
+    newStatus: MarketStatus;
   }) => {
     writeContract({
       ...AIMM_CONTRACT_CONFIG,
       functionName: 'updateMarketStatus',
       args: [params.marketId, params.newStatus],
-    })
-  }
+    });
+  };
 
   return {
     updateMarketStatus,
@@ -100,30 +97,21 @@ export function useAIMMUpdateMarketStatus() {
     isConfirming,
     isConfirmed,
     ...rest,
-  }
+  };
 }
 
 export function useAIMMUpdateDefaultConfig() {
-  const { writeContract, data: hash, ...rest } = useWriteContract()
+  const { writeContract, data: hash, ...rest } = useWriteContract();
 
-  const { isLoading: isConfirming, isSuccess: isConfirmed } =
-    useWaitForTransactionReceipt({ hash })
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
 
-  const updateDefaultConfig = (params: {
-    driftPercentage: bigint
-    maxSpend: bigint
-    slippageBps: bigint
-  }) => {
+  const updateDefaultConfig = (params: { driftPercentage: bigint; maxSpend: bigint; slippageBps: bigint }) => {
     writeContract({
       ...AIMM_CONTRACT_CONFIG,
       functionName: 'updateDefaultConfig',
-      args: [
-        params.driftPercentage,
-        params.maxSpend,
-        params.slippageBps,
-      ],
-    })
-  }
+      args: [params.driftPercentage, params.maxSpend, params.slippageBps],
+    });
+  };
 
   return {
     updateDefaultConfig,
@@ -131,5 +119,6 @@ export function useAIMMUpdateDefaultConfig() {
     isConfirming,
     isConfirmed,
     ...rest,
-  }
+  };
 }
+

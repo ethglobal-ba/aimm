@@ -61,54 +61,11 @@ function toBigIntWithDecimals(value: number, decimals: number): bigint {
   const scaled = Math.round(value * factor)
   return BigInt(scaled)
 }
+//Below was deleted because we have graphql api
+// export function useMarkets(): {
 
-export function useMarkets(): {
-  data: Market[]
-  isLoading: boolean
-  error: Error | null
-} {
-  const { data: marketIds, isLoading: idsLoading, error: idsError } = useAIMMAllMarketIds()
-  const { data: marketsData, isLoading: marketsLoading, error: marketsError } = useAIMMMultipleMarkets(
-    marketIds ? [...marketIds] : []
-  )
-
-  const markets = useMemo(() => {
-    if (!marketIds || !marketsData) return []
-
-    return marketIds.map((marketId, index) => {
-      const result = marketsData[index]
-      if (!result?.result) return null
-
-      return transformContractMarketToFrontendMarket(marketId, result.result)
-    }).filter((market): market is Market => market !== null)
-  }, [marketIds, marketsData])
-
-  return {
-    data: markets,
-    isLoading: idsLoading || marketsLoading,
-    error: idsError || marketsError,
-  }
-}
-
-export function useMarket(marketId?: string) {
-  const { data: marketIds } = useAIMMAllMarketIds()
-  const validMarketId = marketId && marketIds?.includes(marketId) ? marketId : undefined
-  const { data: marketsData, isLoading, error } = useAIMMMultipleMarkets(
-    validMarketId ? [validMarketId] : []
-  )
-
-  const market = useMemo(() => {
-    if (!validMarketId || !marketsData?.[0]?.result) return null
-
-    return transformContractMarketToFrontendMarket(validMarketId, marketsData[0].result)
-  }, [validMarketId, marketsData])
-
-  return {
-    data: market,
-    isLoading,
-    error,
-  }
-}
+//Below was deleted because we have graphql api
+// export function useMarket(marketId?: string) {
 
 export interface UpdateMarketAutomationConfigParams {
   driftThresholdPts: number

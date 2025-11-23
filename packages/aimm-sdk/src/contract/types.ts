@@ -1,50 +1,22 @@
-import { AIMMABI } from './abi'
-
-export type ContractMarketStatus = 'Active' | 'ClosedInternal' | 'ClosedExternal'
-
-export interface ExternalMarket {
-  externalId: string
-  marketName: string
-  optionAText: string
-  optionBText: string
-  optionACurrentExternalPrice: bigint
-  optionBCurrentExternalPrice: bigint
-  optionACurrentFairPrice: bigint
-  optionBCurrentFairPrice: bigint
-  lastCurrentPriceUpdate: bigint
-  lastFairPriceUpdate: bigint
-  volume: bigint
-  minPriceDifference: bigint
-  maxSpendAmount: bigint
-  slippageToleranceBps: bigint
-  status: ContractMarketStatus
-}
-
-export interface DefaultConfig {
-  driftPercentagePoints: bigint
-  maxSpendAmount: bigint
-  slippageToleranceBps: bigint
-}
-
-export interface WorkflowResult {
-  workflowName: string
-  marketId: string
-  optionAPrice: bigint
-  optionBPrice: bigint
-  volume: bigint
-  offchainValue: bigint
-  onchainValue: bigint
-  finalResult: bigint
-}
-
-export interface PriceDriftResult {
-  shouldBalance: boolean
-  driftA: bigint
-  driftB: bigint
-}
+import { aimmAbi } from '@aimm/common';
 
 export const AIMM_CONTRACT_CONFIG = {
-  address: '0x7Eb455A7D85A0098714B3F682b3BE8c994c5A843' as const,
-  abi: AIMMABI,
+  address: '0x189E2026Ec14699185A6c97dFfdDfB3853FbD3a8' as const,
+  abi: aimmAbi,
   chainId: 84532, // Base Sepolia
+};
+
+// Market Status enum matching the contract
+export enum MarketStatus {
+  Inactive = 0,
+  Active = 1,
+  ClosedInternal = 2,
+  ClosedExternal = 3,
+}
+
+// Platform enum matching the contract
+export enum Platform {
+  KALSHI = 0,
+  LIMITLESS = 1,
+  TRUMPFUN = 2,
 }

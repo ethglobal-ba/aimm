@@ -241,13 +241,13 @@ contract AIMM is IReceiverTemplate {
      * @param optionBPrice New external price for option B
      * @param volume New trading volume
      */
-    function _updateExternalMarketData(
+    function updateExternalMarketData(
         string memory externalMarketId,
         uint256 optionAPrice,
         uint256 optionBPrice,
         uint256 volume,
         MarketStatus status
-    ) private {
+    ) public onlyOwner marketMustExist(externalMarketId) {
         require(
             bytes(externalMarkets[externalMarketId].marketName).length > 0, "Market does not exist"
         );
@@ -256,7 +256,7 @@ contract AIMM is IReceiverTemplate {
         market.optionBCurrentExternalPrice = optionBPrice;
         market.volume = volume;
         market.lastCurrentPriceUpdate = block.timestamp;
-
+        market.status = status; //TODO Don't forget the status from Kalshi CRE needs to be converted to contract format 
         emit CurrentPricesUpdated(
             market.platform, // Platforms enum (indexed)
             externalMarketId, // string tickerHash (indexed, hashed)
@@ -272,11 +272,11 @@ contract AIMM is IReceiverTemplate {
      * @param optionAFairPrice New fair price for option A
      * @param optionBFairPrice New fair price for option B
      */
-    function _updateFairPrices(
+    function updateFairPrices(
         string memory externalMarketId,
         uint256 optionAFairPrice,
         uint256 optionBFairPrice
-    ) private {
+    ) public onlyOwner marketMustExist(externalMarketId) {
         require(
             bytes(externalMarkets[externalMarketId].marketName).length > 0, "Market does not exist"
         );
@@ -329,26 +329,6 @@ contract AIMM is IReceiverTemplate {
      * @param newStatus The new market status
      */
     function updateMarketStatus(string memory externalMarketId, MarketStatus newStatus)
-        public
-        onlyOwner
-        marketMustExist(externalMarketId)
-    {
-        ExternalMarket storage market = externalMarkets[externalMarketId];
-        market.status = newStatus;
-        emit MarketStatusUpdated(
-            market.platform, // Platforms enum (indexed)
-            externalMarketId, // string tickerHash (indexed, hashed)
-            externalMarketId, // string ticker (readable)
-            newStatus // MarketStatus newStatus
-        );
-    }
-
-    /**
-     * @notice Change market status (emits MarketStatusUpdated event)
-     * @param externalMarketId The market to update
-     * @param newStatus The new market status
-     */
-    function changeMarketStatus(string memory externalMarketId, MarketStatus newStatus)
         public
         onlyOwner
         marketMustExist(externalMarketId)
@@ -462,7 +442,7 @@ contract AIMM is IReceiverTemplate {
         bytes32 workflowNameHash = keccak256(abi.encodePacked(creWorkflowResult.workflowName));
 
         if (workflowNameHash == keccak256(abi.encodePacked("currentPriceFetch"))) {
-            _updateExternalMarketData(
+            updateExternalMarketData(
                 externalMarketId,
                 creWorkflowResult.optionAPrice,
                 creWorkflowResult.optionBPrice,
@@ -470,7 +450,7 @@ contract AIMM is IReceiverTemplate {
                 creWorkflowResult.status
             );
         } else if (workflowNameHash == keccak256(abi.encodePacked("fairPriceFetch"))) {
-            _updateFairPrices(
+            updateFairPrices(
                 externalMarketId, creWorkflowResult.optionAPrice, creWorkflowResult.optionBPrice
             );
         } else if (workflowNameHash == keccak256(abi.encodePacked("marketStatusUp"))) {

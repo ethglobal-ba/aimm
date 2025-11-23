@@ -23,9 +23,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@aimm/common": "workspace:*",
     "@ponder/client": "^0.15.10",
     "@ponder/react": "^0.15.10",
-    "@tanstack/react-query": "^5.0.0"
+    "@tanstack/react-query": "^5.0.0",
+    "@wagmi/core": "^3.0.0"
   },
   "peerDependencies": {
     "react": "^18.0.0",

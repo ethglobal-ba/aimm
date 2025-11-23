@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import { createWalletClient, http, publicActions, type Address } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { baseSepolia } from 'viem/chains';
-import { aimmAbi } from '../../packages/common/src/types/__generated__/contract.types.js';
+import { aimmAbi } from '../../packages/common/src/types/__generated__/contract.types';
 
 dotenv.config();
 

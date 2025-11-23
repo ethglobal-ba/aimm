@@ -329,7 +329,7 @@ contract DeployAIMM is Script {
 
         // 4. MarketStatusUpdated - Change the test market status with new function
         console.log("Emitting MarketStatusUpdated event...");
-        aimm.changeMarketStatus("TEST-MARKET-001", AIMM.MarketStatus.ClosedInternal);
+        aimm.updateMarketStatus("TEST-MARKET-001", AIMM.MarketStatus.ClosedInternal);
 
         // 5. DefaultConfigUpdated - Update default configuration
         console.log("Emitting DefaultConfigUpdated event...");
