@@ -32,8 +32,6 @@ CREATE TABLE IF NOT EXISTS ai_agent_output (
     price_scale VARCHAR(50) DEFAULT 'cents', -- "cents", "probability_0_1", etc.
 
     -- Timestamps (Kevin's suggestion for per-run)
-    run_started_at TIMESTAMP WITH TIME ZONE,  -- When the entire run started
-    run_finished_at TIMESTAMP WITH TIME ZONE, -- When the entire run finished
     step_created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 
     -- Composite primary key
