@@ -294,19 +294,6 @@ export const aimmAbi = [
     type: 'function',
     inputs: [
       { name: 'externalMarketId', internalType: 'string', type: 'string' },
-      { name: 'optionAPrice', internalType: 'uint256', type: 'uint256' },
-      { name: 'optionBPrice', internalType: 'uint256', type: 'uint256' },
-      { name: 'volume', internalType: 'uint256', type: 'uint256' },
-      { name: 'status', internalType: 'enum AIMM.MarketStatus', type: 'uint8' },
-    ],
-    name: 'updateExternalMarketData',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [
-      { name: 'externalMarketId', internalType: 'string', type: 'string' },
       { name: 'optionAFairPrice', internalType: 'uint256', type: 'uint256' },
       { name: 'optionBFairPrice', internalType: 'uint256', type: 'uint256' },
     ],
@@ -434,10 +421,27 @@ export const aimmAbi = [
     type: 'event',
     anonymous: false,
     inputs: [
+      { name: 'workflowName', internalType: 'string', type: 'string', indexed: true },
       { name: 'resultId', internalType: 'uint256', type: 'uint256', indexed: true },
       { name: 'finalResult', internalType: 'uint256', type: 'uint256', indexed: false },
     ],
     name: 'ResultUpdated',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [{ name: 'workflowName', internalType: 'string', type: 'string', indexed: false }],
+    name: 'UnknownWorkflow',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'workflowName', internalType: 'string', type: 'string', indexed: true },
+      { name: 'resultId', internalType: 'uint256', type: 'uint256', indexed: true },
+      { name: 'finalResult', internalType: 'uint256', type: 'uint256', indexed: false },
+    ],
+    name: 'WorkflowTriggered',
   },
   {
     type: 'error',
@@ -482,11 +486,6 @@ export const aimmAbi = [
     type: 'error',
     inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
     name: 'OwnableUnauthorizedAccount',
-  },
-  {
-    type: 'error',
-    inputs: [{ name: 'workflowName', internalType: 'string', type: 'string' }],
-    name: 'UnknownWorkflow',
   },
 ] as const;
 
