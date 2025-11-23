@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Script to call updateMarketConfig on the AIMM contract.
-Usage: python update_market_config.py <market_id> <min_price_diff> <max_spend> <slippage_bps>
-Example: python update_market_config.py "polymarket-123" 1000 5000000000000000000 300
+Script to call updateFairPrices on the AIMM contract.
+Usage: python update_market_config.py <market_id> <option_a_fair_price> <option_b_fair_price>
+Example: python update_market_config.py "polymarket-123" 500000000000000000 500000000000000000
 """
 
 import sys
@@ -41,20 +41,18 @@ CONTRACT_ABI = load_contract_abi()
 
 
 def main():
-    if len(sys.argv) != 5:
-        print("Usage: python update_market_config.py <market_id> <min_price_diff> <max_spend> <slippage_bps>")
-        print("Example: python update_market_config.py 'polymarket-123' 1000 5000000000000000000 300")
+    if len(sys.argv) != 4:
+        print("Usage: python update_market_config.py <market_id> <option_a_fair_price> <option_b_fair_price>")
+        print("Example: python update_market_config.py 'polymarket-123' 500000000000000000 500000000000000000")
         print("\nParameters:")
         print("  market_id: External market identifier (string)")
-        print("  min_price_diff: Minimum price difference in wei (uint256)")
-        print("  max_spend: Maximum spend amount in wei (uint256)")
-        print("  slippage_bps: Slippage tolerance in basis points (uint256)")
+        print("  option_a_fair_price: Fair price for option A in wei (uint256)")
+        print("  option_b_fair_price: Fair price for option B in wei (uint256)")
         sys.exit(1)
 
     market_id = sys.argv[1]
-    min_price_diff = int(sys.argv[2])
-    max_spend = int(sys.argv[3])
-    slippage_bps = int(sys.argv[4])
+    option_a_fair_price = int(sys.argv[2])
+    option_b_fair_price = int(sys.argv[3])
 
     # Get private key from environment
     private_key = os.getenv("PRIVATE_KEY")
@@ -106,8 +104,8 @@ def main():
     # Build transaction
     try:
         # Estimate gas for the transaction
-        gas_estimate = contract.functions.updateMarketConfig(
-            market_id, min_price_diff, max_spend, slippage_bps
+        gas_estimate = contract.functions.updateFairPrices(
+            market_id, option_a_fair_price, option_b_fair_price
         ).estimate_gas({"from": account.address})
 
         # Add 20% buffer to gas estimate
@@ -117,8 +115,8 @@ def main():
         print(f"Gas limit (with buffer): {gas_limit}")
 
         # Build the transaction
-        transaction = contract.functions.updateMarketConfig(
-            market_id, min_price_diff, max_spend, slippage_bps
+        transaction = contract.functions.updateFairPrices(
+            market_id, option_a_fair_price, option_b_fair_price
         ).build_transaction({
             "from": account.address,
             "gas": gas_limit,
@@ -129,9 +127,8 @@ def main():
         print(f"Transaction built successfully")
         print(f"Parameters:")
         print(f"  Market ID: {market_id}")
-        print(f"  Min Price Diff: {min_price_diff}")
-        print(f"  Max Spend: {max_spend}")
-        print(f"  Slippage BPS: {slippage_bps}")
+        print(f"  Option A Fair Price: {option_a_fair_price}")
+        print(f"  Option B Fair Price: {option_b_fair_price}")
 
     except Exception as e:
         print(f"Error building transaction: {e}")
