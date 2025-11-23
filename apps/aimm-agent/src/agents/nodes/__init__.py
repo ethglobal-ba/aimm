@@ -10,6 +10,7 @@ from .search_popular_tweets import search_popular_tweets
 from .search_web_news import search_web_news
 from .score_baseline import score_baseline_sources
 from .calculate_baseline_price import calculate_baseline_fair_price
+from .fetch_external_prices import fetch_external_prices
 from .analyze_orderbook import analyze_orderbook
 from .search_recent_tweets import search_recent_tweets
 from .score_delta import score_delta_sources
@@ -24,6 +25,7 @@ __all__ = [
     "search_web_news",
     "score_baseline_sources",
     "calculate_baseline_fair_price",
+    "fetch_external_prices",
     "analyze_orderbook",
     "search_recent_tweets",
     "score_delta_sources",
