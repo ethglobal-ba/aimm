@@ -8,7 +8,7 @@ import { aimmAbi } from './contract.types';
 dotenv.config();
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
-const AIMM_CONTRACT_ADDRESS = '0x53B3B952320E4e38887e85329a5A6E0dFBd5eF10.' as Address;
+const AIMM_CONTRACT_ADDRESS = '0x53B3B952320E4e38887e85329a5A6E0dFBd5eF10' as Address;
 const LIMITLESS_API_BASE = 'https://api.limitless.exchange';
 
 interface LimitlessMarket {
@@ -57,8 +57,8 @@ async function getMarketsFromLast24Hours(): Promise<LimitlessMarket[]> {
   try {
     const response = await axios.get<LimitlessMarketsResponse>(`${LIMITLESS_API_BASE}/markets/active`, {
       headers: {
-        'Accept': 'application/json',
-      }
+        Accept: 'application/json',
+      },
     });
 
     // Filter markets created in the last 24 hours
