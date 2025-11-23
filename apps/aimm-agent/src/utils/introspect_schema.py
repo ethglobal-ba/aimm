@@ -6,7 +6,7 @@ import requests
 import json
 
 
-GRAPHQL_ENDPOINT = "http://38.224.253.95:42069/graphql"
+GRAPHQL_ENDPOINT = "http://88.99.96.175:42069/graphql"
 
 
 def introspect_schema():

@@ -2,7 +2,7 @@ import type { CodegenConfig } from '@graphql-codegen/cli';
 
 const config: CodegenConfig = {
   schema: {
-    [`http://38.224.253.95:42069/graphql`]: {},
+    [`http://88.99.96.175:42069/graphql`]: {},
   },
   documents: ['lib/queries/**/*.graphql'],
   generates: {
