@@ -450,7 +450,7 @@ contract AIMM is IReceiverTemplate {
                 creWorkflowResult.status
             );
         } else if (workflowNameHash == keccak256(abi.encodePacked("fairPriceFetch"))) {
-            updateFairPrices(
+            _updateFairPrices(
                 externalMarketId, creWorkflowResult.optionAPrice, creWorkflowResult.optionBPrice
             );
         } else if (workflowNameHash == keccak256(abi.encodePacked("marketStatusUp"))) {

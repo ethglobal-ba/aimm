@@ -5,7 +5,8 @@ import {
   marketConfig,
   marketStatusChange,
   ownershipTransfer,
-  priceUpdate,
+  currentPriceUpdate,
+  fairMarketPriceUpdate,
   workflowResult,
 } from '../ponder.schema';
 
@@ -196,8 +197,8 @@ ponder.on('AIMM:CurrentPricesUpdated', async ({ event, context }) => {
 
   const priceUpdateId = `${marketIdStr}-external-${event.block.number}-${event.log.logIndex}`;
 
-  // Insert price update event record
-  await db.insert(priceUpdate).values({
+  // Insert current price update event record
+  await db.insert(currentPriceUpdate).values({
     id: priceUpdateId,
     marketId: marketIdStr,
     platform: platformNum,
@@ -242,8 +243,8 @@ ponder.on('AIMM:FairPricesUpdated', async ({ event, context }) => {
   });
   const priceUpdateId = `${marketIdStr}-fair-${event.block.number}-${event.log.logIndex}`;
 
-  // Insert price update event record
-  await db.insert(priceUpdate).values({
+  // Insert fair market price update event record
+  await db.insert(fairMarketPriceUpdate).values({
     id: priceUpdateId,
     marketId: marketIdStr,
     platform: platformNum,
