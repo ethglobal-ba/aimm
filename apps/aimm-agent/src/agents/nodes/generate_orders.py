@@ -1,5 +1,5 @@
 """
-Step 7: Generate final order recommendations.
+Step 12: Generate final order recommendations.
 """
 
 from typing import Dict
@@ -12,9 +12,9 @@ from src.utils.venice_llm import get_venice_llm
 
 
 def generate_final_orders(state: MarketState) -> Dict:
-    """Step 7: Generate final order recommendations"""
+    """Step 12: Generate final order recommendations"""
     print("\n" + "="*80)
-    print("STEP 7: Generating final order recommendations")
+    print("STEP 12: Generating final order recommendations")
     print("="*80)
 
     llm = get_venice_llm(
@@ -72,7 +72,7 @@ Return a JSON object with final order recommendations for both YES and NO sides.
     print("RAW OUTPUT:")
     print("-"*80)
     output = {
-        "step": 7,
+        "step": 12,
         "step_name": "Generate Orders",
         "step_summary": "Generate final order recommendations for market making",
         "market_ticker": state['market_ticker'],

@@ -1,5 +1,5 @@
 """
-Step 5: Analyze current orderbook.
+Step 7: Analyze current orderbook.
 """
 
 from typing import Dict
@@ -12,9 +12,9 @@ from src.utils.venice_llm import get_venice_llm
 
 
 def analyze_orderbook(state: MarketState) -> Dict:
-    """Step 5: Analyze current orderbook"""
+    """Step 7: Analyze current orderbook"""
     print("\n" + "="*80)
-    print("STEP 5: Analyzing current orderbook")
+    print("STEP 7: Analyzing current orderbook")
     print("="*80)
 
     market = state['orderbook_data'].get('market', {}).get('market', {})
@@ -78,7 +78,7 @@ Return a JSON object with the orderbook analysis.
     print("RAW OUTPUT:")
     print("-"*80)
     output = {
-        "step": 5,
+        "step": 7,
         "step_name": "Analyze Orderbook",
         "step_summary": "Analyze current orderbook state and liquidity",
         "market_ticker": state['market_ticker'],
