@@ -1,6 +1,5 @@
 import { gql } from '@apollo/client';
 import * as Apollo from '@apollo/client';
-import * as Types from './graphql';
 const defaultOptions = {} as const;
 
 export const GetMarketsDocument = gql`
@@ -14,6 +13,7 @@ export const GetMarketsDocument = gql`
       optionAText
       optionBText
       platform
+      platformName
       status
       createdAt
       updatedAt
@@ -70,6 +70,8 @@ export const GetMarketDocument = gql`
     optionAText
     optionBText
     platform
+    platformName
+    eventTicker
     status
     createdAt
     updatedAt

@@ -56,12 +56,14 @@ export function MarketsOnboarding() {
       return [];
     }
 
-    return data.markets.items.map((item: GetMarketsQuery['markets']['items'][number]): OnboardingMarket => ({
-      id: item.id,
-      title: item.marketName,
-      platform: item.platform,
-      symbol: item.externalId,
-    }));
+    return data.markets.items.map(
+      (item: GetMarketsQuery['markets']['items'][number]): OnboardingMarket => ({
+        id: item.id,
+        title: item.marketName,
+        platform: item.platformName,
+        symbol: item.externalId,
+      })
+    );
   }, [data]);
 
   const candidateMarkets: OnboardingMarket[] = indexerMarkets;
@@ -219,7 +221,9 @@ export function MarketsOnboarding() {
               <div
                 key={market.id}
                 className={`rounded-md border p-2 sm:p-3 ${
-                  isSelected ? 'border-primary/50 bg-primary/5 shadow-inner shadow-primary/10' : 'border-border/60 bg-background/40'
+                  isSelected
+                    ? 'border-primary/50 bg-primary/5 shadow-primary/10 shadow-inner'
+                    : 'border-border/60 bg-background/40'
                 }`}
               >
                 <div
@@ -234,7 +238,7 @@ export function MarketsOnboarding() {
                       handleToggleMarket(market.id);
                     }
                   }}
-                  className='focus-visible:ring-ring/60 flex w-full items-center justify-between gap-3 rounded-md px-2 py-1 text-left text-xs transition focus-visible:outline-none focus-visible:ring-2'
+                  className='focus-visible:ring-ring/60 flex w-full items-center justify-between gap-3 rounded-md px-2 py-1 text-left text-xs transition focus-visible:ring-2 focus-visible:outline-none'
                 >
                   <div className='flex flex-1 items-center gap-3'>
                     <Checkbox
@@ -356,7 +360,9 @@ export function MarketsOnboarding() {
                         <Label className='text-[11px]'>Automation interval (demo)</Label>
                         <Select
                           value={config.interval}
-                          onValueChange={value => handleConfigChange(market.id, 'interval', value as AutomationInterval)}
+                          onValueChange={value =>
+                            handleConfigChange(market.id, 'interval', value as AutomationInterval)
+                          }
                         >
                           <SelectTrigger size='sm' className='h-8 w-full text-xs'>
                             <SelectValue placeholder='Choose cadence' />
@@ -400,5 +406,3 @@ export function MarketsOnboarding() {
     </div>
   );
 }
-
-

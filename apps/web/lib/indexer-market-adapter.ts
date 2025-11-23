@@ -92,7 +92,7 @@ export function mapIndexerMarketToMarket(item: IndexerMarket): Market {
   // Platform is a string in GraphQL, but our UI expects a narrower union. The
   // indexer is configured to only emit the known platform identifiers, so this
   // cast is narrowing trusted backend data, not fabricating values.
-  const platform = item.platform as Platform;
+  const platform = item.platformName as Platform;
 
   const marketName = item.marketName;
   const title = item.subtitle || marketName;

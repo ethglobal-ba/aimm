@@ -133,11 +133,9 @@ export function MarketsTable({
                         variant='outline'
                         className='text-muted-foreground border-border h-auto rounded-sm px-1.5 py-0 text-[10px] font-semibold tracking-wider uppercase'
                       >
-                        {formatIdentifierWithEllipsis(market.platform)}
+                        {market.platform}
                       </Badge>
-                      <span className='text-muted-foreground font-mono text-xs'>
-                        {formatIdentifierWithEllipsis(market.symbol)}
-                      </span>
+                      <span className='text-muted-foreground font-mono text-xs'>{market.symbol}</span>
                     </div>
                   </Link>
                 </TableCell>

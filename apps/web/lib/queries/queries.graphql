@@ -8,6 +8,7 @@ query GetMarkets {
       optionAText
       optionBText
       platform
+      platformName
       status
       createdAt
       updatedAt
@@ -31,6 +32,8 @@ query GetMarket($id: String!) {
     optionAText
     optionBText
     platform
+    platformName
+    eventTicker
     status
     createdAt
     updatedAt
