@@ -7,6 +7,9 @@ from typing import Dict, List, TypedDict
 
 class MarketState(TypedDict):
     """Complete state for market maker workflow (12 steps)"""
+    # Database tracking
+    run_id: str
+
     # Input data
     event_ticker: str
     market_ticker: str
