@@ -732,6 +732,348 @@ export const iMulticall3Abi = [
 ] as const;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// IPyth
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const iPythAbi = [
+  {
+    type: 'function',
+    inputs: [
+      { name: 'id', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'age', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getEmaPriceNoOlderThan',
+    outputs: [
+      {
+        name: 'price',
+        internalType: 'struct PythStructs.Price',
+        type: 'tuple',
+        components: [
+          { name: 'price', internalType: 'int64', type: 'int64' },
+          { name: 'conf', internalType: 'uint64', type: 'uint64' },
+          { name: 'expo', internalType: 'int32', type: 'int32' },
+          { name: 'publishTime', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'id', internalType: 'bytes32', type: 'bytes32' }],
+    name: 'getEmaPriceUnsafe',
+    outputs: [
+      {
+        name: 'price',
+        internalType: 'struct PythStructs.Price',
+        type: 'tuple',
+        components: [
+          { name: 'price', internalType: 'int64', type: 'int64' },
+          { name: 'conf', internalType: 'uint64', type: 'uint64' },
+          { name: 'expo', internalType: 'int32', type: 'int32' },
+          { name: 'publishTime', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'id', internalType: 'bytes32', type: 'bytes32' },
+      { name: 'age', internalType: 'uint256', type: 'uint256' },
+    ],
+    name: 'getPriceNoOlderThan',
+    outputs: [
+      {
+        name: 'price',
+        internalType: 'struct PythStructs.Price',
+        type: 'tuple',
+        components: [
+          { name: 'price', internalType: 'int64', type: 'int64' },
+          { name: 'conf', internalType: 'uint64', type: 'uint64' },
+          { name: 'expo', internalType: 'int32', type: 'int32' },
+          { name: 'publishTime', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'id', internalType: 'bytes32', type: 'bytes32' }],
+    name: 'getPriceUnsafe',
+    outputs: [
+      {
+        name: 'price',
+        internalType: 'struct PythStructs.Price',
+        type: 'tuple',
+        components: [
+          { name: 'price', internalType: 'int64', type: 'int64' },
+          { name: 'conf', internalType: 'uint64', type: 'uint64' },
+          { name: 'expo', internalType: 'int32', type: 'int32' },
+          { name: 'publishTime', internalType: 'uint256', type: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'updateData', internalType: 'bytes[]', type: 'bytes[]' }],
+    name: 'getTwapUpdateFee',
+    outputs: [{ name: 'feeAmount', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'updateData', internalType: 'bytes[]', type: 'bytes[]' }],
+    name: 'getUpdateFee',
+    outputs: [{ name: 'feeAmount', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'updateData', internalType: 'bytes[]', type: 'bytes[]' },
+      { name: 'priceIds', internalType: 'bytes32[]', type: 'bytes32[]' },
+      { name: 'minPublishTime', internalType: 'uint64', type: 'uint64' },
+      { name: 'maxPublishTime', internalType: 'uint64', type: 'uint64' },
+    ],
+    name: 'parsePriceFeedUpdates',
+    outputs: [
+      {
+        name: 'priceFeeds',
+        internalType: 'struct PythStructs.PriceFeed[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'id', internalType: 'bytes32', type: 'bytes32' },
+          {
+            name: 'price',
+            internalType: 'struct PythStructs.Price',
+            type: 'tuple',
+            components: [
+              { name: 'price', internalType: 'int64', type: 'int64' },
+              { name: 'conf', internalType: 'uint64', type: 'uint64' },
+              { name: 'expo', internalType: 'int32', type: 'int32' },
+              { name: 'publishTime', internalType: 'uint256', type: 'uint256' },
+            ],
+          },
+          {
+            name: 'emaPrice',
+            internalType: 'struct PythStructs.Price',
+            type: 'tuple',
+            components: [
+              { name: 'price', internalType: 'int64', type: 'int64' },
+              { name: 'conf', internalType: 'uint64', type: 'uint64' },
+              { name: 'expo', internalType: 'int32', type: 'int32' },
+              { name: 'publishTime', internalType: 'uint256', type: 'uint256' },
+            ],
+          },
+        ],
+      },
+    ],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'updateData', internalType: 'bytes[]', type: 'bytes[]' },
+      { name: 'priceIds', internalType: 'bytes32[]', type: 'bytes32[]' },
+      { name: 'minPublishTime', internalType: 'uint64', type: 'uint64' },
+      { name: 'maxPublishTime', internalType: 'uint64', type: 'uint64' },
+    ],
+    name: 'parsePriceFeedUpdatesUnique',
+    outputs: [
+      {
+        name: 'priceFeeds',
+        internalType: 'struct PythStructs.PriceFeed[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'id', internalType: 'bytes32', type: 'bytes32' },
+          {
+            name: 'price',
+            internalType: 'struct PythStructs.Price',
+            type: 'tuple',
+            components: [
+              { name: 'price', internalType: 'int64', type: 'int64' },
+              { name: 'conf', internalType: 'uint64', type: 'uint64' },
+              { name: 'expo', internalType: 'int32', type: 'int32' },
+              { name: 'publishTime', internalType: 'uint256', type: 'uint256' },
+            ],
+          },
+          {
+            name: 'emaPrice',
+            internalType: 'struct PythStructs.Price',
+            type: 'tuple',
+            components: [
+              { name: 'price', internalType: 'int64', type: 'int64' },
+              { name: 'conf', internalType: 'uint64', type: 'uint64' },
+              { name: 'expo', internalType: 'int32', type: 'int32' },
+              { name: 'publishTime', internalType: 'uint256', type: 'uint256' },
+            ],
+          },
+        ],
+      },
+    ],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'updateData', internalType: 'bytes[]', type: 'bytes[]' },
+      { name: 'priceIds', internalType: 'bytes32[]', type: 'bytes32[]' },
+      { name: 'minAllowedPublishTime', internalType: 'uint64', type: 'uint64' },
+      { name: 'maxAllowedPublishTime', internalType: 'uint64', type: 'uint64' },
+      { name: 'checkUniqueness', internalType: 'bool', type: 'bool' },
+      { name: 'checkUpdateDataIsMinimal', internalType: 'bool', type: 'bool' },
+      { name: 'storeUpdatesIfFresh', internalType: 'bool', type: 'bool' },
+    ],
+    name: 'parsePriceFeedUpdatesWithConfig',
+    outputs: [
+      {
+        name: 'priceFeeds',
+        internalType: 'struct PythStructs.PriceFeed[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'id', internalType: 'bytes32', type: 'bytes32' },
+          {
+            name: 'price',
+            internalType: 'struct PythStructs.Price',
+            type: 'tuple',
+            components: [
+              { name: 'price', internalType: 'int64', type: 'int64' },
+              { name: 'conf', internalType: 'uint64', type: 'uint64' },
+              { name: 'expo', internalType: 'int32', type: 'int32' },
+              { name: 'publishTime', internalType: 'uint256', type: 'uint256' },
+            ],
+          },
+          {
+            name: 'emaPrice',
+            internalType: 'struct PythStructs.Price',
+            type: 'tuple',
+            components: [
+              { name: 'price', internalType: 'int64', type: 'int64' },
+              { name: 'conf', internalType: 'uint64', type: 'uint64' },
+              { name: 'expo', internalType: 'int32', type: 'int32' },
+              { name: 'publishTime', internalType: 'uint256', type: 'uint256' },
+            ],
+          },
+        ],
+      },
+      { name: 'slots', internalType: 'uint64[]', type: 'uint64[]' },
+    ],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'updateData', internalType: 'bytes[]', type: 'bytes[]' },
+      { name: 'priceIds', internalType: 'bytes32[]', type: 'bytes32[]' },
+    ],
+    name: 'parseTwapPriceFeedUpdates',
+    outputs: [
+      {
+        name: 'twapPriceFeeds',
+        internalType: 'struct PythStructs.TwapPriceFeed[]',
+        type: 'tuple[]',
+        components: [
+          { name: 'id', internalType: 'bytes32', type: 'bytes32' },
+          { name: 'startTime', internalType: 'uint64', type: 'uint64' },
+          { name: 'endTime', internalType: 'uint64', type: 'uint64' },
+          {
+            name: 'twap',
+            internalType: 'struct PythStructs.Price',
+            type: 'tuple',
+            components: [
+              { name: 'price', internalType: 'int64', type: 'int64' },
+              { name: 'conf', internalType: 'uint64', type: 'uint64' },
+              { name: 'expo', internalType: 'int32', type: 'int32' },
+              { name: 'publishTime', internalType: 'uint256', type: 'uint256' },
+            ],
+          },
+          { name: 'downSlotsRatio', internalType: 'uint32', type: 'uint32' },
+        ],
+      },
+    ],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: 'updateData', internalType: 'bytes[]', type: 'bytes[]' }],
+    name: 'updatePriceFeeds',
+    outputs: [],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'updateData', internalType: 'bytes[]', type: 'bytes[]' },
+      { name: 'priceIds', internalType: 'bytes32[]', type: 'bytes32[]' },
+      { name: 'publishTimes', internalType: 'uint64[]', type: 'uint64[]' },
+    ],
+    name: 'updatePriceFeedsIfNecessary',
+    outputs: [],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'id', internalType: 'bytes32', type: 'bytes32', indexed: true },
+      { name: 'publishTime', internalType: 'uint64', type: 'uint64', indexed: false },
+      { name: 'price', internalType: 'int64', type: 'int64', indexed: false },
+      { name: 'conf', internalType: 'uint64', type: 'uint64', indexed: false },
+    ],
+    name: 'PriceFeedUpdate',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'id', internalType: 'bytes32', type: 'bytes32', indexed: true },
+      { name: 'startTime', internalType: 'uint64', type: 'uint64', indexed: false },
+      { name: 'endTime', internalType: 'uint64', type: 'uint64', indexed: false },
+      { name: 'twapPrice', internalType: 'int64', type: 'int64', indexed: false },
+      { name: 'twapConf', internalType: 'uint64', type: 'uint64', indexed: false },
+      { name: 'downSlotsRatio', internalType: 'uint32', type: 'uint32', indexed: false },
+    ],
+    name: 'TwapPriceFeedUpdate',
+  },
+] as const;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// IPythEvents
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const iPythEventsAbi = [
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'id', internalType: 'bytes32', type: 'bytes32', indexed: true },
+      { name: 'publishTime', internalType: 'uint64', type: 'uint64', indexed: false },
+      { name: 'price', internalType: 'int64', type: 'int64', indexed: false },
+      { name: 'conf', internalType: 'uint64', type: 'uint64', indexed: false },
+    ],
+    name: 'PriceFeedUpdate',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'id', internalType: 'bytes32', type: 'bytes32', indexed: true },
+      { name: 'startTime', internalType: 'uint64', type: 'uint64', indexed: false },
+      { name: 'endTime', internalType: 'uint64', type: 'uint64', indexed: false },
+      { name: 'twapPrice', internalType: 'int64', type: 'int64', indexed: false },
+      { name: 'twapConf', internalType: 'uint64', type: 'uint64', indexed: false },
+      { name: 'downSlotsRatio', internalType: 'uint32', type: 'uint32', indexed: false },
+    ],
+    name: 'TwapPriceFeedUpdate',
+  },
+] as const;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // IReceiver
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -931,5 +1273,37 @@ export const ownableAbi = [
     type: 'error',
     inputs: [{ name: 'account', internalType: 'address', type: 'address' }],
     name: 'OwnableUnauthorizedAccount',
+  },
+] as const;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// PythOracle
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export const pythOracleAbi = [
+  {
+    type: 'constructor',
+    inputs: [{ name: 'pythContract', internalType: 'address', type: 'address' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: 'priceUpdate', internalType: 'bytes[]', type: 'bytes[]' },
+      { name: 'priceFeedId', internalType: 'bytes32', type: 'bytes32' },
+    ],
+    name: 'updatePrice',
+    outputs: [],
+    stateMutability: 'payable',
+  },
+  {
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'priceFeedId', internalType: 'bytes32', type: 'bytes32', indexed: true },
+      { name: 'price', internalType: 'int64', type: 'int64', indexed: false },
+      { name: 'publishTime', internalType: 'uint256', type: 'uint256', indexed: false },
+    ],
+    name: 'PriceUpdated',
   },
 ] as const;

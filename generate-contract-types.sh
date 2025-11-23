@@ -35,6 +35,7 @@ cp types/generated.ts "../$CONTRACT_TYPES_BREAK_GLASS"
 echo "Copying AIMM.json to agent apps..."
 mkdir -p "../apps/aimm-agent/src/types"
 cp out/AIMM.sol/AIMM.json "../apps/aimm-agent/src/types/AIMM.json"
+cp out/PythOracle.sol/PythOracle.json "../apps/aimm-agent/src/types/PythOracle.json"
 
 # Clean up temporary directory from contracts
 rm -rf types
