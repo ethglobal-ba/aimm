@@ -17,41 +17,44 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "aimm-fullstack" <<
 	CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 	CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
 
-	-- Create the AI agent output table (v2 with Kevin's suggestions + id primary key)
+	-- AI Agent Output Schema v2
+	-- Updated based on Kevin's feedback for better UI/streaming support
+	-- This table stores AI agent workflow steps with stable envelope structure
 	CREATE TABLE IF NOT EXISTS ai_agent_output (
 	    -- Primary key: simple auto-incrementing id
 	    id BIGSERIAL PRIMARY KEY,
 
 	    -- Run and step identifiers
-	    run_id VARCHAR(255) NOT NULL,
-	    step_index INTEGER NOT NULL,
+	    run_id VARCHAR(255) NOT NULL,            -- Stable identifier for the entire run
+	    step_index INTEGER NOT NULL,             -- 1, 2, 3... (order within run)
 
-	    -- Run-level metadata
-	    market_id VARCHAR(255) NOT NULL,
-	    market_ticker VARCHAR(100),
+	    -- Run-level metadata (Kevin's suggestion)
+	    market_ticker VARCHAR(100),              -- Human-readable market ticker
 
-	    -- Step-level envelope
-	    step_kind VARCHAR(100) NOT NULL,
-	    step_loading BOOLEAN DEFAULT FALSE,
+	    -- Step-level envelope (minimal, Kevin's suggestion)
+	    step_kind VARCHAR(100) NOT NULL,         -- "ANALYZE_RULES", "GATHER_NEWS", "COMPARE", etc.
+	    step_loading BOOLEAN DEFAULT FALSE,      -- Whether this step is currently loading/processing
 
-	    -- Main data - step_output structure
-	    step_output JSONB NOT NULL,
+	    -- Main data - the existing step_output structure
+	    step_output JSONB NOT NULL,              -- All the detailed step data (bid/ask, reasoning, etc.)
 
-	    -- Display helpers
-	    headline TEXT,
-	    summary TEXT,
-	    direction VARCHAR(50),
+	    -- Optional display helpers (Kevin's suggestion)
+	    headline TEXT,                           -- One short sentence for UI ("Research fair 40¢ from news")
+	    summary TEXT,                            -- 1-2 sentence explanation for tooltips
+	    direction VARCHAR(50),                   -- "lean_yes" | "lean_no" | "neutral" (for compare/final steps)
 
 	    -- Run-level tracking
-	    agent_version VARCHAR(50) NOT NULL,
-	    model_version VARCHAR(50),
-	    confidence DECIMAL(3,2),
+	    agent_version VARCHAR(50) NOT NULL,      -- AI agent version
+	    model_version VARCHAR(50),               -- Model version used
+	    confidence DECIMAL(3,2),                 -- 0.00 to 1.00 confidence level
 
-	    -- Clear units/scales
-	    price_scale VARCHAR(50) DEFAULT 'cents',
+	    -- Clear units/scales (Kevin's suggestion)
+	    price_scale VARCHAR(50) DEFAULT 'cents', -- "cents", "probability_0_1", etc.
 
-	    -- Timestamps
+	    -- Timestamps (Kevin's suggestion for per-run)
 	    inserted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+	    step_started_at TIMESTAMP WITH TIME ZONE,    -- When the step started processing
+	    step_finished_at TIMESTAMP WITH TIME ZONE,   -- When the step finished processing
 
 	    -- Constraints
 	    CONSTRAINT valid_confidence CHECK (confidence IS NULL OR (confidence >= 0 AND confidence <= 1)),
@@ -62,20 +65,60 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "aimm-fullstack" <<
 	    CONSTRAINT unique_run_step UNIQUE (run_id, step_index)
 	);
 
-	-- Indexes optimized for UI queries
+	-- Indexes optimized for UI queries (Kevin's use cases)
 	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_run_id ON ai_agent_output(run_id);
-	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_market_id ON ai_agent_output(market_id);
 	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_market_ticker ON ai_agent_output(market_ticker);
 	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_step_index ON ai_agent_output(step_index);
 	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_step_kind ON ai_agent_output(step_kind);
 	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_direction ON ai_agent_output(direction) WHERE direction IS NOT NULL;
-	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_inserted_at ON ai_agent_output(inserted_at DESC);
+	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_run_created ON ai_agent_output(inserted_at DESC);
+	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_step_started ON ai_agent_output(step_started_at DESC) WHERE step_started_at IS NOT NULL;
+	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_step_finished ON ai_agent_output(step_finished_at DESC) WHERE step_finished_at IS NOT NULL;
 
 	-- Composite index for per-market views
-	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_market_run ON ai_agent_output(market_id, run_id, step_index);
+	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_market_run ON ai_agent_output(market_ticker, run_id, step_index);
 
 	-- GIN index for JSON queries on step_output
 	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_step_output_gin ON ai_agent_output USING GIN(step_output);
+
+	-- Function to notify on AI agent output changes (enhanced for streaming)
+	CREATE OR REPLACE FUNCTION notify_ai_agent_output_change()
+	RETURNS TRIGGER AS \$func\$
+	DECLARE
+	    notification JSON;
+	BEGIN
+	    -- Create notification payload optimized for UI streaming
+	    notification = json_build_object(
+	        'table', 'ai_agent_output',
+	        'action', TG_OP,
+	        'id', COALESCE(NEW.id, OLD.id),
+	        'run_id', COALESCE(NEW.run_id, OLD.run_id),
+	        'step_index', COALESCE(NEW.step_index, OLD.step_index),
+	        'market_ticker', COALESCE(NEW.market_ticker, OLD.market_ticker),
+	        'step_kind', COALESCE(NEW.step_kind, OLD.step_kind),
+	        'step_loading', COALESCE(NEW.step_loading, OLD.step_loading),
+	        'headline', COALESCE(NEW.headline, OLD.headline),
+	        'direction', COALESCE(NEW.direction, OLD.direction),
+	        'timestamp', EXTRACT(epoch FROM COALESCE(NEW.inserted_at, OLD.inserted_at)),
+	        'step_started_at', EXTRACT(epoch FROM COALESCE(NEW.step_started_at, OLD.step_started_at)),
+	        'step_finished_at', EXTRACT(epoch FROM COALESCE(NEW.step_finished_at, OLD.step_finished_at))
+	    );
+
+	    -- Send notification on the ai_agent_output channel
+	    PERFORM pg_notify('ai_agent_output_changes', notification::text);
+
+	    RETURN COALESCE(NEW, OLD);
+	END;
+	\$func\$ language 'plpgsql';
+
+	-- Trigger to send notifications on ai_agent_output changes
+	CREATE TRIGGER ai_agent_output_notify
+	    AFTER INSERT OR UPDATE OR DELETE ON ai_agent_output
+	    FOR EACH ROW
+	    EXECUTE FUNCTION notify_ai_agent_output_change();
+
+	-- Create a publication for logical replication (for external subscribers)
+	CREATE PUBLICATION ai_agent_output_pub FOR TABLE ai_agent_output;
 
 	-- Grant necessary permissions for replication
 	ALTER USER postgres REPLICATION;
