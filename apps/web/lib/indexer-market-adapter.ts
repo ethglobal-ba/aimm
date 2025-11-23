@@ -85,6 +85,7 @@ type IndexerMarketSource = Pick<
   | 'externalId'
   | 'marketName'
   | 'subtitle'
+  | 'platform'
   | 'platformName'
   | 'status'
   | 'optionACurrentExternalPrice'
@@ -93,6 +94,39 @@ type IndexerMarketSource = Pick<
   | 'lastFairPriceUpdate'
   | 'volume'
 >;
+
+function mapPlatform(platformCode: number, platformName: string): Platform {
+  switch (platformCode) {
+    // See `apps/indexer/ponder.schema.ts` for the enum mapping:
+    // 0 = KALSHI, 1 = LIMITLESS, 2 = TRUMPFUN
+    case 0:
+      return 'kalshi';
+    case 1:
+      return 'limitless';
+    case 2:
+      return 'trump.fun';
+    default: {
+      const normalized = platformName.trim().toLowerCase();
+
+      if (normalized.includes('poly')) {
+        return 'polymarket';
+      }
+      if (normalized.includes('kalshi')) {
+        return 'kalshi';
+      }
+      if (normalized.includes('trump')) {
+        return 'trump.fun';
+      }
+      if (normalized.includes('limitless')) {
+        return 'limitless';
+      }
+
+      // Fallback to a reasonable default while keeping the value within the
+      // `Platform` union.
+      return 'kalshi';
+    }
+  }
+}
 
 export function mapIndexerMarketToMarket(item: IndexerMarketSource): Market {
   const livePrice = fromPercentFixed6(item.optionACurrentExternalPrice);
@@ -104,10 +138,7 @@ export function mapIndexerMarketToMarket(item: IndexerMarketSource): Market {
   const status = mapStatus(item.status);
   const aiRunStatus = deriveAIRunStatus(lastFairUpdate);
 
-  // Platform is a string in GraphQL, but our UI expects a narrower union. The
-  // indexer is configured to only emit the known platform identifiers, so this
-  // cast is narrowing trusted backend data, not fabricating values.
-  const platform = item.platformName as Platform;
+  const platform = mapPlatform(item.platform, item.platformName);
 
   const marketName = item.marketName;
   const title = item.subtitle || marketName;
