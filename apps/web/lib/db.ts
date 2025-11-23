@@ -3,7 +3,7 @@ import 'server-only';
 import { Pool, type QueryResult, type QueryResultRow } from 'pg';
 
 type SqlPrimitive = string | number | boolean | Date | null;
-type SqlValue = SqlPrimitive | SqlValue[] | { [key: string]: SqlValue };
+export type SqlValue = SqlPrimitive | SqlValue[] | { [key: string]: SqlValue };
 
 declare global {
   // Global augmentation to keep a single Pool instance across hot reloads in development.
@@ -34,10 +34,7 @@ const pool: Pool =
     return newPool;
   })();
 
-export async function query<T extends QueryResultRow>(
-  text: string,
-  params?: SqlValue[],
-): Promise<QueryResult<T>> {
+export async function query<T extends QueryResultRow>(text: string, params?: SqlValue[]): Promise<QueryResult<T>> {
   const client = await pool.connect();
 
   try {
@@ -46,5 +43,3 @@ export async function query<T extends QueryResultRow>(
     client.release();
   }
 }
-
-

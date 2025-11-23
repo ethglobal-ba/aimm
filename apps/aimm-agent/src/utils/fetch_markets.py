@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 GRAPHQL_ENDPOINT = os.getenv("GRAPHQL_ENDPOINT", "https://aimm.lat/graphql")
 
 

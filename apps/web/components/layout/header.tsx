@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ArrowDown01Icon, Wallet01Icon } from 'hugeicons-react';
@@ -35,10 +36,14 @@ export function Header() {
       <div className='container flex h-14 max-w-screen-2xl items-center px-4'>
         <div className='flex flex-1 items-center gap-8'>
           <Link href='/' className='flex items-center gap-2'>
-            <div className='bg-primary/10 text-primary rounded-md p-1.5'>
-              <Wallet01Icon className='size-4' />
-            </div>
-            <span className='text-[15px] font-semibold'>AIMM</span>
+            <Image
+              src='/aimm-logo.png'
+              alt='AIMM'
+              width={706}
+              height={202}
+              className='h-6 w-auto'
+              priority
+            />
           </Link>
           <nav className='hidden items-center gap-6 text-[13px] md:flex'>
             {navItems.map(item => {
