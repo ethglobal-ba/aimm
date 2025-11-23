@@ -7,7 +7,7 @@ import json
 from typing import List, Dict, Optional
 
 
-GRAPHQL_ENDPOINT = "http://38.224.253.95:42069/graphql"
+GRAPHQL_ENDPOINT = "http://88.99.96.175:42069/graphql"
 
 
 def fetch_all_markets(limit: int = 100, offset: int = 0) -> List[Dict]:

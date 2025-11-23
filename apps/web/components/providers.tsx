@@ -13,7 +13,7 @@ const queryClient = new QueryClient();
 
 const apolloClient = new ApolloClient({
   link: new HttpLink({
-    uri: 'http://38.224.253.95:42069/graphql',
+    uri: 'http://88.99.96.175:42069/graphql',
   }),
   cache: new InMemoryCache(),
   devtools: {
