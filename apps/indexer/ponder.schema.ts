@@ -26,6 +26,7 @@ export const market = onchainTable('market', t => ({
   slippage: t.bigint().default(0n),
   // Volume
   volume: t.bigint().default(0n),
+  imageUrl: t.text().notNull(),
   createdAt: t.bigint().notNull(),
   updatedAt: t.bigint().notNull(),
 }));

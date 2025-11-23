@@ -15216,7 +15216,7 @@ var mapStatus = (status) => {
       return 0;
   }
 };
-var fetchSingleMarketUpdate = (sendRequester, config, externalMarketId) => {
+var fetchSingleKalshiMarketUpdate = (sendRequester, config, externalMarketId) => {
   const req = {
     url: `${config.kalshiApiUrl}/markets/${externalMarketId}`,
     method: "GET"
@@ -15245,11 +15245,8 @@ var fetchMarketIds = (sendRequester, config) => {
   markets(where: {status: 1}) {
     items {
       externalId
-      marketName
-      optionAText
-      optionBText
       platform
-      status
+      platformName
     }
   }
 }`
@@ -15264,19 +15261,29 @@ var fetchMarketIds = (sendRequester, config) => {
       "Content-Type": "application/json"
     }
   };
+  console.log(`[fetchMarketIds] Making request to: ${config.aimmIndexerUrl}`);
   const resp = sendRequester.sendRequest(req).result();
+  console.log(`[fetchMarketIds] Response status: ${resp.statusCode}`);
   if (resp.statusCode !== 200) {
-    throw new Error(`Indexer GraphQL request failed with status: ${resp.statusCode}`);
+    const errorBody = new TextDecoder().decode(resp.body);
+    console.log(`[fetchMarketIds] Error response body: ${errorBody}`);
+    throw new Error(`Indexer GraphQL request failed with status: ${resp.statusCode}, body: ${errorBody}`);
   }
   const bodyText = new TextDecoder().decode(resp.body);
+  console.log(`[fetchMarketIds] Response body: ${bodyText}`);
   const indexerResponse = JSON.parse(bodyText);
-  const marketIds = indexerResponse.data.markets.items.map((market) => market.externalId);
-  if (!marketIds || marketIds.length === 0) {
+  if (!indexerResponse.data) {
+    throw new Error(`Invalid indexer response - no data field: ${bodyText}`);
+  }
+  if (!indexerResponse.data.markets) {
+    throw new Error(`Invalid indexer response - no markets field: ${bodyText}`);
+  }
+  const markets = indexerResponse.data.markets.items;
+  if (!markets || markets.length === 0) {
     throw new Error("No market IDs returned from indexer");
   }
-  const randomMarketIds = marketIds.sort(() => Math.random() - 0.5).slice(0, 5);
   return {
-    marketIds: randomMarketIds
+    markets
   };
 };
 var updateAIMMPrices = (runtime2, workflowResult) => {
@@ -15340,27 +15347,26 @@ var updateAllMarkets = (runtime2) => {
   const httpCapability = new cre.capabilities.HTTPClient;
   runtime2.log(`Fetching tracked markets from indexer`);
   const marketIdsResponse = httpCapability.sendRequest(runtime2, fetchMarketIds, ConsensusAggregationByFields({
-    marketIds: identical
+    markets: identical
   }))(runtime2.config).result();
-  const trackedMarketIds = marketIdsResponse.marketIds;
-  runtime2.log(`Found ${trackedMarketIds.length} tracked markets from indexer: ${trackedMarketIds.join(", ")}`);
-  const trackedMarkets = trackedMarketIds.map((id) => ({ externalMarketId: id }));
+  const trackedMarkets = marketIdsResponse.markets;
+  runtime2.log(`Found ${trackedMarkets.length} tracked markets from indexer: ${trackedMarkets.map((m) => m.externalId).join(", ")}`);
   runtime2.log(`Fetching Kalshi market prices for ${trackedMarkets.length} markets`);
   const marketUpdates = [];
   for (const trackedMarket of trackedMarkets) {
-    runtime2.log(`Fetching data for market: ${trackedMarket.externalMarketId}`);
+    runtime2.log(`Fetching data for market: ${trackedMarket.externalId}`);
     try {
-      const currentMarketPrices = httpCapability.sendRequest(runtime2, fetchSingleMarketUpdate, ConsensusAggregationByFields({
+      const currentMarketPrices = httpCapability.sendRequest(runtime2, fetchSingleKalshiMarketUpdate, ConsensusAggregationByFields({
         externalMarketId: identical,
         optionAPrice: median,
         optionBPrice: median,
         volume: median,
         status: identical
-      }))(runtime2.config, trackedMarket.externalMarketId).result();
-      runtime2.log(`Market data for ${trackedMarket.externalMarketId}: ${safeJsonStringify(currentMarketPrices)}`);
+      }))(runtime2.config, trackedMarket.externalId).result();
+      runtime2.log(`Market data for ${trackedMarket.externalId}: ${safeJsonStringify(currentMarketPrices)}`);
       marketUpdates.push(currentMarketPrices);
     } catch (error) {
-      runtime2.log(`Error fetching data for market ${trackedMarket.externalMarketId}: ${error}`);
+      runtime2.log(`Error fetching data for market ${trackedMarket.externalId}: ${error}`);
       continue;
     }
   }
