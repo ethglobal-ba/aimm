@@ -19,12 +19,13 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@coinbase/cdp-wagmi": "^0.0.67",
+    "@workspace/eslint-config": "workspace:*",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.6",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.7.1",
-    "turbo": "^2.6.1",
-    "@workspace/eslint-config": "workspace:*"
+    "turbo": "^2.6.1"
   },
   "scripts": {
     "prepare": "husky",
