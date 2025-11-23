@@ -8,7 +8,6 @@ CREATE TABLE IF NOT EXISTS ai_agent_output (
     step_index INTEGER NOT NULL,             -- 1, 2, 3... (order within run)
 
     -- Run-level metadata (Kevin's suggestion)
-    market_id VARCHAR(255) NOT NULL,         -- Market identifier
     market_ticker VARCHAR(100),              -- Human-readable market ticker
 
     -- Step-level envelope (minimal, Kevin's suggestion)
@@ -32,7 +31,7 @@ CREATE TABLE IF NOT EXISTS ai_agent_output (
     price_scale VARCHAR(50) DEFAULT 'cents', -- "cents", "probability_0_1", etc.
 
     -- Timestamps (Kevin's suggestion for per-run)
-    step_created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    inserted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 
     -- Composite primary key
     PRIMARY KEY (run_id, step_index),
@@ -71,9 +70,9 @@ BEGIN
         'action', TG_OP,
         'run_id', COALESCE(NEW.run_id, OLD.run_id),
         'step_index', COALESCE(NEW.step_index, OLD.step_index),
-        'market_id', COALESCE(NEW.market_id, OLD.market_id),
         'market_ticker', COALESCE(NEW.market_ticker, OLD.market_ticker),
         'step_kind', COALESCE(NEW.step_kind, OLD.step_kind),
+        'step_loading', COALESCE(NEW.step_loading, OLD.step_loading),
         'headline', COALESCE(NEW.headline, OLD.headline),
         'direction', COALESCE(NEW.direction, OLD.direction),
         'timestamp', EXTRACT(epoch FROM COALESCE(NEW.step_created_at, OLD.step_created_at))
