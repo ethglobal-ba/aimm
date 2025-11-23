@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS ai_agent_output (
 
     -- Step-level envelope (minimal, Kevin's suggestion)
     step_kind VARCHAR(100) NOT NULL,         -- "ANALYZE_RULES", "GATHER_NEWS", "COMPARE", etc.
+    step_loading BOOLEAN DEFAULT FALSE,      -- Whether this step is currently loading/processing
 
     -- Main data - the existing step_output structure
     step_output JSONB NOT NULL,              -- All the detailed step data (bid/ask, reasoning, etc.)

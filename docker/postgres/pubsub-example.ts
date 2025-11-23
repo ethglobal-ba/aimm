@@ -74,48 +74,59 @@ class AIAgentPubSub {
    * Insert new AI agent output (for testing)
    */
   async insertAIAgentOutput(data: {
+    run_id: string;
+    step_index: number;
     market_id: string;
-    analysis_type: string;
+    market_ticker?: string;
+    step_kind: string;
+    step_output: object;
+    headline?: string;
+    summary?: string;
+    direction?: 'lean_yes' | 'lean_no' | 'neutral';
     agent_version: string;
-    output_data: object;
-    workflow_id?: string;
-    step_number?: number;
-    topics?: string[];
-    stance?: string;
-    confidence_score?: number;
-  }): Promise<string> {
+    model_version?: string;
+    confidence?: number;
+    price_scale?: string;
+    run_started_at?: Date;
+    run_finished_at?: Date;
+  }): Promise<void> {
     if (!this.isConnected) {
       throw new Error('Client not connected');
     }
 
-    const result = await this.client.query(
+    await this.client.query(
       `INSERT INTO ai_agent_output
-       (market_id, analysis_type, agent_version, output_data, workflow_id, step_number, topics, stance, confidence_score)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING id`,
+       (run_id, step_index, market_id, market_ticker, step_kind, step_output, headline, summary, direction,
+        agent_version, model_version, confidence, price_scale, run_started_at, run_finished_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
       [
+        data.run_id,
+        data.step_index,
         data.market_id,
-        data.analysis_type,
+        data.market_ticker,
+        data.step_kind,
+        JSON.stringify(data.step_output),
+        data.headline,
+        data.summary,
+        data.direction,
         data.agent_version,
-        JSON.stringify(data.output_data),
-        data.workflow_id,
-        data.step_number,
-        data.topics,
-        data.stance,
-        data.confidence_score,
+        data.model_version,
+        data.confidence,
+        data.price_scale || 'cents',
+        data.run_started_at,
+        data.run_finished_at,
       ]
     );
-
-    return result.rows[0].id;
   }
 
   /**
    * Query AI agent output with various filters
    */
   async queryAIAgentOutput(filters: {
+    run_id?: string;
     market_id?: string;
-    analysis_type?: string;
-    stance?: string;
+    step_kind?: string;
+    direction?: string;
     min_confidence?: number;
     limit?: number;
   }) {
@@ -127,27 +138,32 @@ class AIAgentPubSub {
     const params: any[] = [];
     let paramCount = 0;
 
+    if (filters.run_id) {
+      query += ` AND run_id = $${++paramCount}`;
+      params.push(filters.run_id);
+    }
+
     if (filters.market_id) {
       query += ` AND market_id = $${++paramCount}`;
       params.push(filters.market_id);
     }
 
-    if (filters.analysis_type) {
-      query += ` AND analysis_type = $${++paramCount}`;
-      params.push(filters.analysis_type);
+    if (filters.step_kind) {
+      query += ` AND step_kind = $${++paramCount}`;
+      params.push(filters.step_kind);
     }
 
-    if (filters.stance) {
-      query += ` AND stance = $${++paramCount}`;
-      params.push(filters.stance);
+    if (filters.direction) {
+      query += ` AND direction = $${++paramCount}`;
+      params.push(filters.direction);
     }
 
     if (filters.min_confidence !== undefined) {
-      query += ` AND confidence_score >= $${++paramCount}`;
+      query += ` AND confidence >= $${++paramCount}`;
       params.push(filters.min_confidence);
     }
 
-    query += ' ORDER BY created_at DESC';
+    query += ' ORDER BY run_started_at DESC, step_index ASC';
 
     if (filters.limit) {
       query += ` LIMIT $${++paramCount}`;
@@ -187,14 +203,15 @@ async function example() {
     });
 
     // Example: Insert some test data
-    const agentOutputId = await pubsub.insertAIAgentOutput({
+    await pubsub.insertAIAgentOutput({
+      run_id: 'test_run_001',
+      step_index: 1,
       market_id: 'TEST_MARKET_001',
-      analysis_type: 'market_analysis',
-      agent_version: 'v1.0',
-      output_data: {
+      market_ticker: 'EMPLOYMENT-2025',
+      step_kind: 'ANALYZE_RULES',
+      step_output: {
         topic: 'economic_indicators',
         rationale: 'Analysis of latest employment and inflation data shows mixed signals',
-        stance: 'neutral',
         confidence: 0.75,
         factors: [
           {
@@ -209,14 +226,16 @@ async function example() {
           }
         ]
       },
-      workflow_id: 'workflow_123',
-      step_number: 1,
-      topics: ['employment', 'inflation', 'economic_indicators'],
-      stance: 'neutral',
-      confidence_score: 0.75
+      headline: 'Research suggests 75¢ fair value',
+      summary: 'Economic indicators show mixed signals with moderate confidence',
+      direction: 'neutral',
+      agent_version: 'v1.0',
+      model_version: 'claude-3.5-sonnet',
+      confidence: 0.75,
+      run_started_at: new Date()
     });
 
-    console.log('Inserted AI agent output with ID:', agentOutputId);
+    console.log('Inserted AI agent output step 1');
 
     // Query the data
     const results = await pubsub.queryAIAgentOutput({

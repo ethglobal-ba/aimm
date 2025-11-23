@@ -29,6 +29,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "aimm-fullstack" <<
 
 	    -- Step-level envelope
 	    step_kind VARCHAR(100) NOT NULL,
+	    step_loading BOOLEAN DEFAULT FALSE,
 
 	    -- Main data - step_output structure
 	    step_output JSONB NOT NULL,
@@ -76,7 +77,6 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "aimm-fullstack" <<
 	-- GIN index for JSON queries on step_output
 	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_step_output_gin ON ai_agent_output USING GIN(step_output);
 
-
 	-- Function to notify on AI agent output changes (enhanced for streaming)
 	CREATE OR REPLACE FUNCTION notify_ai_agent_output_change()
 	RETURNS TRIGGER AS \$\$
@@ -87,11 +87,10 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "aimm-fullstack" <<
 	    notification = json_build_object(
 	        'table', 'ai_agent_output',
 	        'action', TG_OP,
-	        'id', COALESCE(NEW.id, OLD.id),
 	        'run_id', COALESCE(NEW.run_id, OLD.run_id),
+	        'step_index', COALESCE(NEW.step_index, OLD.step_index),
 	        'market_id', COALESCE(NEW.market_id, OLD.market_id),
 	        'market_ticker', COALESCE(NEW.market_ticker, OLD.market_ticker),
-	        'step_index', COALESCE(NEW.step_index, OLD.step_index),
 	        'step_kind', COALESCE(NEW.step_kind, OLD.step_kind),
 	        'headline', COALESCE(NEW.headline, OLD.headline),
 	        'direction', COALESCE(NEW.direction, OLD.direction),
