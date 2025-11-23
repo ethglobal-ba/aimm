@@ -32,9 +32,6 @@ services:
       - NODE_ENV=production
     env_file:
       - ./apps/indexer/.env.docker
-    volumes:
-      - ./apps/indexer:/app
-      - /app/node_modules # Anonymous volume to avoid overwriting node_modules
     restart: unless-stopped
     depends_on:
       - postgres
