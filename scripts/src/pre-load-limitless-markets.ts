@@ -100,7 +100,7 @@ function mapLimitlessMarketToParams(market: LimitlessMarket) {
 
   return {
     ticker: market.slug,
-    platform: 2, // LIMITLESS enum value
+    platform: 1, // LIMITLESS enum value
     marketName: market.title,
     subtitle: market.description || '',
     eventTicker: market.categories?.[0] || 'LIMITLESS',

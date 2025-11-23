@@ -36,19 +36,24 @@ async function getMarketsFromLast24Hours(): Promise<KalshiMarket[]> {
   const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const minCreatedTs = Math.floor(twentyFourHoursAgo.getTime() / 1000).toString();
   const params = {
-    status: 'open',
-    mve_filter: 'exclude',
+    // status: 'open',
+    // mve_filter: 'exclude',
     limit: 1000,
-    min_created_ts: minCreatedTs,
+    // min_created_ts: minCreatedTs,
+    // event_ticker: 'KXETHMINY-25DEC31',
+    // tickers: 'KXBTCMINY-25-2,KXETHMINY-25DEC31',
   };
   console.log('Kalshi markets fetch params:', params);
   try {
     const response = await axios.get<KalshiMarketsResponse>(`${KALSHI_API_BASE}/markets`, {
       params,
     });
-    // Pick a random set of 25 markets from the full list (or fewer if <25 returned)
+
     const allMarkets = response.data.markets;
-    const shuffled = allMarkets.slice().sort(() => Math.random() - 0.5);
+    //Filter out markets that have no voi
+    const marketsWithVolume = allMarkets.filter(market => market.volume > 0);
+    // Pick a random set of 25 markets from the full list (or fewer if <25 returned)
+    const shuffled = marketsWithVolume.slice().sort(() => Math.random() - 0.5);
     const selectedMarkets = shuffled.slice(0, 25);
     // Replace response.data.markets with selectedMarkets for downstream logic
     response.data.markets = selectedMarkets;
