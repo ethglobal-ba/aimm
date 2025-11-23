@@ -51,8 +51,8 @@ import {
   getStatusBadgeClass,
   getStatusDotClass,
 } from '@/lib/market-utils';
-import type { AgentRun, MarketDetailData, OrderBookLevel, TradeEvent } from '@/lib/mock-market-detail';
-import { useUpdateMarketAutomationConfig } from '@workspace/aimm-sdk';
+import { useUpdateMarketAutomationConfig } from '@/hooks/use-update-market-automation-config';
+import type { MarketDetailData, OrderBookLevel, TradeEvent } from '@/lib/mock-market-detail';
 
 const platformLabels: Record<Market['platform'], string> = {
   limitless: 'Limitless',

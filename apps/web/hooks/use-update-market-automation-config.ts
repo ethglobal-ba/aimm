@@ -1,6 +1,8 @@
 'use client';
 
-import { useAIMMUpdateMarketConfig } from '../contract';
+import { useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+
+import { AIMM_CONTRACT_CONFIG } from '@/lib/aimm-contract';
 
 const AUTOMATION_MAX_SPEND_DECIMALS = 18;
 
@@ -13,11 +15,6 @@ function toBigIntWithDecimals(value: number, decimals: number): bigint {
   const scaled = Math.round(value * factor);
   return BigInt(scaled);
 }
-//Below was deleted because we have graphql api
-// export function useMarkets(): {
-
-//Below was deleted because we have graphql api
-// export function useMarket(marketId?: string) {
 
 export interface UpdateMarketAutomationConfigParams {
   driftThresholdPts: number;
@@ -26,9 +23,11 @@ export interface UpdateMarketAutomationConfigParams {
 }
 
 export function useUpdateMarketAutomationConfig(marketId?: string) {
-  const { updateMarketConfig, isPending, isConfirming, isConfirmed, error } = useAIMMUpdateMarketConfig();
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
 
-  const saveAutomationConfig = (params: UpdateMarketAutomationConfigParams) => {
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+
+  const updateConfig = (params: UpdateMarketAutomationConfigParams) => {
     if (!marketId) {
       return;
     }
@@ -37,19 +36,20 @@ export function useUpdateMarketAutomationConfig(marketId?: string) {
     const maxSpend = toBigIntWithDecimals(params.maxSpendUsd, AUTOMATION_MAX_SPEND_DECIMALS);
     const slippageBps = BigInt(Math.round(params.slippagePts * 100));
 
-    updateMarketConfig({
-      marketId,
-      minPriceDiff: minPriceDiffBps,
-      maxSpend,
-      slippageBps,
+    writeContract({
+      ...AIMM_CONTRACT_CONFIG,
+      functionName: 'updateMarketConfig',
+      args: [marketId, minPriceDiffBps, maxSpend, slippageBps],
     });
   };
 
   return {
-    updateConfig: saveAutomationConfig,
+    updateConfig,
     isPending,
     isConfirming,
     isConfirmed,
     error,
   };
 }
+
+
