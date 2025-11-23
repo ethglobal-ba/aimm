@@ -16,7 +16,9 @@ const apolloClient = new ApolloClient({
     uri: 'http://38.224.253.95:42069/graphql',
   }),
   cache: new InMemoryCache(),
-  connectToDevTools: process.env.NODE_ENV === 'development',
+  devtools: {
+    enabled: process.env.NODE_ENV === 'development',
+  },
 });
 
 export function Providers({ children }: { children: React.ReactNode }): JSX.Element {

@@ -1,12 +1,12 @@
 import { ponder } from 'ponder:registry';
 import {
+  currentPriceUpdate,
   defaultConfigUpdate,
+  fairMarketPriceUpdate,
   market,
   marketConfig,
   marketStatusChange,
   ownershipTransfer,
-  currentPriceUpdate,
-  fairMarketPriceUpdate,
   workflowResult,
 } from '../ponder.schema';
 
@@ -64,7 +64,18 @@ function hexToString(hex: string): string {
 
 // Market Onboarded Event
 ponder.on('AIMM:MarketOnboarded', async ({ event, context }) => {
-  const { platform, tickerHash, ticker, marketName, subtitle, eventTicker, volume, optionACurrentExternalPrice, optionBCurrentExternalPrice } = event.args;
+  const {
+    platform,
+    tickerHash,
+    ticker,
+    marketName,
+    subtitle,
+    eventTicker,
+    volume,
+    optionACurrentExternalPrice,
+    optionBCurrentExternalPrice,
+    imageUrl,
+  } = event.args;
   const { db } = context;
 
   // Platform is now an enum (number), ticker is the readable string
@@ -85,6 +96,7 @@ ponder.on('AIMM:MarketOnboarded', async ({ event, context }) => {
     optionACurrentExternalPrice: optionACurrentExternalPrice,
     optionBCurrentExternalPrice: optionBCurrentExternalPrice,
     blockNumber: event.block.number,
+    imageUrl: imageUrl,
   });
 
   try {
@@ -94,11 +106,11 @@ ponder.on('AIMM:MarketOnboarded', async ({ event, context }) => {
         id: marketIdStr,
         platform: platformNum,
         platformName: platformName,
-        tickerHash: tickerHash,
+        tickerHash: tickerHash as `0x${string}`,
         externalId: marketIdStr,
         marketName: marketNameStr,
-        optionAText: "Yes",
-        optionBText: "No",
+        optionAText: 'Yes',
+        optionBText: 'No',
         subtitle: subtitleStr,
         eventTicker: eventTickerStr,
         status: 0, // Default to Inactive status (0)
@@ -112,6 +124,7 @@ ponder.on('AIMM:MarketOnboarded', async ({ event, context }) => {
         volume: volume,
         createdAt: event.block.timestamp,
         updatedAt: event.block.timestamp,
+        imageUrl: imageUrl,
       })
       .onConflictDoUpdate({
         platform: platformNum,
@@ -119,8 +132,8 @@ ponder.on('AIMM:MarketOnboarded', async ({ event, context }) => {
         tickerHash: tickerHash,
         externalId: marketIdStr,
         marketName: marketNameStr,
-        optionAText: "Yes",
-        optionBText: "No",
+        optionAText: 'Yes',
+        optionBText: 'No',
         subtitle: subtitleStr,
         eventTicker: eventTickerStr,
         updatedAt: event.block.timestamp,

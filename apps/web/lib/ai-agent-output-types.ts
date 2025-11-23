@@ -38,6 +38,9 @@ export interface AIAgentOutput {
   /** Sequential step number within the run (must be > 0) */
   step_index: number;
 
+  /** Stable identifier for the underlying market */
+  market_id: string;
+
   /** Market ticker symbol being analyzed (max 100 chars, optional) */
   market_ticker?: string;
 
@@ -73,12 +76,6 @@ export interface AIAgentOutput {
 
   /** Timestamp when record was inserted (defaults to CURRENT_TIMESTAMP) */
   inserted_at?: Date;
-
-  /** Timestamp when the step processing began */
-  step_started_at?: Date;
-
-  /** Timestamp when the step processing completed */
-  step_finished_at?: Date;
 }
 
 /**
@@ -88,6 +85,7 @@ export interface AIAgentOutput {
 export interface CreateAIAgentOutput {
   run_id: string;
   step_index: number;
+  market_id: string;
   market_ticker?: string;
   step_kind: string;
   step_loading?: boolean;
@@ -99,8 +97,6 @@ export interface CreateAIAgentOutput {
   model_version?: string;
   confidence?: number;
   price_scale?: PriceScale;
-  step_started_at?: Date;
-  step_finished_at?: Date;
 }
 
 /**
@@ -116,7 +112,6 @@ export interface UpdateAIAgentOutput {
   model_version?: string;
   confidence?: number;
   price_scale?: PriceScale;
-  step_finished_at?: Date;
 }
 
 /**
@@ -125,6 +120,7 @@ export interface UpdateAIAgentOutput {
 export interface AIAgentOutputFilters {
   run_id?: string;
   step_index?: number;
+  market_id?: string;
   market_ticker?: string;
   step_kind?: string;
   direction?: Direction;
@@ -134,10 +130,6 @@ export interface AIAgentOutputFilters {
   confidence_max?: number;
   inserted_after?: Date;
   inserted_before?: Date;
-  step_started_after?: Date;
-  step_started_before?: Date;
-  step_finished_after?: Date;
-  step_finished_before?: Date;
 }
 
 /**
@@ -203,17 +195,17 @@ export const INDEXES = {
   /** Composite index for market-specific run queries */
   MARKET_RUN: 'idx_ai_agent_output_market_run',
 
+  /** Market id lookups */
+  MARKET_ID: 'idx_ai_agent_output_market_id',
+
   /** Market ticker lookups */
   MARKET_TICKER: 'idx_ai_agent_output_market_ticker',
 
   /** Recent records by insertion time */
-  RUN_CREATED: 'idx_ai_agent_output_run_created',
+  INSERTED_AT: 'idx_ai_agent_output_inserted_at',
 
   /** Run-specific queries */
   RUN_ID: 'idx_ai_agent_output_run_id',
-
-  /** Step completion time queries */
-  STEP_FINISHED: 'idx_ai_agent_output_step_finished',
 
   /** Step sequence queries */
   STEP_INDEX: 'idx_ai_agent_output_step_index',
@@ -223,9 +215,6 @@ export const INDEXES = {
 
   /** JSONB content searches */
   STEP_OUTPUT_GIN: 'idx_ai_agent_output_step_output_gin',
-
-  /** Step start time queries */
-  STEP_STARTED: 'idx_ai_agent_output_step_started',
 
   /** Direction-based filtering */
   DIRECTION: 'idx_ai_agent_output_direction',
@@ -259,9 +248,8 @@ export const QUERY_EXAMPLES = {
   /** Get completed steps with confidence scores */
   getCompletedWithConfidence: () => `
     SELECT * FROM ai_agent_output
-    WHERE step_finished_at IS NOT NULL
-      AND confidence IS NOT NULL
-    ORDER BY step_finished_at DESC
+    WHERE confidence IS NOT NULL
+    ORDER BY inserted_at DESC
   `,
 
   /** Search within step_output JSONB */

@@ -4,14 +4,22 @@ import { useEffect, useState } from 'react';
 import { FlashIcon } from 'hugeicons-react';
 import { Badge } from '@workspace/ui/components/badge';
 import { cn } from '@workspace/ui/lib/utils';
-import {
-  mockAgentActions,
-  formatAgentActionTime,
-  getAgentActionStatusLabel,
-  type AgentAction,
-  type AgentActionStatus,
-} from '@/lib/mock-agent-actions';
-import type { Direction } from '@/lib/ai-agent-output-types';
+import { formatAgentActionTime } from '@/lib/mock-agent-actions';
+import type { Direction, StepOutput } from '@/lib/ai-agent-output-types';
+
+interface LiveAgentAction {
+  id: string;
+  timestamp: Date;
+  runId: string;
+  stepIndex: number;
+  marketTicker?: string;
+  stepKind: string;
+  stepLoading?: boolean;
+  headline?: string;
+  summary?: string;
+  direction?: Direction;
+  stepOutput: StepOutput;
+}
 
 /**
  * Get the dot color class based on how recent the action timestamp is.
@@ -30,19 +38,79 @@ function getTimestampDotClass(timestamp: Date, now: Date): string {
 }
 
 /**
- * Get the status badge styling based on the agent action status.
+ * Convert a raw step_kind into a more readable label while preserving meaning.
+ * - Keeps the original tokens, just lowercases and capitalizes them.
+ * - Replaces common separators like '_' and '-' with spaces.
  */
-function getStatusBadgeClass(status: AgentActionStatus): string {
-  switch (status) {
-    case 'DETECTED_EDGE':
-      return 'bg-blue-500/10 text-blue-400 border-blue-500/30';
-    case 'PLACING_BID':
-      return 'bg-purple-500/10 text-purple-400 border-purple-500/30';
-    case 'SCANNING':
-      return 'bg-gray-500/10 text-gray-400 border-gray-500/30';
-    case 'POSITION_CLOSE':
-      return 'bg-green-500/10 text-green-400 border-green-500/30';
+function getStatusLabel(stepKind: string): string {
+  const normalized = stepKind.replace(/[_-]+/g, ' ').toLowerCase().trim();
+
+  if (normalized.length === 0) {
+    return stepKind;
   }
+
+  return normalized
+    .split(' ')
+    .map(word => (word.length === 0 ? word : word[0]!.toUpperCase() + word.slice(1)))
+    .join(' ');
+}
+
+function getDirectionBadgeClass(direction: Direction | undefined): string {
+  if (direction === 'lean_yes') {
+    return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40';
+  }
+
+  if (direction === 'lean_no') {
+    return 'bg-rose-500/15 text-rose-400 border-rose-500/40';
+  }
+
+  if (direction === 'neutral') {
+    return 'bg-slate-500/20 text-slate-300 border-slate-400/30';
+  }
+
+  return 'bg-slate-500/10 text-slate-300 border-slate-500/20';
+}
+
+function getDirectionLabel(direction: Direction | undefined): string | null {
+  if (direction === 'lean_yes') {
+    return 'LEAN YES';
+  }
+
+  if (direction === 'lean_no') {
+    return 'LEAN NO';
+  }
+
+  if (direction === 'neutral') {
+    return 'NEUTRAL';
+  }
+
+  return null;
+}
+
+/**
+ * Get the status badge styling based on the raw step_kind string.
+ * This only affects colors; the underlying value is shown as-is.
+ */
+function getStatusBadgeClass(status: string): string {
+  const normalized = status.toLowerCase();
+
+  if (normalized.includes('edge')) {
+    return 'bg-blue-500/10 text-blue-400 border-blue-500/30';
+  }
+
+  if (normalized.includes('bid') || normalized.includes('order')) {
+    return 'bg-purple-500/10 text-purple-400 border-purple-500/30';
+  }
+
+  if (normalized.includes('scan')) {
+    return 'bg-gray-500/10 text-gray-400 border-gray-500/30';
+  }
+
+  if (normalized.includes('close')) {
+    return 'bg-green-500/10 text-green-400 border-green-500/30';
+  }
+
+  return 'bg-gray-500/10 text-gray-400 border-gray-500/30';
 }
 
 /**
@@ -56,6 +124,9 @@ function getStatusBadgeClass(status: AgentActionStatus): string {
 export function LiveAgentActions() {
   // Force re-render every second to update relative timestamps
   const [now, setNow] = useState(new Date());
+  const [actions, setActions] = useState<LiveAgentAction[]>([]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -65,46 +136,66 @@ export function LiveAgentActions() {
     return () => clearInterval(interval);
   }, []);
 
-  // MOCK: Using static mock data. In production, this would come from a live data source.
-  const actions: AgentAction[] = mockAgentActions;
-
   useEffect(() => {
-    interface LatestRunStep {
+    interface AgentActionDto {
+      id: string;
+      timestamp: string;
       runId: string;
-      marketTicker: string;
       stepIndex: number;
+      marketTicker?: string;
       stepKind: string;
-      headline: string | null;
-      direction: Direction | null;
-      // Dates are serialized as ISO strings over the network.
-      insertedAt: string;
+      stepLoading?: boolean;
+      headline?: string;
+      summary?: string;
+      direction?: Direction;
+      stepOutput: StepOutput;
     }
 
-    interface LatestRunsResponse {
-      steps: LatestRunStep[];
+    interface AgentActionsResponse {
+      actions: AgentActionDto[];
     }
 
-    const fetchLatestRuns = async (): Promise<void> => {
+    const fetchActions = async (): Promise<void> => {
       try {
-        const response = await fetch('/api/ai-agent-output/latest?limitPerMarket=5');
+        const response = await fetch('/api/ai-agent-output/actions?limit=20');
 
         if (!response.ok) {
-          // eslint-disable-next-line no-console
-          console.error('Failed to fetch latest ai_agent_output runs', response.statusText);
+          console.error('Failed to fetch recent agent actions', response.statusText);
+          setHasError(true);
           return;
         }
 
-        const data: LatestRunsResponse = await response.json();
+        const data: AgentActionsResponse = await response.json();
 
-        // eslint-disable-next-line no-console
-        console.log('Latest ai_agent_output runs', data.steps);
+        const hydratedActions: LiveAgentAction[] = data.actions.map(action => ({
+          id: action.id,
+          timestamp: new Date(action.timestamp),
+          runId: action.runId,
+          stepIndex: action.stepIndex,
+          marketTicker: action.marketTicker,
+          stepKind: action.stepKind,
+          stepLoading: action.stepLoading,
+          headline: action.headline,
+          summary: action.summary,
+          direction: action.direction,
+          stepOutput: action.stepOutput,
+        }));
+
+        setActions(hydratedActions);
+        setHasError(false);
       } catch (error: unknown) {
-        // eslint-disable-next-line no-console
-        console.error('Error while fetching latest ai_agent_output runs', error);
+        console.error('Error while fetching recent agent actions', error);
+        setHasError(true);
       }
     };
 
-    void fetchLatestRuns();
+    void fetchActions();
+
+    const interval = setInterval(() => {
+      void fetchActions();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -112,10 +203,10 @@ export function LiveAgentActions() {
       {/* Header */}
       <div className='border-border flex items-center justify-between border-b px-3 py-2.5'>
         <div className='flex items-center gap-1.5'>
-          <FlashIcon className='text-yellow-400 h-4 w-4' />
+          <FlashIcon className='h-4 w-4 text-yellow-400' />
           <h2 className='text-foreground text-sm font-semibold'>Live Agent Actions</h2>
         </div>
-        <Badge className='bg-green-500/10 text-green-400 border-green-500/30 h-5 gap-1 border px-1.5 text-[10px] font-medium'>
+        <Badge className='h-5 gap-1 border border-green-500/30 bg-green-500/10 px-1.5 text-[10px] font-medium text-green-400'>
           <span className='h-1 w-1 rounded-full bg-green-400' />
           Active
         </Badge>
@@ -123,48 +214,117 @@ export function LiveAgentActions() {
 
       {/* Actions List */}
       <div className='flex-1 space-y-0 overflow-y-auto'>
+        {actions.length === 0 && !hasError ? (
+          <div className='text-muted-foreground px-3 py-4 text-xs'>No recent agent actions.</div>
+        ) : null}
+
+        {hasError ? <div className='text-destructive px-3 py-4 text-xs'>Failed to load live agent actions.</div> : null}
+
         {actions.map(action => {
           const timeLabel = formatAgentActionTime(action.timestamp, now);
           const dotClass = getTimestampDotClass(action.timestamp, now);
-          const statusLabel = getAgentActionStatusLabel(action.status);
-          const badgeClass = getStatusBadgeClass(action.status);
+          const agentName = action.marketTicker ?? action.runId;
+          const statusLabel = getStatusLabel(action.stepKind);
+          const badgeClass = getStatusBadgeClass(action.stepKind);
+          const isExpanded = expandedId === action.id;
+          const isLoading = action.stepLoading === true;
+          const description = action.headline ?? action.summary ?? '';
+
+          const stepOutputRecord = action.stepOutput as Record<string, unknown>;
+          const rawProgress = stepOutputRecord.progress;
+          const progress = typeof rawProgress === 'number' && Number.isFinite(rawProgress) ? rawProgress : undefined;
+
+          const directionLabel = getDirectionLabel(action.direction);
+          const directionBadgeClass = getDirectionBadgeClass(action.direction);
 
           return (
-            <div key={action.id} className='border-border flex flex-col gap-1.5 border-b px-3 py-2.5 last:border-b-0'>
-              {/* Timestamp with colored dot */}
-              <div className='flex items-center gap-1.5'>
-                <span className={cn('h-1 w-1 rounded-full', dotClass)} />
-                <span className='text-muted-foreground text-[10px]' suppressHydrationWarning>
-                  {timeLabel}
+            <button
+              key={action.id}
+              type='button'
+              onClick={() => {
+                if (isLoading) {
+                  return;
+                }
+                setExpandedId(prev => (prev === action.id ? null : action.id));
+              }}
+              className='border-border flex w-full flex-col gap-1.5 border-b px-3 py-2.5 text-left last:border-b-0'
+            >
+              {/* Header: market label + timestamp */}
+              <div className='flex items-center justify-between gap-2'>
+                <span className='text-muted-foreground truncate text-[10px] font-semibold tracking-wide'>
+                  {agentName}
                 </span>
+                <div className='flex items-center gap-1.5'>
+                  <span className={cn('h-1 w-1 rounded-full', dotClass)} />
+                  <span className='text-muted-foreground text-[10px]' suppressHydrationWarning>
+                    {timeLabel}
+                  </span>
+                </div>
               </div>
 
-              {/* Agent name and status */}
-              <div className='flex items-center gap-1.5'>
-                <span className='text-foreground truncate text-xs font-medium'>{action.agentName}</span>
+              {/* Title + step kind badge */}
+              <div className='flex items-start justify-between gap-2'>
+                <div className='flex-1'>
+                  <p className='text-foreground line-clamp-1 text-xs font-semibold'>
+                    {description.length > 0 ? description : statusLabel}
+                  </p>
+                  {description.length > 0 ? (
+                    <p className='text-muted-foreground mt-0.5 line-clamp-2 text-[11px]'>{statusLabel}</p>
+                  ) : null}
+                </div>
                 <Badge
                   variant='outline'
-                  className={cn('h-auto shrink-0 rounded-sm px-1.5 py-0 text-[9px] font-semibold uppercase leading-tight', badgeClass)}
+                  className={cn(
+                    'h-auto shrink-0 rounded-sm px-1.5 py-0 text-[9px] leading-tight font-semibold uppercase',
+                    badgeClass
+                  )}
                 >
                   {statusLabel}
                 </Badge>
               </div>
 
-              {/* Description */}
-              <p className='text-muted-foreground truncate text-[11px]'>{action.description}</p>
+              {/* Direction + View Output / Loading row */}
+              <div className='mt-1 flex items-center justify-between gap-2'>
+                {directionLabel ? (
+                  <Badge
+                    variant='outline'
+                    className={cn('h-5 rounded-full px-2 text-[10px] font-semibold tracking-wide', directionBadgeClass)}
+                  >
+                    {directionLabel}
+                  </Badge>
+                ) : (
+                  <span />
+                )}
 
-              {/* Progress indicator */}
-              <div className='flex items-center gap-2'>
-                <div className='bg-muted h-1 flex-1 overflow-hidden rounded-full'>
-                  <div className='bg-foreground h-full transition-all' style={{ width: `${action.progress}%` }} />
-                </div>
-                <span className='text-foreground font-mono text-[10px] font-medium'>{action.progress}%</span>
+                {isLoading ? (
+                  <span className='text-muted-foreground text-[10px] font-medium'>Loading…</span>
+                ) : (
+                  <div className='text-primary flex items-center gap-1 text-[10px] font-medium'>
+                    <span>View Output</span>
+                    <span aria-hidden='true'>▾</span>
+                  </div>
+                )}
               </div>
-            </div>
+
+              {/* Progress indicator (only when explicit numeric progress is present in step_output) */}
+              {typeof progress === 'number' ? (
+                <div className='mt-1 flex items-center gap-2'>
+                  <div className='bg-muted h-1 flex-1 overflow-hidden rounded-full'>
+                    <div className='bg-foreground h-full transition-all' style={{ width: `${progress}%` }} />
+                  </div>
+                  <span className='text-foreground font-mono text-[10px] font-medium'>{progress}%</span>
+                </div>
+              ) : null}
+
+              {isExpanded && !isLoading ? (
+                <div className='bg-muted/40 text-muted-foreground mt-2 max-h-48 overflow-auto rounded-md px-2 py-1'>
+                  <pre className='font-mono text-[10px] leading-snug'>{JSON.stringify(action.stepOutput, null, 2)}</pre>
+                </div>
+              ) : null}
+            </button>
           );
         })}
       </div>
     </div>
   );
 }
-

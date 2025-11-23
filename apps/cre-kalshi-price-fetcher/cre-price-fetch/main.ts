@@ -35,7 +35,7 @@ type MarketUpdate = {
 };
 
 type MarketIdsResponse = {
-  marketIds: string[];
+  markets: IndexerMarket[];
 };
 
 // Market status enum matching the contract
@@ -67,11 +67,8 @@ type WorkflowResult = {
 // GraphQL response interfaces
 interface IndexerMarket {
   externalId: string;
-  marketName: string;
-  optionAText: string;
-  optionBText: string;
-  platform: string;
-  status: number;
+  platform: number;
+  platformName: string;
 }
 
 interface IndexerResponse {
@@ -202,7 +199,7 @@ const mapStatus = (status: string): MarketStatus => {
 // };
 
 // Fetch a single Kalshi market and convert to our market update format
-const fetchSingleMarketUpdate = (
+const fetchSingleKalshiMarketUpdate = (
   sendRequester: HTTPSendRequester,
   config: Config,
   externalMarketId: string
@@ -233,7 +230,7 @@ const fetchSingleMarketUpdate = (
     optionBPrice,
     volume,
     status,
-  } satisfies MarketUpdate;
+  };
 };
 
 // Fetch tracked market IDs from indexer - following the same pattern as fetchSingleMarketUpdate
@@ -243,11 +240,8 @@ const fetchMarketIds = (sendRequester: HTTPSendRequester, config: Config): Marke
   markets(where: {status: 1}) {
     items {
       externalId
-      marketName
-      optionAText
-      optionBText
       platform
-      status
+      platformName
     }
   }
 }`,
@@ -268,25 +262,40 @@ const fetchMarketIds = (sendRequester: HTTPSendRequester, config: Config): Marke
     },
   };
 
+  console.log(`[fetchMarketIds] Making request to: ${config.aimmIndexerUrl}`);
+
   const resp = sendRequester.sendRequest(req).result();
 
+  console.log(`[fetchMarketIds] Response status: ${resp.statusCode}`);
+
   if (resp.statusCode !== 200) {
-    throw new Error(`Indexer GraphQL request failed with status: ${resp.statusCode}`);
+    const errorBody = new TextDecoder().decode(resp.body);
+    console.log(`[fetchMarketIds] Error response body: ${errorBody}`);
+    throw new Error(`Indexer GraphQL request failed with status: ${resp.statusCode}, body: ${errorBody}`);
   }
 
   const bodyText = new TextDecoder().decode(resp.body);
+  console.log(`[fetchMarketIds] Response body: ${bodyText}`);
+
   const indexerResponse = JSON.parse(bodyText) as IndexerResponse;
 
-  const marketIds = indexerResponse.data.markets.items.map(market => market.externalId);
+  if (!indexerResponse.data) {
+    throw new Error(`Invalid indexer response - no data field: ${bodyText}`);
+  }
 
-  if (!marketIds || marketIds.length === 0) {
+  if (!indexerResponse.data.markets) {
+    throw new Error(`Invalid indexer response - no markets field: ${bodyText}`);
+  }
+
+  const markets = indexerResponse.data.markets.items;
+
+  if (!markets || markets.length === 0) {
     throw new Error('No market IDs returned from indexer');
   }
-  // Return a random 5 market IDs
-  const randomMarketIds = marketIds.sort(() => Math.random() - 0.5).slice(0, 5);
+
   return {
-    marketIds: randomMarketIds,
-  } satisfies MarketIdsResponse;
+    markets,
+  };
 };
 
 // Write market price updates to AIMM contract - following the same pattern as updateReserves
@@ -328,7 +337,7 @@ const updateAIMMPrices = (runtime: Runtime<Config>, workflowResult: WorkflowResu
     [
       {
         workflowName: workflowResult.workflowName,
-        platform: workflowResult.platform as Platform,
+        platform: workflowResult.platform,
         externalMarketId: workflowResult.ticker,
         optionAPrice: workflowResult.optionAPrice,
         optionBPrice: workflowResult.optionBPrice,
@@ -384,29 +393,29 @@ const updateAllMarkets = (runtime: Runtime<Config>): string => {
       runtime,
       fetchMarketIds,
       ConsensusAggregationByFields<MarketIdsResponse>({
-        marketIds: identical,
+        markets: identical,
       })
     )(runtime.config)
     .result();
 
-  const trackedMarketIds = marketIdsResponse.marketIds;
+  const trackedMarkets = marketIdsResponse.markets;
 
-  runtime.log(`Found ${trackedMarketIds.length} tracked markets from indexer: ${trackedMarketIds.join(', ')}`);
-
-  const trackedMarkets = trackedMarketIds.map(id => ({ externalMarketId: id }));
+  runtime.log(
+    `Found ${trackedMarkets.length} tracked markets from indexer: ${trackedMarkets.map(m => m.externalId).join(', ')}`
+  );
   runtime.log(`Fetching Kalshi market prices for ${trackedMarkets.length} markets`);
 
   // Collect all market updates
   const marketUpdates: MarketUpdate[] = [];
 
   for (const trackedMarket of trackedMarkets) {
-    runtime.log(`Fetching data for market: ${trackedMarket.externalMarketId}`);
+    runtime.log(`Fetching data for market: ${trackedMarket.externalId}`);
 
     try {
       const currentMarketPrices = httpCapability
         .sendRequest(
           runtime,
-          fetchSingleMarketUpdate,
+          fetchSingleKalshiMarketUpdate,
           ConsensusAggregationByFields<MarketUpdate>({
             externalMarketId: identical,
             optionAPrice: median,
@@ -414,13 +423,13 @@ const updateAllMarkets = (runtime: Runtime<Config>): string => {
             volume: median,
             status: identical,
           })
-        )(runtime.config, trackedMarket.externalMarketId)
+        )(runtime.config, trackedMarket.externalId)
         .result();
 
-      runtime.log(`Market data for ${trackedMarket.externalMarketId}: ${safeJsonStringify(currentMarketPrices)}`);
+      runtime.log(`Market data for ${trackedMarket.externalId}: ${safeJsonStringify(currentMarketPrices)}`);
       marketUpdates.push(currentMarketPrices);
     } catch (error) {
-      runtime.log(`Error fetching data for market ${trackedMarket.externalMarketId}: ${error}`);
+      runtime.log(`Error fetching data for market ${trackedMarket.externalId}: ${error}`);
       // Continue with other markets even if one fails
       continue;
     }
