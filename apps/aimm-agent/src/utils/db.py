@@ -46,18 +46,21 @@ def insert_step_loading(
     cur = conn.cursor()
 
     try:
+        now = datetime.now(timezone.utc)
         cur.execute("""
             INSERT INTO ai_agent_output (
                 run_id, step_index, market_ticker, step_kind,
                 step_output, headline, step_loading,
-                agent_version, model_version, inserted_at, price_scale
+                agent_version, model_version, inserted_at,
+                step_started_at, price_scale
             ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
             )
             ON CONFLICT (run_id, step_index)
             DO UPDATE SET
                 step_loading = EXCLUDED.step_loading,
-                headline = EXCLUDED.headline
+                headline = EXCLUDED.headline,
+                step_started_at = EXCLUDED.step_started_at
         """, (
             run_id,
             step_index,
@@ -68,7 +71,8 @@ def insert_step_loading(
             True,  # step_loading = True
             agent_version,
             model_version,
-            datetime.now(timezone.utc),
+            now,  # inserted_at
+            now,  # step_started_at
             'cents'
         ))
 
@@ -111,14 +115,15 @@ def insert_step_output(
     cur = conn.cursor()
 
     try:
+        now = datetime.now(timezone.utc)
         cur.execute("""
             INSERT INTO ai_agent_output (
                 run_id, step_index, market_ticker, step_kind,
                 step_output, headline, summary, direction, confidence,
                 step_loading, agent_version, model_version,
-                inserted_at, price_scale
+                inserted_at, step_finished_at, price_scale
             ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
             )
             ON CONFLICT (run_id, step_index)
             DO UPDATE SET
@@ -128,6 +133,7 @@ def insert_step_output(
                 direction = EXCLUDED.direction,
                 confidence = EXCLUDED.confidence,
                 step_loading = EXCLUDED.step_loading,
+                step_finished_at = EXCLUDED.step_finished_at,
                 inserted_at = EXCLUDED.inserted_at
         """, (
             run_id,
@@ -142,7 +148,8 @@ def insert_step_output(
             False,  # step_loading = False (completed)
             agent_version,
             model_version,
-            datetime.now(timezone.utc),
+            now,  # inserted_at
+            now,  # step_finished_at
             'cents'
         ))
 

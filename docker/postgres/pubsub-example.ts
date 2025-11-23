@@ -97,7 +97,7 @@ class AIAgentPubSub {
     const result = await this.client.query(
       `INSERT INTO ai_agent_output
        (run_id, step_index, market_id, market_ticker, step_kind, step_output, headline, summary, direction,
-        agent_version, model_version, confidence, price_scale, step_created_at)
+        agent_version, model_version, confidence, price_scale, inserted_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, COALESCE($14, CURRENT_TIMESTAMP))
        RETURNING id`,
       [
@@ -165,7 +165,7 @@ class AIAgentPubSub {
       params.push(filters.min_confidence);
     }
 
-    query += ' ORDER BY step_created_at DESC, step_index ASC';
+    query += ' ORDER BY inserted_at DESC, step_index ASC';
 
     if (filters.limit) {
       query += ` LIMIT $${++paramCount}`;

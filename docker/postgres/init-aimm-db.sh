@@ -51,7 +51,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "aimm-fullstack" <<
 	    price_scale VARCHAR(50) DEFAULT 'cents',
 
 	    -- Timestamps
-	    step_created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+	    inserted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 
 	    -- Constraints
 	    CONSTRAINT valid_confidence CHECK (confidence IS NULL OR (confidence >= 0 AND confidence <= 1)),
@@ -96,7 +96,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "aimm-fullstack" <<
 	        'step_kind', COALESCE(NEW.step_kind, OLD.step_kind),
 	        'headline', COALESCE(NEW.headline, OLD.headline),
 	        'direction', COALESCE(NEW.direction, OLD.direction),
-	        'timestamp', EXTRACT(epoch FROM COALESCE(NEW.step_created_at, OLD.step_created_at))
+	        'timestamp', EXTRACT(epoch FROM COALESCE(NEW.inserted_at, OLD.inserted_at))
 	    );
 
 	    -- Send notification on the ai_agent_output channel
