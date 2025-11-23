@@ -7,10 +7,15 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
       - ./docker/postgres/init-aimm-db.sh:/docker-entrypoint-initdb.d/init-aimm-db.sh
     command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
   #agent:
   #  build:
   #    context: ./apps/aimm-agent
@@ -37,6 +42,7 @@ services:
       - ./apps/indexer/.env.docker
     restart: unless-stopped
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 volumes:
   postgres_data:

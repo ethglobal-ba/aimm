@@ -111,6 +111,9 @@ contract AIMM is IReceiverTemplate {
 
     // --- Events ---
     event ResultUpdated(string indexed workflowName, uint256 indexed resultId, uint256 finalResult);
+    event WorkflowTriggered(
+        string indexed workflowName, uint256 indexed resultId, uint256 finalResult
+    );
     event MarketOnboarded(
         Platforms indexed platform,
         string indexed tickerHash,
@@ -244,13 +247,13 @@ contract AIMM is IReceiverTemplate {
      * @param optionBPrice New external price for option B
      * @param volume New trading volume
      */
-    function updateExternalMarketData(
+    function _updateExternalMarketData(
         string memory externalMarketId,
         uint256 optionAPrice,
         uint256 optionBPrice,
         uint256 volume,
         MarketStatus status
-    ) public onlyOwner marketMustExist(externalMarketId) {
+    ) private {
         require(
             bytes(externalMarkets[externalMarketId].marketName).length > 0, "Market does not exist"
         );
@@ -259,7 +262,7 @@ contract AIMM is IReceiverTemplate {
         market.optionBCurrentExternalPrice = optionBPrice;
         market.volume = volume;
         market.lastCurrentPriceUpdate = block.timestamp;
-        market.status = status; //TODO Don't forget the status from Kalshi CRE needs to be converted to contract format
+        market.status = status;
         emit CurrentPricesUpdated(
             market.platform, // Platforms enum (indexed)
             externalMarketId, // string tickerHash (indexed, hashed)
@@ -275,11 +278,12 @@ contract AIMM is IReceiverTemplate {
      * @param optionAFairPrice New fair price for option A
      * @param optionBFairPrice New fair price for option B
      */
+    // TODO: Add authorization - whitelist Chainlink CRE nodes instead of onlyOwner
     function updateFairPrices(
         string memory externalMarketId,
         uint256 optionAFairPrice,
         uint256 optionBFairPrice
-    ) public onlyOwner marketMustExist(externalMarketId) {
+    ) public {
         require(
             bytes(externalMarkets[externalMarketId].marketName).length > 0, "Market does not exist"
         );
@@ -434,33 +438,38 @@ contract AIMM is IReceiverTemplate {
 
         // // --- Core Logic ---
         // // Update contract state with the new result
-        // resultCount++;
-        // results[resultCount] = creWorkflowResult;
-        // latestResult = creWorkflowResult;
+        resultCount++;
+        results[resultCount] = creWorkflowResult;
+        latestResult = creWorkflowResult;
 
         // // Use ticker directly
         // string memory externalMarketId = creWorkflowResult.ticker;
 
-        // // Handle different workflow types
-        // bytes32 workflowNameHash = keccak256(abi.encodePacked(creWorkflowResult.workflowName));
+        // Handle different workflow types
+        bytes32 workflowNameHash = keccak256(abi.encodePacked(creWorkflowResult.workflowName));
 
-        // if (workflowNameHash == keccak256(abi.encodePacked("currentPriceFetch"))) {
-        //     updateExternalMarketData(
-        //         externalMarketId,
-        //         creWorkflowResult.optionAPrice,
-        //         creWorkflowResult.optionBPrice,
-        //         creWorkflowResult.volume,
-        //         creWorkflowResult.status
-        //     );
-        // } else if (workflowNameHash == keccak256(abi.encodePacked("fairPriceFetch"))) {
-        //     updateFairPrices(
-        //         externalMarketId, creWorkflowResult.optionAPrice, creWorkflowResult.optionBPrice
-        //     );
-        // } else if (workflowNameHash == keccak256(abi.encodePacked("marketStatusUp"))) {
+        if (workflowNameHash == keccak256(abi.encodePacked("currentPriceFetch"))) {
+            _updateExternalMarketData(
+                creWorkflowResult.ticker,
+                creWorkflowResult.optionAPrice,
+                creWorkflowResult.optionBPrice,
+                creWorkflowResult.volume,
+                creWorkflowResult.status
+            );
+            emit WorkflowTriggered(creWorkflowResult.workflowName, resultCount, block.timestamp);
+        } else if (workflowNameHash == keccak256(abi.encodePacked("fairPriceFetch"))) {
+            updateFairPrices(
+                creWorkflowResult.ticker,
+                creWorkflowResult.optionAPrice,
+                creWorkflowResult.optionBPrice
+            );
+        }
+        // else if (workflowNameHash == keccak256(abi.encodePacked("marketStatusUp"))) {
         //     emit UnknownWorkflow(creWorkflowResult.workflowName);
+        //     // revert UnknownWorkflow(creWorkflowResult.workflowName);
         // }
 
-        emit ResultUpdated(creWorkflowResult.workflowName, 0, block.timestamp);
+        emit ResultUpdated(creWorkflowResult.workflowName, resultCount, block.timestamp);
     }
 
     // This function is a "dry-run" utility. It allows an offchain system to check

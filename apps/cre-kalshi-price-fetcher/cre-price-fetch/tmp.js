@@ -15202,7 +15202,19 @@ var convertPriceToSixDecimals = (priceInCents) => {
   return BigInt(Math.round(priceInCents * 1e4));
 };
 var convertVolume = (volume) => {
-  return BigInt(Math.round(volume * 1000000000000000000));
+  return BigInt(Math.round(volume * 1e6));
+};
+var mapStatus = (status) => {
+  switch (status) {
+    case "open":
+      return 1;
+    case "closed":
+      return 3;
+    case "settled":
+      return 2;
+    default:
+      return 0;
+  }
 };
 var fetchSingleMarketUpdate = (sendRequester, config, externalMarketId) => {
   const req = {
@@ -15218,11 +15230,13 @@ var fetchSingleMarketUpdate = (sendRequester, config, externalMarketId) => {
   const optionAPrice = convertPriceToSixDecimals(apiResponse.market.yes_ask);
   const optionBPrice = convertPriceToSixDecimals(apiResponse.market.no_ask);
   const volume = convertVolume(apiResponse.market.volume);
+  const status = mapStatus(apiResponse.market.status);
   return {
     externalMarketId,
     optionAPrice,
     optionBPrice,
-    volume
+    volume,
+    status
   };
 };
 var fetchMarketIds = (sendRequester, config) => {
@@ -15260,8 +15274,9 @@ var fetchMarketIds = (sendRequester, config) => {
   if (!marketIds || marketIds.length === 0) {
     throw new Error("No market IDs returned from indexer");
   }
+  const randomMarketIds = marketIds.sort(() => Math.random() - 0.5).slice(0, 5);
   return {
-    marketIds
+    marketIds: randomMarketIds
   };
 };
 var updateAIMMPrices = (runtime2, workflowResult) => {
@@ -15339,7 +15354,8 @@ var updateAllMarkets = (runtime2) => {
         externalMarketId: identical,
         optionAPrice: median,
         optionBPrice: median,
-        volume: median
+        volume: median,
+        status: identical
       }))(runtime2.config, trackedMarket.externalMarketId).result();
       runtime2.log(`Market data for ${trackedMarket.externalMarketId}: ${safeJsonStringify(currentMarketPrices)}`);
       marketUpdates.push(currentMarketPrices);
@@ -15353,12 +15369,12 @@ var updateAllMarkets = (runtime2) => {
     try {
       const workflowResult = {
         workflowName: "currentPriceFetch",
-        platform: "kalshi",
-        externalMarketId: marketUpdate.externalMarketId,
+        platform: 0,
+        ticker: marketUpdate.externalMarketId,
         optionAPrice: marketUpdate.optionAPrice,
         optionBPrice: marketUpdate.optionBPrice,
         volume: marketUpdate.volume,
-        status: 1
+        status: marketUpdate.status
       };
       const txHash = updateAIMMPrices(runtime2, workflowResult);
       runtime2.log(`Successfully updated AIMM contract for market ${marketUpdate.externalMarketId}, txHash: ${txHash}`);

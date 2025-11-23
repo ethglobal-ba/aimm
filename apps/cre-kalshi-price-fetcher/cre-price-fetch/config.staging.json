@@ -2,7 +2,7 @@
   "schedule": "*/10 * * * * *",
   "kalshiApiUrl": "https://api.elections.kalshi.com/trade-api/v2",
   "aimmIndexerUrl": "http://38.224.253.95:42069/graphql",
-  "aimmContractAddress": "0x86431FABafC73e4F5593093334960395b48f72f8",
+  "aimmContractAddress": "0xffdeb4c6c17ee7ea15ccf90feb376a52a1afddfc",
   "chainSelectorName": "ethereum-testnet-sepolia-base-1",
   "gasLimit": "2000000"
 }

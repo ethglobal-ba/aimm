@@ -299,8 +299,8 @@ contract AIMMTest is Test {
             AIMM.Platforms.KALSHI, EXTERNAL_ID, EXTERNAL_ID, result.optionAPrice, result.optionBPrice
         );
 
-        vm.expectEmit(true, false, false, true);
-        emit AIMM.ResultUpdated(1, block.timestamp);
+        vm.expectEmit(true, true, false, true);
+        emit AIMM.ResultUpdated("currentPriceFetch", 0, block.timestamp);
 
         aimm.onReport(metadata, report);
 

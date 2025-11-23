@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Contract configuration
-CONTRACT_ADDRESS = "0xff3F84978B81f0457584919213fdDeBD579E74B1"
+CONTRACT_ADDRESS = "0x185D4f91D3D53a7523d312BbCa5c0B8ac2cEe32b"
 RPC_URL = os.getenv("RPC_URL", "https://sepolia.base.org")  # Base Sepolia default
 
 # Load contract ABI from generated JSON file

@@ -31,6 +31,7 @@ type MarketUpdate = {
   optionAPrice: bigint;
   optionBPrice: bigint;
   volume: bigint;
+  status: MarketStatus;
 };
 
 type MarketIdsResponse = {
@@ -133,7 +134,19 @@ const convertPriceToSixDecimals = (priceInCents: number): bigint => {
 
 // Convert volume to appropriate scale
 const convertVolume = (volume: number): bigint => {
-  return BigInt(Math.round(volume * 1e18)); // Standard 18-decimal scaling for volume
+  return BigInt(Math.round(volume * 1e6)); // Standard 18-decimal scaling for volume
+};
+const mapStatus = (status: string): MarketStatus => {
+  switch (status) {
+    case 'open':
+      return MarketStatus.Active;
+    case 'closed':
+      return MarketStatus.ClosedExternal;
+    case 'settled':
+      return MarketStatus.ClosedInternal;
+    default:
+      return MarketStatus.Inactive;
+  }
 };
 
 // Fetch tracked market IDs from the AIMM contract - COMMENTED OUT
@@ -213,11 +226,13 @@ const fetchSingleMarketUpdate = (
   const optionBPrice = convertPriceToSixDecimals(apiResponse.market.no_ask);
   const volume = convertVolume(apiResponse.market.volume);
 
+  const status = mapStatus(apiResponse.market.status);
   return {
     externalMarketId,
     optionAPrice,
     optionBPrice,
     volume,
+    status,
   } satisfies MarketUpdate;
 };
 
@@ -267,9 +282,10 @@ const fetchMarketIds = (sendRequester: HTTPSendRequester, config: Config): Marke
   if (!marketIds || marketIds.length === 0) {
     throw new Error('No market IDs returned from indexer');
   }
-
+  // Return a random 5 market IDs
+  const randomMarketIds = marketIds.sort(() => Math.random() - 0.5).slice(0, 5);
   return {
-    marketIds,
+    marketIds: randomMarketIds,
   } satisfies MarketIdsResponse;
 };
 
@@ -396,6 +412,7 @@ const updateAllMarkets = (runtime: Runtime<Config>): string => {
             optionAPrice: median,
             optionBPrice: median,
             volume: median,
+            status: identical,
           })
         )(runtime.config, trackedMarket.externalMarketId)
         .result();
@@ -416,12 +433,12 @@ const updateAllMarkets = (runtime: Runtime<Config>): string => {
     try {
       const workflowResult: WorkflowResult = {
         workflowName: 'currentPriceFetch',
-        platform: 'kalshi', // Since we're fetching from Kalshi
-        externalMarketId: marketUpdate.externalMarketId,
+        platform: Platform.KALSHI, // Since we're fetching from Kalshi
+        ticker: marketUpdate.externalMarketId,
         optionAPrice: marketUpdate.optionAPrice,
         optionBPrice: marketUpdate.optionBPrice,
         volume: marketUpdate.volume,
-        status: MarketStatus.Active, // Default to active for current price updates
+        status: marketUpdate.status,
       };
 
       const txHash = updateAIMMPrices(runtime, workflowResult);
