@@ -1,3 +1,8 @@
+-- select *
+-- from ai_agent_output
+-- where run_id = '1067a426-1c79-4ad3-a7c2-eda252347e4a';
+
+-----------------
 -- AI Agent Output Schema v2
 -- Updated based on Kevin's feedback for better UI/streaming support
 -- This table stores AI agent workflow steps with stable envelope structure
@@ -35,6 +40,8 @@ CREATE TABLE IF NOT EXISTS ai_agent_output (
 
     -- Timestamps (Kevin's suggestion for per-run)
     inserted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    step_started_at TIMESTAMP WITH TIME ZONE,    -- When the step started processing
+    step_finished_at TIMESTAMP WITH TIME ZONE,   -- When the step finished processing
 
     -- Constraints
     CONSTRAINT valid_confidence CHECK (confidence IS NULL OR (confidence >= 0 AND confidence <= 1)),
@@ -47,16 +54,16 @@ CREATE TABLE IF NOT EXISTS ai_agent_output (
 
 -- Indexes optimized for UI queries (Kevin's use cases)
 CREATE INDEX IF NOT EXISTS idx_ai_agent_output_run_id ON ai_agent_output(run_id);
-CREATE INDEX IF NOT EXISTS idx_ai_agent_output_market_id ON ai_agent_output(market_id);
 CREATE INDEX IF NOT EXISTS idx_ai_agent_output_market_ticker ON ai_agent_output(market_ticker);
 CREATE INDEX IF NOT EXISTS idx_ai_agent_output_step_index ON ai_agent_output(step_index);
 CREATE INDEX IF NOT EXISTS idx_ai_agent_output_step_kind ON ai_agent_output(step_kind);
 CREATE INDEX IF NOT EXISTS idx_ai_agent_output_direction ON ai_agent_output(direction) WHERE direction IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_ai_agent_output_run_created ON ai_agent_output(run_started_at DESC);
-CREATE INDEX IF NOT EXISTS idx_ai_agent_output_step_created ON ai_agent_output(step_created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ai_agent_output_run_created ON ai_agent_output(inserted_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ai_agent_output_step_started ON ai_agent_output(step_started_at DESC) WHERE step_started_at IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_ai_agent_output_step_finished ON ai_agent_output(step_finished_at DESC) WHERE step_finished_at IS NOT NULL;
 
 -- Composite index for per-market views
-CREATE INDEX IF NOT EXISTS idx_ai_agent_output_market_run ON ai_agent_output(market_id, run_id, step_index);
+CREATE INDEX IF NOT EXISTS idx_ai_agent_output_market_run ON ai_agent_output(market_ticker, run_id, step_index);
 
 -- GIN index for JSON queries on step_output
 CREATE INDEX IF NOT EXISTS idx_ai_agent_output_step_output_gin ON ai_agent_output USING GIN(step_output);
@@ -79,7 +86,9 @@ BEGIN
         'step_loading', COALESCE(NEW.step_loading, OLD.step_loading),
         'headline', COALESCE(NEW.headline, OLD.headline),
         'direction', COALESCE(NEW.direction, OLD.direction),
-        'timestamp', EXTRACT(epoch FROM COALESCE(NEW.inserted_at, OLD.inserted_at))
+        'timestamp', EXTRACT(epoch FROM COALESCE(NEW.inserted_at, OLD.inserted_at)),
+        'step_started_at', EXTRACT(epoch FROM COALESCE(NEW.step_started_at, OLD.step_started_at)),
+        'step_finished_at', EXTRACT(epoch FROM COALESCE(NEW.step_finished_at, OLD.step_finished_at))
     );
 
     -- Send notification on the ai_agent_output channel
