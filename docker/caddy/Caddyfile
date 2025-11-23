@@ -1,0 +1,27 @@
+# Caddy configuration for AIMM indexer
+# Uses self-signed certificate for HTTPS (no domain required)
+
+{
+	# Enable local HTTPS with self-signed certs
+	local_certs
+}
+
+# HTTPS on localhost - Caddy will generate a self-signed certificate
+:443 {
+	# Reverse proxy to indexer service
+	reverse_proxy indexer:42069
+
+	# Enable compression
+	encode gzip
+
+	# Logging
+	log {
+		output stdout
+		format console
+	}
+}
+
+# HTTP redirect to HTTPS
+:80 {
+	redir https://{host}{uri} permanent
+}
