@@ -51,7 +51,7 @@ import {
   getStatusBadgeClass,
   getStatusDotClass,
 } from '@/lib/market-utils';
-import { useUpdateMarketAutomationConfig } from '@workspace/aimm-sdk';
+import { useUpdateMarketAutomationConfig } from '@/hooks/use-update-market-automation-config';
 import { useMarketsStatus } from '@/components/markets-status-context';
 
 const platformLabels: Record<Market['platform'], string> = {
