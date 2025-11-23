@@ -110,6 +110,84 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "aimm-fullstack" <<
 	    FOR EACH ROW
 	    EXECUTE FUNCTION notify_ai_agent_output_change();
 
+	-- Generic notification function for all Ponder tables
+	CREATE OR REPLACE FUNCTION notify_ponder_table_change()
+	RETURNS TRIGGER AS \$\$
+	DECLARE
+	    notification JSON;
+	    channel_name TEXT;
+	BEGIN
+	    -- Determine channel name from trigger table name
+	    channel_name = TG_TABLE_NAME;
+
+	    -- Create notification payload with operation and all row fields
+	    IF TG_OP = 'DELETE' THEN
+	        notification = json_build_object('operation', 'delete') || row_to_json(OLD);
+	        PERFORM pg_notify(channel_name, notification::text);
+	        RETURN OLD;
+	    ELSIF TG_OP = 'INSERT' THEN
+	        notification = json_build_object('operation', 'insert') || row_to_json(NEW);
+	        PERFORM pg_notify(channel_name, notification::text);
+	        RETURN NEW;
+	    ELSIF TG_OP = 'UPDATE' THEN
+	        notification = json_build_object('operation', 'update') || row_to_json(NEW);
+	        PERFORM pg_notify(channel_name, notification::text);
+	        RETURN NEW;
+	    END IF;
+
+	    RETURN NULL;
+	END;
+	\$\$ language 'plpgsql';
+
+	-- Create triggers for all Ponder tables
+	-- Market table
+	CREATE TRIGGER market_notify
+	    AFTER INSERT OR UPDATE OR DELETE ON market
+	    FOR EACH ROW
+	    EXECUTE FUNCTION notify_ponder_table_change();
+
+	-- Market config table
+	CREATE TRIGGER market_config_notify
+	    AFTER INSERT OR UPDATE OR DELETE ON market_config
+	    FOR EACH ROW
+	    EXECUTE FUNCTION notify_ponder_table_change();
+
+	-- Current price update table (renamed from price_update)
+	CREATE TRIGGER current_price_update_notify
+	    AFTER INSERT OR UPDATE OR DELETE ON current_price_update
+	    FOR EACH ROW
+	    EXECUTE FUNCTION notify_ponder_table_change();
+
+	-- Fair market price update table (new)
+	CREATE TRIGGER fair_market_price_update_notify
+	    AFTER INSERT OR UPDATE OR DELETE ON fair_market_price_update
+	    FOR EACH ROW
+	    EXECUTE FUNCTION notify_ponder_table_change();
+
+	-- Market status change table
+	CREATE TRIGGER market_status_change_notify
+	    AFTER INSERT OR UPDATE OR DELETE ON market_status_change
+	    FOR EACH ROW
+	    EXECUTE FUNCTION notify_ponder_table_change();
+
+	-- Default config update table
+	CREATE TRIGGER default_config_update_notify
+	    AFTER INSERT OR UPDATE OR DELETE ON default_config_update
+	    FOR EACH ROW
+	    EXECUTE FUNCTION notify_ponder_table_change();
+
+	-- Workflow result table
+	CREATE TRIGGER workflow_result_notify
+	    AFTER INSERT OR UPDATE OR DELETE ON workflow_result
+	    FOR EACH ROW
+	    EXECUTE FUNCTION notify_ponder_table_change();
+
+	-- Ownership transfer table
+	CREATE TRIGGER ownership_transfer_notify
+	    AFTER INSERT OR UPDATE OR DELETE ON ownership_transfer
+	    FOR EACH ROW
+	    EXECUTE FUNCTION notify_ponder_table_change();
+
 	-- Create a publication for logical replication (for external subscribers)
 	CREATE PUBLICATION ai_agent_output_pub FOR TABLE ai_agent_output;
 
