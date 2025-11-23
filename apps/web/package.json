@@ -36,7 +36,8 @@
     "viem": "^2.39.3",
     "wagmi": "^3.0.1",
     "x402-express": "^0.7.3",
-    "x402-fetch": "^0.7.3"
+    "x402-fetch": "^0.7.3",
+    "x402-next": "0.7.3"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^6.1.0",

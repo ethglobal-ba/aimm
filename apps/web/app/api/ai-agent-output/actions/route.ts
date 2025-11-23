@@ -20,10 +20,27 @@ export async function GET(request: NextRequest): Promise<Response> {
     limit = parsed;
   }
 
+  const requestId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  // eslint-disable-next-line no-console
+  console.log('[ai-agent-output/actions] Incoming request', {
+    requestId,
+    url: request.url,
+    limit,
+    marketId,
+    marketTicker,
+  });
+
   try {
     const actions = await getRecentAgentActions(limit, {
       marketId: marketId ?? undefined,
       marketTicker: marketTicker ?? undefined,
+    });
+
+    // eslint-disable-next-line no-console
+    console.log('[ai-agent-output/actions] Query result', {
+      requestId,
+      actionsCount: actions.length,
     });
 
     const dto = actions.map(action => ({
@@ -31,10 +48,19 @@ export async function GET(request: NextRequest): Promise<Response> {
       timestamp: action.timestamp.toISOString(),
     }));
 
+    // eslint-disable-next-line no-console
+    console.log('[ai-agent-output/actions] Response payload ready', {
+      requestId,
+      dtoCount: dto.length,
+    });
+
     return Response.json({ actions: dto });
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Failed to fetch recent agent actions', error);
+    console.error('[ai-agent-output/actions] Failed to fetch recent agent actions', {
+      requestId,
+      error,
+    });
 
     return new Response('Internal Server Error', { status: 500 });
   }

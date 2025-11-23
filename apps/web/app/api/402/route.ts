@@ -1,42 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Simple x402 implementation for testing
-const RECEIVING_WALLET = process.env.X402_WALLET_ADDRESS || "0x3E1D67CB6842165Aa0F27591fC89Ecb3244E55f5";
+// NOTE:
+// x402 payment enforcement and verification are handled by the Next.js middleware
+// defined in `apps/web/middleware.ts` using `paymentMiddleware` from `x402-next`.
+// By the time this route handler runs, the request has either:
+// - Been rejected with a 402 response by the middleware, or
+// - Successfully verified and (optionally) settled by the facilitator.
+//
+// This handler is therefore responsible only for performing the paid work:
+// triggering the AIMM agent to recompute fair prices for the requested market.
 
 export async function GET(request: NextRequest) {
-  // Check for x402 payment header
-  const paymentHeader = request.headers.get('X-PAYMENT');
-
-  if (!paymentHeader) {
-    // No payment provided, return 402 with payment instructions
-    const paymentInstructions = {
-      message: "Payment required to access this endpoint",
-      payment_required: true,
-      price: "$0.001",
-      network: "base-sepolia",
-      receiving_wallet: RECEIVING_WALLET,
-      facilitator_url: "https://x402.org/facilitator",
-      instructions: "Include payment proof in X-PAYMENT header and market_ticker query param to access this endpoint",
-      example_usage: "curl -H 'X-PAYMENT: proof' 'http://localhost:3000/api/402?market_ticker=polymarket-123'"
-    };
-
-    return NextResponse.json(paymentInstructions, { status: 402 });
-  }
-
-  // Payment verified, now call the AIMM agent Flask API
   try {
     const { searchParams } = new URL(request.url);
     const marketTicker = searchParams.get('market_ticker');
 
     if (!marketTicker) {
-      return NextResponse.json({
-        error: "Missing required parameter: market_ticker",
-        example: "?market_ticker=polymarket-123"
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: 'Missing required parameter: market_ticker',
+          example: '?market_ticker=polymarket-123',
+        },
+        { status: 400 }
+      );
     }
 
-    // Call the Flask API
-    const flaskApiUrl = process.env.AIMM_AGENT_URL || "http://localhost:5000";
+    // Call the Flask AIMM agent API to recompute fair prices.
+    const flaskApiUrl = 'http://localhost:5000';
 
     console.log(`Calling AIMM agent at ${flaskApiUrl}/updatePrice for ticker: ${marketTicker}`);
 
@@ -46,40 +36,44 @@ export async function GET(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        market_ticker: marketTicker
-      })
+        market_ticker: marketTicker,
+      }),
     });
 
     if (!flaskResponse.ok) {
       const errorText = await flaskResponse.text();
       console.error(`Flask API error: ${flaskResponse.status} - ${errorText}`);
 
-      return NextResponse.json({
-        error: "Failed to update market price",
-        details: `AIMM agent returned ${flaskResponse.status}`,
-        agent_error: errorText
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: 'Failed to update market price',
+          details: `AIMM agent returned ${flaskResponse.status}`,
+          agent_error: errorText,
+        },
+        { status: 500 }
+      );
     }
 
     const flaskData = await flaskResponse.json();
 
-    // Return successful response with price update data
     return NextResponse.json({
-      message: "Payment successful! Market price updated.",
+      message: 'Payment successful! Market price updated.',
       timestamp: new Date().toISOString(),
       paid: true,
       payment_verified: true,
       market_ticker: marketTicker,
-      price_update: flaskData
+      price_update: flaskData,
     });
-
   } catch (error) {
     console.error('Error calling AIMM agent:', error);
 
-    return NextResponse.json({
-      error: "Internal server error",
-      details: "Failed to communicate with AIMM agent",
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+        details: 'Failed to communicate with AIMM agent',
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 }
+    );
   }
 }

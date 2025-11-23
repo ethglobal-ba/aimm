@@ -6,7 +6,9 @@
     "DO_NOT_TRACK=1",
     "STORYBOOK_DISABLE_TELEMETRY=1",
     "CLAUDE_CODE_ENABLE_TELEMETRY=0",
-    "DATABASE_URL"
+    "DATABASE_URL",
+    "X402_WALLET_ADDRESS",
+    "AIMM_AGENT_URL"
   ],
   "tasks": {
     "build": {
@@ -19,7 +21,9 @@
         "NEXT_TELEMETRY_DISABLED=1",
         "DO_NOT_TRACK=1",
         "STORYBOOK_DISABLE_TELEMETRY=1",
-        "CLAUDE_CODE_ENABLE_TELEMETRY=0"
+        "CLAUDE_CODE_ENABLE_TELEMETRY=0",
+        "X402_WALLET_ADDRESS",
+        "AIMM_AGENT_URL"
       ]
     },
     "test": {
@@ -83,7 +87,9 @@
         "NEXT_TELEMETRY_DISABLED",
         "DO_NOT_TRACK",
         "STORYBOOK_DISABLE_TELEMETRY",
-        "CLAUDE_CODE_ENABLE_TELEMETRY"
+        "CLAUDE_CODE_ENABLE_TELEMETRY",
+        "X402_WALLET_ADDRESS",
+        "AIMM_AGENT_URL"
       ]
     },
     "lint:fix": {
@@ -93,7 +99,9 @@
         "NEXT_TELEMETRY_DISABLED",
         "DO_NOT_TRACK",
         "STORYBOOK_DISABLE_TELEMETRY",
-        "CLAUDE_CODE_ENABLE_TELEMETRY"
+        "CLAUDE_CODE_ENABLE_TELEMETRY",
+        "X402_WALLET_ADDRESS",
+        "AIMM_AGENT_URL"
       ]
     },
 
