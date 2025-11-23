@@ -2,9 +2,11 @@ import { onchainTable } from 'ponder';
 
 // Markets table
 export const market = onchainTable('market', t => ({
-  id: t.text().primaryKey(), // marketId
-  platform: t.text().notNull(),
-  externalId: t.text().notNull(),
+  id: t.text().primaryKey(), // marketId (ticker)
+  platform: t.integer().notNull(), // Platform enum: 0=KALSHI, 1=LIMITLESS, 2=TRUMPFUN
+  platformName: t.text().notNull(), // Human readable platform name: 'Kalshi', 'Limitless', 'Trump.fun'
+  tickerHash: t.hex().notNull(), // Hash of the ticker from contract event
+  externalId: t.text().notNull(), // Same as id, kept for compatibility
   marketName: t.text().notNull(),
   optionAText: t.text().notNull(),
   optionBText: t.text().notNull(),
@@ -32,7 +34,8 @@ export const market = onchainTable('market', t => ({
 export const marketConfig = onchainTable('market_config', t => ({
   id: t.text().primaryKey(), // `${marketId}-${blockNumber}-${logIndex}`
   marketId: t.text().notNull(),
-  platform: t.text().notNull(),
+  platform: t.integer().notNull(), // Platform enum
+  platformName: t.text().notNull(), // Human readable platform name
   minPriceDiff: t.bigint().notNull(),
   maxSpend: t.bigint().notNull(),
   slippage: t.bigint().notNull(),
@@ -45,7 +48,8 @@ export const marketConfig = onchainTable('market_config', t => ({
 export const priceUpdate = onchainTable('price_update', t => ({
   id: t.text().primaryKey(), // `${marketId}-external-${blockNumber}-${logIndex}`
   marketId: t.text().notNull(),
-  platform: t.text().notNull(),
+  platform: t.integer().notNull(), // Platform enum
+  platformName: t.text().notNull(), // Human readable platform name
   type: t.text().notNull(), // 'external' or 'fair'
   optionAPrice: t.bigint().notNull(),
   optionBPrice: t.bigint().notNull(),
@@ -58,7 +62,8 @@ export const priceUpdate = onchainTable('price_update', t => ({
 export const marketStatusChange = onchainTable('market_status_change', t => ({
   id: t.text().primaryKey(), // `${marketId}-${blockNumber}-${logIndex}`
   marketId: t.text().notNull(),
-  platform: t.text().notNull(),
+  platform: t.integer().notNull(), // Platform enum
+  platformName: t.text().notNull(), // Human readable platform name
   oldStatus: t.integer(),
   newStatus: t.integer().notNull(),
   timestamp: t.bigint().notNull(),

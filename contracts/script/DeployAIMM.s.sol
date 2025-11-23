@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.29;
 
 import {Script, console} from "forge-std/Script.sol";
 import {AIMM} from "../src/AIMM.sol";
@@ -17,9 +17,11 @@ contract DeployAIMM is Script {
 
     function run() public returns (AIMM aimm) {
         // Read configuration from environment variables (with fallbacks)
-        uint256 driftPercentagePoints = vm.envOr("AIMM_DRIFT_PERCENTAGE", DEFAULT_DRIFT_PERCENTAGE_POINTS);
+        uint256 driftPercentagePoints =
+            vm.envOr("AIMM_DRIFT_PERCENTAGE", DEFAULT_DRIFT_PERCENTAGE_POINTS);
         uint256 maxSpendAmount = vm.envOr("AIMM_MAX_SPEND_AMOUNT", DEFAULT_MAX_SPEND_AMOUNT);
-        uint256 slippageToleranceBps = vm.envOr("AIMM_SLIPPAGE_TOLERANCE", DEFAULT_SLIPPAGE_TOLERANCE_BPS);
+        uint256 slippageToleranceBps =
+            vm.envOr("AIMM_SLIPPAGE_TOLERANCE", DEFAULT_SLIPPAGE_TOLERANCE_BPS);
 
         console.log("Deploying AIMM with configuration:");
         console.log("  Drift Percentage Points:", driftPercentagePoints);
@@ -141,105 +143,105 @@ contract DeployAIMM is Script {
      */
     function onboardKalshiMarkets(AIMM aimm) public {
         console.log("\n=== Onboarding Kalshi Markets ===");
-        
+
         vm.startBroadcast();
 
         // 1. Trump Endorsement - Daniel Cameron (Kentucky Senate)
-        aimm.onboardMarket(AIMM.OnboardMarketParams({
-            ticker: "KXTRUMPENDORSE-26SEP15-DCAM",
-            platform: AIMM.Platforms.KALSHI,
-            marketName: "Will Donald Trump endorse Daniel Cameron in the 2026 Kentucky Senate Republican primary before May 19, 2026?",
-            subtitle: ":: Kentucky Senate",
-            eventTicker: "KXTRUMPENDORSE-26SEP15",
-            optionAText: "Yes",
-            optionBText: "No",
-            optionACurrentExternalPrice: 21000000, // yes_ask: 21 cents
-            optionBCurrentExternalPrice: 89000000, // no_bid: ~89 cents (100-11)
-            initialVolume: 0,
-            imageUrl: "https://example.com/image.jpg"
-        }));
+        aimm.onboardMarket(
+            AIMM.OnboardMarketParams({
+                ticker: "KXTRUMPENDORSE-26SEP15-DCAM",
+                platform: AIMM.Platforms.KALSHI,
+                marketName: "Will Donald Trump endorse Daniel Cameron in the 2026 Kentucky Senate Republican primary before May 19, 2026?",
+                subtitle: ":: Kentucky Senate",
+                eventTicker: "KXTRUMPENDORSE-26SEP15",
+                optionACurrentExternalPrice: 21000000, // yes_ask: 21 cents
+                optionBCurrentExternalPrice: 89000000, // no_bid: ~89 cents (100-11)
+                initialVolume: 0,
+                imageUrl: "https://example.com/image.jpg"
+            })
+        );
         console.log("Onboarded: Daniel Cameron Kentucky Senate Endorsement");
 
         // 2. Trump Endorsement - Barry Moore (Alabama Senate)
-        aimm.onboardMarket(AIMM.OnboardMarketParams({
-            ticker: "KXTRUMPENDORSE-26SEP15-BMOR",
-            platform: AIMM.Platforms.KALSHI,
-            marketName: "Will Donald Trump endorse Barry Moore in the 2026 Alabama Senate Republican primary before May 19, 2026?",
-            subtitle: ":: Alabama Senate",
-            eventTicker: "KXTRUMPENDORSE-26SEP15",
-            optionAText: "Yes",
-            optionBText: "No",
-            optionACurrentExternalPrice: 33000000, // yes_ask: 33 cents
-            optionBCurrentExternalPrice: 77000000, // no_bid: 77 cents
-            initialVolume: 0,
-            imageUrl: "https://example.com/image.jpg"
-        }));
+        aimm.onboardMarket(
+            AIMM.OnboardMarketParams({
+                ticker: "KXTRUMPENDORSE-26SEP15-BMOR",
+                platform: AIMM.Platforms.KALSHI,
+                marketName: "Will Donald Trump endorse Barry Moore in the 2026 Alabama Senate Republican primary before May 19, 2026?",
+                subtitle: ":: Alabama Senate",
+                eventTicker: "KXTRUMPENDORSE-26SEP15",
+                optionACurrentExternalPrice: 33000000, // yes_ask: 33 cents
+                optionBCurrentExternalPrice: 77000000, // no_bid: 77 cents
+                initialVolume: 0,
+                imageUrl: "https://example.com/image.jpg"
+            })
+        );
         console.log("Onboarded: Barry Moore Alabama Senate Endorsement");
 
         // 3. Trump Endorsement - Buddy Carter (Georgia Senate)
-        aimm.onboardMarket(AIMM.OnboardMarketParams({
-            ticker: "KXTRUMPENDORSE-26SEP15-BCAR",
-            platform: AIMM.Platforms.KALSHI,
-            marketName: "Will Donald Trump endorse Buddy Carter in the 2026 Georgia Senate Republican primary before May 19, 2026?",
-            subtitle: ":: Georgia Senate",
-            eventTicker: "KXTRUMPENDORSE-26SEP15",
-            optionAText: "Yes",
-            optionBText: "No",
-            optionACurrentExternalPrice: 15000000, // yes_ask: 15 cents
-            optionBCurrentExternalPrice: 95000000, // no_bid: 95 cents
-            initialVolume: 0,
-            imageUrl: "https://example.com/image.jpg"
-        }));
+        aimm.onboardMarket(
+            AIMM.OnboardMarketParams({
+                ticker: "KXTRUMPENDORSE-26SEP15-BCAR",
+                platform: AIMM.Platforms.KALSHI,
+                marketName: "Will Donald Trump endorse Buddy Carter in the 2026 Georgia Senate Republican primary before May 19, 2026?",
+                subtitle: ":: Georgia Senate",
+                eventTicker: "KXTRUMPENDORSE-26SEP15",
+                optionACurrentExternalPrice: 15000000, // yes_ask: 15 cents
+                optionBCurrentExternalPrice: 95000000, // no_bid: 95 cents
+                initialVolume: 0,
+                imageUrl: "https://example.com/image.jpg"
+            })
+        );
         console.log("Onboarded: Buddy Carter Georgia Senate Endorsement");
 
         // 4. Trump Endorsement - Andy Barr (Kentucky Senate)
-        aimm.onboardMarket(AIMM.OnboardMarketParams({
-            ticker: "KXTRUMPENDORSE-26SEP15-ABAR",
-            platform: AIMM.Platforms.KALSHI,
-            marketName: "Will Donald Trump endorse Andy Barr in the 2026 Kentucky Senate Republican primary before May 19, 2026?",
-            subtitle: ":: Kentucky Senate",
-            eventTicker: "KXTRUMPENDORSE-26SEP15",
-            optionAText: "Yes",
-            optionBText: "No",
-            optionACurrentExternalPrice: 68000000, // yes_ask: 68 cents
-            optionBCurrentExternalPrice: 42000000, // no_bid: 42 cents
-            initialVolume: 0,
-            imageUrl: "https://example.com/image.jpg"
-        }));
+        aimm.onboardMarket(
+            AIMM.OnboardMarketParams({
+                ticker: "KXTRUMPENDORSE-26SEP15-ABAR",
+                platform: AIMM.Platforms.KALSHI,
+                marketName: "Will Donald Trump endorse Andy Barr in the 2026 Kentucky Senate Republican primary before May 19, 2026?",
+                subtitle: ":: Kentucky Senate",
+                eventTicker: "KXTRUMPENDORSE-26SEP15",
+                optionACurrentExternalPrice: 68000000, // yes_ask: 68 cents
+                optionBCurrentExternalPrice: 42000000, // no_bid: 42 cents
+                initialVolume: 0,
+                imageUrl: "https://example.com/image.jpg"
+            })
+        );
         console.log("Onboarded: Andy Barr Kentucky Senate Endorsement");
 
         // 5. Trump Endorsement - Julia Letlow (Louisiana Senate)
-        aimm.onboardMarket(AIMM.OnboardMarketParams({
-            ticker: "KXTRUMPENDORSE-26SEP15-JLET",
-            platform: AIMM.Platforms.KALSHI,
-            marketName: "Will Donald Trump endorse Julia Letlow in the 2026 Louisiana Senate Republican primary before May 16, 2026?",
-            subtitle: ":: Louisiana Senate",
-            eventTicker: "KXTRUMPENDORSE-26SEP15",
-            optionAText: "Yes",
-            optionBText: "No",
-            optionACurrentExternalPrice: 20000000, // yes_ask: 20 cents
-            optionBCurrentExternalPrice: 90000000, // no_bid: 90 cents
-            initialVolume: 0,
-            imageUrl: "https://example.com/image.jpg"
-        }));
+        aimm.onboardMarket(
+            AIMM.OnboardMarketParams({
+                ticker: "KXTRUMPENDORSE-26SEP15-JLET",
+                platform: AIMM.Platforms.KALSHI,
+                marketName: "Will Donald Trump endorse Julia Letlow in the 2026 Louisiana Senate Republican primary before May 16, 2026?",
+                subtitle: ":: Louisiana Senate",
+                eventTicker: "KXTRUMPENDORSE-26SEP15",
+                optionACurrentExternalPrice: 20000000, // yes_ask: 20 cents
+                optionBCurrentExternalPrice: 90000000, // no_bid: 90 cents
+                initialVolume: 0,
+                imageUrl: "https://example.com/image.jpg"
+            })
+        );
         console.log("Onboarded: Julia Letlow Louisiana Senate Endorsement");
 
         // Set markets to active status (except the first one)
         console.log("\n=== Setting Markets to Active Status ===");
-        
+
         // Activate all markets except Daniel Cameron (index 0)
         aimm.updateMarketStatus("KXTRUMPENDORSE-26SEP15-BMOR", AIMM.MarketStatus.Active);
         console.log("Activated: Barry Moore Alabama Senate");
-        
+
         aimm.updateMarketStatus("KXTRUMPENDORSE-26SEP15-BCAR", AIMM.MarketStatus.Active);
         console.log("Activated: Buddy Carter Georgia Senate");
-        
+
         aimm.updateMarketStatus("KXTRUMPENDORSE-26SEP15-ABAR", AIMM.MarketStatus.Active);
         console.log("Activated: Andy Barr Kentucky Senate");
-        
+
         aimm.updateMarketStatus("KXTRUMPENDORSE-26SEP15-JLET", AIMM.MarketStatus.Active);
         console.log("Activated: Julia Letlow Louisiana Senate");
-        
+
         console.log("Note: Daniel Cameron market left as Inactive for testing");
 
         vm.stopBroadcast();
@@ -247,7 +249,7 @@ contract DeployAIMM is Script {
         console.log("=== Kalshi Markets Onboarded Successfully ===");
         string[] memory marketIds = aimm.getAllMarketIds();
         console.log("Total markets onboarded:", marketIds.length);
-        
+
         // VERIFICATION: Check that markets are stored correctly
         _verifyMarketsOnboarded(aimm, marketIds);
     }
@@ -257,25 +259,27 @@ contract DeployAIMM is Script {
      */
     function _verifyMarketsOnboarded(AIMM aimm, string[] memory marketIds) internal view {
         console.log("\n=== Verifying Market Field Mapping ===");
-        
-        for (uint i = 0; i < marketIds.length && i < 2; i++) {
+
+        for (uint256 i = 0; i < marketIds.length && i < 2; i++) {
             string memory marketId = marketIds[i];
             console.log("Checking market ID:", marketId);
-            
+
             try aimm.getMarket(marketId) returns (AIMM.ExternalMarket memory market) {
                 console.log("  External Market ID (key):", marketId);
                 console.log("  Platform (should be KALSHI):", uint256(market.platform));
                 console.log("  Market Name:", market.marketName);
-                
+
                 // Verify this is correct: platform should be "kalshi", marketId should be ticker
                 if (market.platform != AIMM.Platforms.KALSHI) {
-                    console.log("  [WARNING] Platform is not KALSHI, found:", uint256(market.platform));
+                    console.log(
+                        "  [WARNING] Platform is not KALSHI, found:", uint256(market.platform)
+                    );
                     console.log("  [WARNING] This suggests parameter swapping occurred!");
                 }
-                
+
                 // Check if marketId looks like a Kalshi ticker (starts with 'KX')
                 if (bytes(marketId).length > 2) {
-                    if (bytes(marketId)[0] == 'K' && bytes(marketId)[1] == 'X') {
+                    if (bytes(marketId)[0] == "K" && bytes(marketId)[1] == "X") {
                         console.log("  [OK] Market ID looks like valid Kalshi ticker");
                     } else {
                         console.log("  [WARNING] Market ID does not look like Kalshi ticker");
@@ -296,19 +300,19 @@ contract DeployAIMM is Script {
 
         // 1. MarketOnboarded - Onboard a test market
         console.log("Emitting MarketOnboarded event...");
-        aimm.onboardMarket(AIMM.OnboardMarketParams({
-            ticker: "TEST-MARKET-001",
-            platform: AIMM.Platforms.KALSHI,
-            marketName: "Test Market for Verification",
-            subtitle: "SUBTITLETEST-MARKET-001", // subtitle with prefix
-            eventTicker: "EVENTTEST-MARKET-001", // eventTicker with prefix
-            optionAText: "Option A",
-            optionBText: "Option B",
-            optionACurrentExternalPrice: 50000000, // 50 cents
-            optionBCurrentExternalPrice: 50000000, // 50 cents
-            initialVolume: 1000000000000000000, // 1 ETH volume
-            imageUrl: "https://example.com/test-image.jpg"
-        }));
+        aimm.onboardMarket(
+            AIMM.OnboardMarketParams({
+                ticker: "TEST-MARKET-001",
+                platform: AIMM.Platforms.KALSHI,
+                marketName: "Test Market for Verification",
+                subtitle: "SUBTITLETEST-MARKET-001", // subtitle with prefix
+                eventTicker: "EVENTTEST-MARKET-001", // eventTicker with prefix
+                optionACurrentExternalPrice: 50000000, // 50 cents
+                optionBCurrentExternalPrice: 50000000, // 50 cents
+                initialVolume: 1000000000000000000, // 1 ETH volume
+                imageUrl: "https://example.com/test-image.jpg"
+            })
+        );
 
         // 2. MarketConfigUpdated - Update the test market config
         console.log("Emitting MarketConfigUpdated event...");
@@ -342,11 +346,11 @@ contract DeployAIMM is Script {
         // Create a mock WorkflowResult for current prices
         AIMM.WorkflowResult memory currentPriceResult = AIMM.WorkflowResult({
             workflowName: "currentPriceFetch",
-            platform: "kalshi",
+            platform: AIMM.Platforms.KALSHI,
             ticker: "TEST-MARKET-001",
-            optionAPrice: 60000000, // 60 cents
-            optionBPrice: 40000000, // 40 cents
-            volume: 2000000000000000000, // 2 ETH volume
+            optionAPrice: 600000, // 0.600000 USDC
+            optionBPrice: 400000, // 0.400000 USDC
+            volume: 2000000000000000000, // $2,000,000,000,000.000000 USDC volume
             status: AIMM.MarketStatus.Active
         });
 
@@ -357,7 +361,7 @@ contract DeployAIMM is Script {
         // Create a mock WorkflowResult for fair prices
         AIMM.WorkflowResult memory fairPriceResult = AIMM.WorkflowResult({
             workflowName: "fairPriceFetch",
-            platform: "kalshi",
+            platform: AIMM.Platforms.KALSHI,
             ticker: "TEST-MARKET-001",
             optionAPrice: 55000000, // 55 cents fair price
             optionBPrice: 45000000, // 45 cents fair price
