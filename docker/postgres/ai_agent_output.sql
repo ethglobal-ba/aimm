@@ -13,10 +13,8 @@ CREATE TABLE IF NOT EXISTS ai_agent_output (
     -- Main JSON data structure - flexible to accommodate various analysis formats
     output_data JSONB NOT NULL,
 
-    -- Extracted fields for easier querying (can be populated via triggers or application logic)
-    topics TEXT[],                        -- Array of extracted topic keywords
-    stance VARCHAR(50),                   -- e.g., 'bullish', 'bearish', 'neutral'
-    confidence_score DECIMAL(3,2),       -- 0.00 to 1.00 confidence level
+    -- Step completion indicator
+    is_last_step BOOLEAN DEFAULT FALSE,  -- Indicates if this is the final step in a workflow
 
     -- Metadata
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -24,8 +22,7 @@ CREATE TABLE IF NOT EXISTS ai_agent_output (
     block_number BIGINT,                  -- Related blockchain block if applicable
     transaction_hash VARCHAR(66),        -- Related transaction if applicable
 
-    -- Indexes for common queries
-    CONSTRAINT valid_confidence_score CHECK (confidence_score IS NULL OR (confidence_score >= 0 AND confidence_score <= 1))
+    -- No additional constraints needed
 );
 
 -- Indexes for performance
@@ -33,13 +30,10 @@ CREATE INDEX IF NOT EXISTS idx_ai_agent_output_market_id ON ai_agent_output(mark
 CREATE INDEX IF NOT EXISTS idx_ai_agent_output_analysis_type ON ai_agent_output(analysis_type);
 CREATE INDEX IF NOT EXISTS idx_ai_agent_output_workflow_id ON ai_agent_output(workflow_id);
 CREATE INDEX IF NOT EXISTS idx_ai_agent_output_created_at ON ai_agent_output(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_ai_agent_output_stance ON ai_agent_output(stance) WHERE stance IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_ai_agent_output_is_last_step ON ai_agent_output(is_last_step) WHERE is_last_step = TRUE;
 
 -- GIN index for JSON queries
 CREATE INDEX IF NOT EXISTS idx_ai_agent_output_data_gin ON ai_agent_output USING GIN(output_data);
-
--- Index for topics array
-CREATE INDEX IF NOT EXISTS idx_ai_agent_output_topics ON ai_agent_output USING GIN(topics) WHERE topics IS NOT NULL;
 
 -- Function to update the updated_at timestamp
 CREATE OR REPLACE FUNCTION update_ai_agent_output_updated_at()
@@ -64,15 +58,15 @@ CREATE TRIGGER update_ai_agent_output_updated_at
 -- ORDER BY created_at DESC
 -- LIMIT 1;
 --
--- 2. Get all analyses with specific topics:
+-- 2. Get final steps in workflows:
 -- SELECT * FROM ai_agent_output
--- WHERE topics && ARRAY['inflation', 'employment']
+-- WHERE is_last_step = TRUE
 -- ORDER BY created_at DESC;
 --
--- 3. Get analyses with high confidence bullish stance:
--- SELECT * FROM ai_agent_output
--- WHERE stance = 'bullish'
--- AND confidence_score > 0.8
+-- 3. Query step_output data for bid/ask information:
+-- SELECT market_id, output_data->'step_output' as step_output
+-- FROM ai_agent_output
+-- WHERE output_data ? 'step_output'
 -- ORDER BY created_at DESC;
 --
 -- 4. Query JSON data for specific fields:
@@ -85,30 +79,35 @@ CREATE TRIGGER update_ai_agent_output_updated_at
 -- WHERE workflow_id = 'workflow_123'
 -- ORDER BY step_number ASC;
 
--- Example data structure that this schema can accommodate:
+-- Example data structures that this schema can accommodate:
+--
+-- 1. Analysis step with reasoning:
 -- {
---   "topic": "economic_indicators",
---   "rationale": "Analysis of latest employment and inflation data...",
---   "stance": "bearish",
---   "confidence": 0.85,
+--   "topic": "market_analysis",
+--   "rationale": "Analysis of latest market conditions...",
 --   "factors": [
 --     {
---       "factor": "unemployment_rate",
---       "impact": "negative",
---       "weight": 0.3
---     },
---     {
---       "factor": "inflation_trends",
+--       "factor": "market_sentiment",
 --       "impact": "positive",
---       "weight": 0.7
+--       "weight": 0.4
 --     }
---   ],
---   "predictions": {
---     "short_term": "downward_pressure",
---     "long_term": "stabilization"
+--   ]
+-- }
+--
+-- 2. Final step with bid/ask output:
+-- {
+--   "step_output": {
+--     "yes_bid": 17.5,
+--     "yes_bid_size": 10,
+--     "yes_ask": 22.5,
+--     "yes_ask_size": 10,
+--     "no_bid": 77.5,
+--     "no_bid_size": 40,
+--     "no_ask": 82.5,
+--     "no_ask_size": 40,
+--     "reasoning": "Given the fair price of 20.00¢ and recommended spread of 5.00¢, the YES bid is calculated as 20 - (5/2) = 17.5 and the YES ask as 20 + (5/2) = 22.5. For NO, the bid is 100 - 22.5 = 77.5 and the ask is 100 - 17.5 = 82.5."
 --   },
 --   "metadata": {
---     "data_sources": ["bls.gov", "fed.gov"],
 --     "analysis_date": "2025-11-22",
 --     "model_version": "v2.1"
 --   }
