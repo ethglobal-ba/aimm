@@ -146,8 +146,8 @@ contract DeployAIMM is Script {
 
         // 1. Trump Endorsement - Daniel Cameron (Kentucky Senate)
         aimm.onboardMarket(AIMM.OnboardMarketParams({
-            externalMarketId: "KXTRUMPENDORSE-26SEP15-DCAM",
-            platform: "kalshi",
+            ticker: "KXTRUMPENDORSE-26SEP15-DCAM",
+            platform: AIMM.Platforms.KALSHI,
             marketName: "Will Donald Trump endorse Daniel Cameron in the 2026 Kentucky Senate Republican primary before May 19, 2026?",
             subtitle: ":: Kentucky Senate",
             eventTicker: "KXTRUMPENDORSE-26SEP15",
@@ -155,14 +155,15 @@ contract DeployAIMM is Script {
             optionBText: "No",
             optionACurrentExternalPrice: 21000000, // yes_ask: 21 cents
             optionBCurrentExternalPrice: 89000000, // no_bid: ~89 cents (100-11)
-            initialVolume: 0
+            initialVolume: 0,
+            imageUrl: "https://example.com/image.jpg"
         }));
         console.log("Onboarded: Daniel Cameron Kentucky Senate Endorsement");
 
         // 2. Trump Endorsement - Barry Moore (Alabama Senate)
         aimm.onboardMarket(AIMM.OnboardMarketParams({
-            externalMarketId: "KXTRUMPENDORSE-26SEP15-BMOR",
-            platform: "kalshi",
+            ticker: "KXTRUMPENDORSE-26SEP15-BMOR",
+            platform: AIMM.Platforms.KALSHI,
             marketName: "Will Donald Trump endorse Barry Moore in the 2026 Alabama Senate Republican primary before May 19, 2026?",
             subtitle: ":: Alabama Senate",
             eventTicker: "KXTRUMPENDORSE-26SEP15",
@@ -170,14 +171,15 @@ contract DeployAIMM is Script {
             optionBText: "No",
             optionACurrentExternalPrice: 33000000, // yes_ask: 33 cents
             optionBCurrentExternalPrice: 77000000, // no_bid: 77 cents
-            initialVolume: 0
+            initialVolume: 0,
+            imageUrl: "https://example.com/image.jpg"
         }));
         console.log("Onboarded: Barry Moore Alabama Senate Endorsement");
 
         // 3. Trump Endorsement - Buddy Carter (Georgia Senate)
         aimm.onboardMarket(AIMM.OnboardMarketParams({
-            externalMarketId: "KXTRUMPENDORSE-26SEP15-BCAR",
-            platform: "kalshi",
+            ticker: "KXTRUMPENDORSE-26SEP15-BCAR",
+            platform: AIMM.Platforms.KALSHI,
             marketName: "Will Donald Trump endorse Buddy Carter in the 2026 Georgia Senate Republican primary before May 19, 2026?",
             subtitle: ":: Georgia Senate",
             eventTicker: "KXTRUMPENDORSE-26SEP15",
@@ -185,14 +187,15 @@ contract DeployAIMM is Script {
             optionBText: "No",
             optionACurrentExternalPrice: 15000000, // yes_ask: 15 cents
             optionBCurrentExternalPrice: 95000000, // no_bid: 95 cents
-            initialVolume: 0
+            initialVolume: 0,
+            imageUrl: "https://example.com/image.jpg"
         }));
         console.log("Onboarded: Buddy Carter Georgia Senate Endorsement");
 
         // 4. Trump Endorsement - Andy Barr (Kentucky Senate)
         aimm.onboardMarket(AIMM.OnboardMarketParams({
-            externalMarketId: "KXTRUMPENDORSE-26SEP15-ABAR",
-            platform: "kalshi",
+            ticker: "KXTRUMPENDORSE-26SEP15-ABAR",
+            platform: AIMM.Platforms.KALSHI,
             marketName: "Will Donald Trump endorse Andy Barr in the 2026 Kentucky Senate Republican primary before May 19, 2026?",
             subtitle: ":: Kentucky Senate",
             eventTicker: "KXTRUMPENDORSE-26SEP15",
@@ -200,14 +203,15 @@ contract DeployAIMM is Script {
             optionBText: "No",
             optionACurrentExternalPrice: 68000000, // yes_ask: 68 cents
             optionBCurrentExternalPrice: 42000000, // no_bid: 42 cents
-            initialVolume: 0
+            initialVolume: 0,
+            imageUrl: "https://example.com/image.jpg"
         }));
         console.log("Onboarded: Andy Barr Kentucky Senate Endorsement");
 
         // 5. Trump Endorsement - Julia Letlow (Louisiana Senate)
         aimm.onboardMarket(AIMM.OnboardMarketParams({
-            externalMarketId: "KXTRUMPENDORSE-26SEP15-JLET",
-            platform: "kalshi",
+            ticker: "KXTRUMPENDORSE-26SEP15-JLET",
+            platform: AIMM.Platforms.KALSHI,
             marketName: "Will Donald Trump endorse Julia Letlow in the 2026 Louisiana Senate Republican primary before May 16, 2026?",
             subtitle: ":: Louisiana Senate",
             eventTicker: "KXTRUMPENDORSE-26SEP15",
@@ -215,7 +219,8 @@ contract DeployAIMM is Script {
             optionBText: "No",
             optionACurrentExternalPrice: 20000000, // yes_ask: 20 cents
             optionBCurrentExternalPrice: 90000000, // no_bid: 90 cents
-            initialVolume: 0
+            initialVolume: 0,
+            imageUrl: "https://example.com/image.jpg"
         }));
         console.log("Onboarded: Julia Letlow Louisiana Senate Endorsement");
 
@@ -259,12 +264,12 @@ contract DeployAIMM is Script {
             
             try aimm.getMarket(marketId) returns (AIMM.ExternalMarket memory market) {
                 console.log("  External Market ID (key):", marketId);
-                console.log("  Platform (should be 'kalshi'):", market.platform);
+                console.log("  Platform (should be KALSHI):", uint256(market.platform));
                 console.log("  Market Name:", market.marketName);
                 
                 // Verify this is correct: platform should be "kalshi", marketId should be ticker
-                if (keccak256(abi.encodePacked(market.platform)) != keccak256(abi.encodePacked("kalshi"))) {
-                    console.log("  [WARNING] Platform is not 'kalshi', found:", market.platform);
+                if (market.platform != AIMM.Platforms.KALSHI) {
+                    console.log("  [WARNING] Platform is not KALSHI, found:", uint256(market.platform));
                     console.log("  [WARNING] This suggests parameter swapping occurred!");
                 }
                 
@@ -292,8 +297,8 @@ contract DeployAIMM is Script {
         // 1. MarketOnboarded - Onboard a test market
         console.log("Emitting MarketOnboarded event...");
         aimm.onboardMarket(AIMM.OnboardMarketParams({
-            externalMarketId: "TEST-MARKET-001",
-            platform: "test",
+            ticker: "TEST-MARKET-001",
+            platform: AIMM.Platforms.KALSHI,
             marketName: "Test Market for Verification",
             subtitle: "SUBTITLETEST-MARKET-001", // subtitle with prefix
             eventTicker: "EVENTTEST-MARKET-001", // eventTicker with prefix
@@ -301,7 +306,8 @@ contract DeployAIMM is Script {
             optionBText: "Option B",
             optionACurrentExternalPrice: 50000000, // 50 cents
             optionBCurrentExternalPrice: 50000000, // 50 cents
-            initialVolume: 1000000000000000000 // 1 ETH volume
+            initialVolume: 1000000000000000000, // 1 ETH volume
+            imageUrl: "https://example.com/test-image.jpg"
         }));
 
         // 2. MarketConfigUpdated - Update the test market config
@@ -336,8 +342,8 @@ contract DeployAIMM is Script {
         // Create a mock WorkflowResult for current prices
         AIMM.WorkflowResult memory currentPriceResult = AIMM.WorkflowResult({
             workflowName: "currentPriceFetch",
-            platform: "test",
-            externalMarketId: "TEST-MARKET-001",
+            platform: "kalshi",
+            ticker: "TEST-MARKET-001",
             optionAPrice: 60000000, // 60 cents
             optionBPrice: 40000000, // 40 cents
             volume: 2000000000000000000, // 2 ETH volume
@@ -351,8 +357,8 @@ contract DeployAIMM is Script {
         // Create a mock WorkflowResult for fair prices
         AIMM.WorkflowResult memory fairPriceResult = AIMM.WorkflowResult({
             workflowName: "fairPriceFetch",
-            platform: "test",
-            externalMarketId: "TEST-MARKET-001",
+            platform: "kalshi",
+            ticker: "TEST-MARKET-001",
             optionAPrice: 55000000, // 55 cents fair price
             optionBPrice: 45000000, // 45 cents fair price
             volume: 0, // Volume not relevant for fair price
