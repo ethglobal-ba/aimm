@@ -8,10 +8,13 @@ import { Client } from 'pg';
 interface AIAgentNotification {
   table: string;
   action: 'INSERT' | 'UPDATE' | 'DELETE';
-  id: string;
+  run_id: string;  // Part of composite key
+  step_index: number;  // Part of composite key
   market_id: string;
-  analysis_type: string;
-  workflow_id?: string;
+  market_ticker?: string;
+  step_kind: string;
+  headline?: string;
+  direction?: 'lean_yes' | 'lean_no' | 'neutral';
   timestamp: number;
 }
 
@@ -172,13 +175,13 @@ async function example() {
       // Handle different types of changes
       switch (notification.action) {
         case 'INSERT':
-          console.log(`New AI analysis for market ${notification.market_id}`);
+          console.log(`New AI step: ${notification.step_kind} for ${notification.market_ticker || notification.market_id} (${notification.headline || 'No headline'})`);
           break;
         case 'UPDATE':
-          console.log(`Updated AI analysis for market ${notification.market_id}`);
+          console.log(`Updated AI step: ${notification.step_kind} for ${notification.market_ticker || notification.market_id}`);
           break;
         case 'DELETE':
-          console.log(`Deleted AI analysis for market ${notification.market_id}`);
+          console.log(`Deleted AI step: ${notification.step_kind} for ${notification.market_ticker || notification.market_id}`);
           break;
       }
     });

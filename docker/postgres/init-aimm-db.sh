@@ -17,68 +17,85 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "aimm-fullstack" <<
 	CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 	CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
 
-	-- Create the AI agent output table
+	-- Create the AI agent output table (v2 with Kevin's suggestions + composite key)
 	CREATE TABLE IF NOT EXISTS ai_agent_output (
-	    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+	    -- Composite primary key: run_id + step_index
+	    run_id VARCHAR(255) NOT NULL,
+	    step_index INTEGER NOT NULL,
+
+	    -- Run-level metadata
 	    market_id VARCHAR(255) NOT NULL,
-	    analysis_type VARCHAR(100) NOT NULL,
+	    market_ticker VARCHAR(100),
+
+	    -- Step-level envelope
+	    step_kind VARCHAR(100) NOT NULL,
+
+	    -- Main data - step_output structure
+	    step_output JSONB NOT NULL,
+
+	    -- Display helpers
+	    headline TEXT,
+	    summary TEXT,
+	    direction VARCHAR(50),
+
+	    -- Run-level tracking
 	    agent_version VARCHAR(50) NOT NULL,
-	    workflow_id VARCHAR(255),
-	    step_number INTEGER,
+	    model_version VARCHAR(50),
+	    confidence DECIMAL(3,2),
 
-	    -- Main JSON data structure - flexible to accommodate various analysis formats
-	    output_data JSONB NOT NULL,
+	    -- Clear units/scales
+	    price_scale VARCHAR(50) DEFAULT 'cents',
 
-	    -- Step completion indicator
-	    is_last_step BOOLEAN DEFAULT FALSE,
+	    -- Timestamps
+	    run_started_at TIMESTAMP WITH TIME ZONE,
+	    run_finished_at TIMESTAMP WITH TIME ZONE,
+	    step_created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 
-	    -- Metadata
-	    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-	    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-	    block_number BIGINT,
-	    transaction_hash VARCHAR(66)
+	    -- Composite primary key
+	    PRIMARY KEY (run_id, step_index),
+
+	    -- Constraints
+	    CONSTRAINT valid_confidence CHECK (confidence IS NULL OR (confidence >= 0 AND confidence <= 1)),
+	    CONSTRAINT valid_step_index CHECK (step_index > 0),
+	    CONSTRAINT valid_direction CHECK (direction IS NULL OR direction IN ('lean_yes', 'lean_no', 'neutral'))
 	);
 
-	-- Indexes for performance
+	-- Indexes optimized for UI queries
+	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_run_id ON ai_agent_output(run_id);
 	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_market_id ON ai_agent_output(market_id);
-	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_analysis_type ON ai_agent_output(analysis_type);
-	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_workflow_id ON ai_agent_output(workflow_id);
-	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_created_at ON ai_agent_output(created_at DESC);
-	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_is_last_step ON ai_agent_output(is_last_step) WHERE is_last_step = TRUE;
+	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_market_ticker ON ai_agent_output(market_ticker);
+	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_step_index ON ai_agent_output(step_index);
+	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_step_kind ON ai_agent_output(step_kind);
+	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_direction ON ai_agent_output(direction) WHERE direction IS NOT NULL;
+	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_run_created ON ai_agent_output(run_started_at DESC);
+	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_step_created ON ai_agent_output(step_created_at DESC);
 
-	-- GIN index for JSON queries
-	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_data_gin ON ai_agent_output USING GIN(output_data);
+	-- Composite index for per-market views
+	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_market_run ON ai_agent_output(market_id, run_id, step_index);
 
-	-- Function to update the updated_at timestamp
-	CREATE OR REPLACE FUNCTION update_ai_agent_output_updated_at()
-	RETURNS TRIGGER AS \$\$
-	BEGIN
-	    NEW.updated_at = CURRENT_TIMESTAMP;
-	    RETURN NEW;
-	END;
-	\$\$ language 'plpgsql';
+	-- GIN index for JSON queries on step_output
+	CREATE INDEX IF NOT EXISTS idx_ai_agent_output_step_output_gin ON ai_agent_output USING GIN(step_output);
 
-	-- Trigger to automatically update updated_at
-	CREATE TRIGGER update_ai_agent_output_updated_at
-	    BEFORE UPDATE ON ai_agent_output
-	    FOR EACH ROW
-	    EXECUTE FUNCTION update_ai_agent_output_updated_at();
 
-	-- Function to notify on AI agent output changes
+	-- Function to notify on AI agent output changes (enhanced for streaming)
 	CREATE OR REPLACE FUNCTION notify_ai_agent_output_change()
 	RETURNS TRIGGER AS \$\$
 	DECLARE
 	    notification JSON;
 	BEGIN
-	    -- Create notification payload with relevant data
+	    -- Create notification payload optimized for UI streaming
 	    notification = json_build_object(
 	        'table', 'ai_agent_output',
 	        'action', TG_OP,
 	        'id', COALESCE(NEW.id, OLD.id),
+	        'run_id', COALESCE(NEW.run_id, OLD.run_id),
 	        'market_id', COALESCE(NEW.market_id, OLD.market_id),
-	        'analysis_type', COALESCE(NEW.analysis_type, OLD.analysis_type),
-	        'workflow_id', COALESCE(NEW.workflow_id, OLD.workflow_id),
-	        'timestamp', EXTRACT(epoch FROM COALESCE(NEW.created_at, OLD.created_at))
+	        'market_ticker', COALESCE(NEW.market_ticker, OLD.market_ticker),
+	        'step_index', COALESCE(NEW.step_index, OLD.step_index),
+	        'step_kind', COALESCE(NEW.step_kind, OLD.step_kind),
+	        'headline', COALESCE(NEW.headline, OLD.headline),
+	        'direction', COALESCE(NEW.direction, OLD.direction),
+	        'timestamp', EXTRACT(epoch FROM COALESCE(NEW.step_created_at, OLD.step_created_at))
 	    );
 
 	    -- Send notification on the ai_agent_output channel
