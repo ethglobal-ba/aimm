@@ -2,7 +2,7 @@ import 'server-only';
 
 import type { QueryResultRow } from 'pg';
 
-import { query } from './db';
+import { query, type SqlValue } from './db';
 import type { AIAgentOutput, Direction, StepOutput } from './ai-agent-output-types';
 
 export interface AgentActionWithStepOutput {
@@ -51,7 +51,7 @@ export async function getRecentAgentActions(
   }
 
   const whereParts: string[] = [];
-  const parameters: unknown[] = [];
+  const parameters: SqlValue[] = [];
 
   if (filters?.marketId) {
     whereParts.push(`market_id = $${parameters.length + 1}`);
@@ -94,5 +94,3 @@ export async function getRecentAgentActions(
 
   return rows.map(mapRowToAgentAction);
 }
-
-
