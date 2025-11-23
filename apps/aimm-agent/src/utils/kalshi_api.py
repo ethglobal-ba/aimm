@@ -330,6 +330,73 @@ def fetch_pdf_from_url(pdf_url):
         return None
 
 
+def get_kalshi_market_details(market_ticker):
+    """
+    Fetch detailed market information including rules and settlement sources.
+    Alternative to get_kalshi_event_info that works directly from market_ticker.
+
+    Returns:
+        Dict with market details, rules, settlement sources
+    """
+    api_key = os.getenv("KALSHI_API_KEY")
+    base_url = os.getenv("KALSHI_BASE_URL", "https://api.elections.kalshi.com/trade-api/v2")
+
+    print(f"\nFetching Kalshi market details...")
+    print(f"Market Ticker: {market_ticker}")
+    print("-" * 70)
+
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    try:
+        # Get market information
+        market_endpoint = f"{base_url}/markets/{market_ticker}"
+        print(f"Endpoint: {market_endpoint}\n")
+
+        response = requests.get(market_endpoint, headers=headers)
+        response.raise_for_status()
+
+        market_data = response.json()
+
+        print("=" * 70)
+        print("MARKET DETAILS")
+        print("=" * 70)
+        print(json.dumps(market_data, indent=2))
+
+        if "market" in market_data:
+            market = market_data["market"]
+            print("\n" + "-" * 70)
+            print("MARKET SUMMARY")
+            print("-" * 70)
+            print(f"Title: {market.get('title', 'N/A')}")
+            print(f"Subtitle: {market.get('subtitle', 'N/A')}")
+            print(f"Rules Primary: {market.get('rules_primary', 'N/A')}")
+            print(f"Rules Secondary: {market.get('rules_secondary', 'N/A')}")
+
+            # Combine primary and secondary rules
+            rules_primary = market.get('rules_primary', '')
+            rules_secondary = market.get('rules_secondary', '')
+            rules_combined = f"{rules_primary}\n{rules_secondary}".strip() if rules_primary or rules_secondary else None
+
+            # Note: settlement_sources are NOT available in market endpoint
+            # They're only in the event endpoint
+            return {
+                "market": market_data,
+                "rules": rules_combined,
+                "has_settlement_sources": False  # Not available from market endpoint
+            }
+
+        return market_data
+
+    except requests.exceptions.RequestException as e:
+        print(f"\nError fetching market details: {e}")
+        if hasattr(e, 'response') and e.response is not None:
+            print(f"Response status code: {e.response.status_code}")
+            print(f"Response text: {e.response.text}")
+        return None
+
+
 def get_kalshi_orderbook(market_ticker):
     """
     Fetch orderbook data from Kalshi API for a specific market

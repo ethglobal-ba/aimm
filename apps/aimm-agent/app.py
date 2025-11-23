@@ -19,21 +19,20 @@ def update_price():
         if not data:
             return jsonify({"status": "error", "message": "No JSON data provided"}), 400
 
-        event_ticker = data.get("event_ticker")
         market_ticker = data.get("market_ticker")
 
-        if not event_ticker or not market_ticker:
+        if not market_ticker:
             return jsonify({
                 "status": "error",
-                "message": "event_ticker and market_ticker are required"
+                "message": "market_ticker is required"
             }), 400
 
         # Import the market maker analysis function
         from src.agents.market_maker_stateful import analyze_market_stateful
 
         # Run the fair price analysis
-        print(f"Running fair price analysis for {event_ticker}/{market_ticker}")
-        result = analyze_market_stateful(event_ticker, market_ticker)
+        print(f"Running fair price analysis for {market_ticker}")
+        result = analyze_market_stateful(market_ticker)
 
         if not result:
             return jsonify({
@@ -44,7 +43,7 @@ def update_price():
         # Extract key results
         response = {
             "status": "success",
-            "event_ticker": event_ticker,
+            "event_ticker": result["event_ticker"],
             "market_ticker": market_ticker,
             "research_fair_price": result["research_fair_price"],
             "orderbook_mid_price": result["orderbook_mid_price"],
