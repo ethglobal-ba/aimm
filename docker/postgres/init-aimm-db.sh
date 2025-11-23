@@ -17,9 +17,12 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "aimm-fullstack" <<
 	CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 	CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
 
-	-- Create the AI agent output table (v2 with Kevin's suggestions + composite key)
+	-- Create the AI agent output table (v2 with Kevin's suggestions + id primary key)
 	CREATE TABLE IF NOT EXISTS ai_agent_output (
-	    -- Composite primary key: run_id + step_index
+	    -- Primary key: simple auto-incrementing id
+	    id BIGSERIAL PRIMARY KEY,
+
+	    -- Run and step identifiers
 	    run_id VARCHAR(255) NOT NULL,
 	    step_index INTEGER NOT NULL,
 
@@ -48,17 +51,15 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "aimm-fullstack" <<
 	    price_scale VARCHAR(50) DEFAULT 'cents',
 
 	    -- Timestamps
-	    run_started_at TIMESTAMP WITH TIME ZONE,
-	    run_finished_at TIMESTAMP WITH TIME ZONE,
 	    step_created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-
-	    -- Composite primary key
-	    PRIMARY KEY (run_id, step_index),
 
 	    -- Constraints
 	    CONSTRAINT valid_confidence CHECK (confidence IS NULL OR (confidence >= 0 AND confidence <= 1)),
 	    CONSTRAINT valid_step_index CHECK (step_index > 0),
-	    CONSTRAINT valid_direction CHECK (direction IS NULL OR direction IN ('lean_yes', 'lean_no', 'neutral'))
+	    CONSTRAINT valid_direction CHECK (direction IS NULL OR direction IN ('lean_yes', 'lean_no', 'neutral')),
+
+	    -- Unique constraint to maintain the original composite key logic
+	    CONSTRAINT unique_run_step UNIQUE (run_id, step_index)
 	);
 
 	-- Indexes optimized for UI queries
@@ -87,6 +88,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "aimm-fullstack" <<
 	    notification = json_build_object(
 	        'table', 'ai_agent_output',
 	        'action', TG_OP,
+	        'id', COALESCE(NEW.id, OLD.id),
 	        'run_id', COALESCE(NEW.run_id, OLD.run_id),
 	        'step_index', COALESCE(NEW.step_index, OLD.step_index),
 	        'market_id', COALESCE(NEW.market_id, OLD.market_id),

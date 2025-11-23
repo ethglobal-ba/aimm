@@ -3,7 +3,10 @@
 -- This table stores AI agent workflow steps with stable envelope structure
 
 CREATE TABLE IF NOT EXISTS ai_agent_output (
-    -- Composite primary key: run_id + step_index
+    -- Primary key: simple auto-incrementing id
+    id BIGSERIAL PRIMARY KEY,
+
+    -- Run and step identifiers
     run_id VARCHAR(255) NOT NULL,            -- Stable identifier for the entire run
     step_index INTEGER NOT NULL,             -- 1, 2, 3... (order within run)
 
@@ -33,13 +36,13 @@ CREATE TABLE IF NOT EXISTS ai_agent_output (
     -- Timestamps (Kevin's suggestion for per-run)
     inserted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 
-    -- Composite primary key
-    PRIMARY KEY (run_id, step_index),
-
     -- Constraints
     CONSTRAINT valid_confidence CHECK (confidence IS NULL OR (confidence >= 0 AND confidence <= 1)),
     CONSTRAINT valid_step_index CHECK (step_index > 0),
-    CONSTRAINT valid_direction CHECK (direction IS NULL OR direction IN ('lean_yes', 'lean_no', 'neutral'))
+    CONSTRAINT valid_direction CHECK (direction IS NULL OR direction IN ('lean_yes', 'lean_no', 'neutral')),
+
+    -- Unique constraint to maintain the original composite key logic
+    CONSTRAINT unique_run_step UNIQUE (run_id, step_index)
 );
 
 -- Indexes optimized for UI queries (Kevin's use cases)
@@ -68,6 +71,7 @@ BEGIN
     notification = json_build_object(
         'table', 'ai_agent_output',
         'action', TG_OP,
+        'id', COALESCE(NEW.id, OLD.id),
         'run_id', COALESCE(NEW.run_id, OLD.run_id),
         'step_index', COALESCE(NEW.step_index, OLD.step_index),
         'market_ticker', COALESCE(NEW.market_ticker, OLD.market_ticker),
