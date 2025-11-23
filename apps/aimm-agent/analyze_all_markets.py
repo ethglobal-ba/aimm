@@ -9,7 +9,7 @@ import json
 from typing import List, Dict
 
 # Add project root to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from src.utils.fetch_markets import fetch_all_markets_paginated
 from src.agents.market_maker_stateful import analyze_market_stateful

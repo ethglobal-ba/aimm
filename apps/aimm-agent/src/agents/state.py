@@ -39,6 +39,9 @@ class MarketState(TypedDict):
     baseline_spread: float
     baseline_reasoning: str
 
+    # Step 6.5: External price data (Pyth Network)
+    pyth_prices: Dict
+
     # Step 7: Orderbook analysis
     orderbook_mid_price: float
     orderbook_spread: float

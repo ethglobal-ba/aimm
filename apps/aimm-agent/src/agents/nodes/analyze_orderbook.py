@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from ..state import MarketState
 from ..models import *
 from src.utils.venice_llm import get_venice_llm
+from src.utils.pyth_integration import format_pyth_context
 
 
 def analyze_orderbook(state: MarketState) -> Dict:
@@ -19,6 +20,15 @@ def analyze_orderbook(state: MarketState) -> Dict:
 
     market = state['orderbook_data'].get('market', {}).get('market', {})
     orderbook = state['orderbook_data'].get('orderbook', {}).get('orderbook', {})
+
+    # Get Pyth price data from state (fetched in Step 6.5)
+    pyth_prices = state.get('pyth_prices', {})
+    pyth_context = ""
+
+    if pyth_prices:
+        pyth_context = "\n\n" + format_pyth_context(pyth_prices)
+        print(f"\nℹ️  Using external price data from Step 6.5:")
+        print(pyth_context)
 
     llm = get_venice_llm(
         model="llama-3.3-70b",
@@ -41,6 +51,7 @@ def analyze_orderbook(state: MarketState) -> Dict:
     ])
 
     prompt = f"""You are analyzing a prediction market orderbook.
+{pyth_context}
 
 # CURRENT MARKET STATE
 YES Bid: {market.get('yes_bid', 'N/A')}¢
