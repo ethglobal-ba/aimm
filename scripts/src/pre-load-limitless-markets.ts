@@ -62,16 +62,23 @@ async function getMarketsFromLast24Hours(): Promise<LimitlessMarket[]> {
     });
 
     // Filter markets created in the last 24 hours
-    const allMarkets = response.data.data.filter(market => {
+    const recentMarkets = response.data.data.filter(market => {
       const createdAt = new Date(market.createdAt);
       return createdAt > twentyFourHoursAgo;
     });
+
+    // If no recent markets, use all markets for testing
+    const allMarkets = recentMarkets.length > 0 ? recentMarkets : response.data.data;
 
     // Pick a random set of 25 markets from the filtered list (or fewer if <25 returned)
     const shuffled = allMarkets.slice().sort(() => Math.random() - 0.5);
     const selectedMarkets = shuffled.slice(0, 25);
 
-    console.log(`Found ${selectedMarkets.length} markets created in the last 24 hours`);
+    if (recentMarkets.length > 0) {
+      console.log(`Found ${selectedMarkets.length} markets created in the last 24 hours`);
+    } else {
+      console.log(`No recent markets found, using ${selectedMarkets.length} active markets for testing`);
+    }
     return selectedMarkets;
   } catch (error) {
     console.error('Error fetching Limitless markets:', error);
