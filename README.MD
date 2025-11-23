@@ -1,5 +1,14 @@
 # AIMM
 
+## Components
+
+- `apps/aimm-agent`: Stateful prediction market research agent that analyzes markets and generates orderbook recommendations using LangGraph.
+- `apps/aimm2`: (ARTIFACT) Prediction market research agent that analyzes markets and generates orderbook recommendations using LangChain.
+- `apps/break-glass`: (ARTIFACT) Break glass agent that can be used to manually intervene in the market.
+- `apps/cre-kalshi-price-fetcher`: CRE project that fetches prices from Kalshi and writes them to the blockchain.
+- `apps/cre-limitless-price-fetcher`: CRE project that fetches prices from Limitless and writes them to the blockchain.
+- `apps/cre-trumpfun-price-fetcher`: CRE project that fetches prices from TrumpFun and writes them to the blockchain.
+- `apps/cre-kalshi-price-fetcher`: CRE project that fetches prices from Kalshi and writes them to the blockchain.
 ## Contract setup
 
 Run `git submodule update --init` to install foundry dependencies.

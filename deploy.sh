@@ -2,7 +2,7 @@
 
 # Set variables
 # export SERVER="root@216.81.248.27" # Old server, down
-# export SERVER="root@38.224.253.95" # Fuck you Fluence
+# export SERVER="root@38.224.253.95" # Fluence is the best server ever
 export SERVER="root@88.99.96.175"
 export REMOTE_DIR="/root/aimm"
 
