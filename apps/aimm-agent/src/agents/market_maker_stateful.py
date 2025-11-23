@@ -197,8 +197,9 @@ def analyze_market_stateful(market_ticker: str):
         "final_fair_price": 0.0,
         "final_spread": 0.0,
 
-        # Step 12: Final orders
-        "final_orders": {}
+        # Step 12: Final orders and contract update
+        "final_orders": {},
+        "contract_update": {}
     }
 
     # Run workflow

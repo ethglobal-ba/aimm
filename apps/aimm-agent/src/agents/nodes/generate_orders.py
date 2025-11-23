@@ -4,11 +4,13 @@ Step 12: Generate final order recommendations.
 
 from typing import Dict
 import json
+import os
 from datetime import datetime, timezone
 
 from ..state import MarketState
 from ..models import *
 from src.utils.venice_llm import get_venice_llm
+from src.utils.contract import update_fair_prices
 
 
 def generate_final_orders(state: MarketState) -> Dict:
@@ -85,7 +87,24 @@ Return a JSON object with final order recommendations for both YES and NO sides.
     print(f"YES: Bid {result.yes_bid:.2f}¢ x {result.yes_bid_size} | Ask {result.yes_ask:.2f}¢ x {result.yes_ask_size}")
     print(f"NO:  Bid {result.no_bid:.2f}¢ x {result.no_bid_size} | Ask {result.no_ask:.2f}¢ x {result.no_ask_size}")
 
+    # Update fair prices on contract
+    # Calculate mid-prices for YES and NO (option A and option B)
+    yes_mid_price = (result.yes_bid + result.yes_ask) / 2
+    no_mid_price = (result.no_bid + result.no_ask) / 2
+
+    # Check if contract updates are enabled via environment variable
+    enable_contract_updates = os.getenv("ENABLE_CONTRACT_UPDATES", "false").lower() == "true"
+    dry_run = not enable_contract_updates
+
+    contract_result = update_fair_prices(
+        market_id=state['market_ticker'],
+        option_a_fair_price_cents=yes_mid_price,
+        option_b_fair_price_cents=no_mid_price,
+        dry_run=dry_run
+    )
+
     return {
-        "final_orders": result.model_dump()
+        "final_orders": result.model_dump(),
+        "contract_update": contract_result
     }
 

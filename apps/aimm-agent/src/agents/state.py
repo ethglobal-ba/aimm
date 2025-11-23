@@ -64,5 +64,6 @@ class MarketState(TypedDict):
     final_fair_price: float
     final_spread: float
 
-    # Step 12: Final orders
+    # Step 12: Final orders and contract update
     final_orders: Dict
+    contract_update: Dict
