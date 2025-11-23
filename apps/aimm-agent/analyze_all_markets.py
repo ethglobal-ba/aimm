@@ -48,6 +48,27 @@ def analyze_all_active_markets(
         filtered_markets = all_markets
         print(f"\nAnalyzing all {len(filtered_markets)} markets")
 
+    # 🔍 DEBUG: Print all available market IDs
+    print("\n🔍 Available market IDs:")
+    for i, m in enumerate(filtered_markets[:20], 1):  # Show first 20
+        print(f"  {i}. {m.get('externalId')} - {m.get('marketName', 'No name')[:60]}")
+    if len(filtered_markets) > 20:
+        print(f"  ... and {len(filtered_markets) - 20} more markets")
+    print()
+
+    print("filtered_markets: ", filtered_markets)
+
+    # 🎯 DEMO FILTER: Comment out the lines below to analyze all markets
+    # Uncomment to only analyze specific markets for demo
+    demo_market_ids = [
+        "KXTRUMPENDORSE-26SEP15-BCAR",
+        "KXBTCMINY-25-2-DEC31-60000",
+        "KXETHMINY-25DEC31-2249.99"
+    ]
+    filtered_markets = [m for m in filtered_markets if m.get("externalId") in demo_market_ids]
+    print(f"🎯 DEMO MODE: Filtered to {len(filtered_markets)} specific markets for demo")
+    # 🎯 END DEMO FILTER
+
     # Limit if specified
     if max_markets and len(filtered_markets) > max_markets:
         filtered_markets = filtered_markets[:max_markets]

@@ -1,23 +1,31 @@
 """
-Stateful Market Maker Agent using LangGraph.
+Stateful Market Maker Agent using LangGraph with Bayesian Recalibration.
 
-This workflow breaks down market analysis into 13 reasoning steps for better
+This workflow breaks down market analysis into 14 reasoning steps for better
 decision making. Each step is implemented as a separate node for clarity.
 
-13-Step Workflow:
+14-Step Workflow:
 1. Analyze market rules
 2. Generate search queries
 3. Search popular tweets (baseline)
 4. Search web news (baseline)
 5. Score baseline sources
-6. Calculate baseline price
+6. Calculate baseline price (news-only)
 6.5. Fetch external prices (Pyth Network)
+6.75. Bayesian recalibration (orderbook prior + news evidence) ← NEW STEP
 7. Analyze orderbook
 8. Search recent tweets (delta)
 9. Score delta sources
 10. Calculate delta adjustment
 11. Final price adjustment
 12. Generate orders
+
+Key Innovation (Step 6.75):
+Instead of treating baseline and orderbook as competing signals, we use Bayesian updating:
+- Orderbook = Prior (market consensus)
+- News sentiment = Evidence (new information)
+- Recalibrated price = Posterior (updated belief)
+This ensures we respect market wisdom while incorporating new information appropriately.
 """
 
 import os
@@ -39,6 +47,7 @@ from src.agents.nodes import (
     search_web_news,
     score_baseline_sources,
     calculate_baseline_fair_price,
+    recalibrate_baseline,
     fetch_external_prices,
     analyze_orderbook,
     search_recent_tweets,
@@ -54,11 +63,11 @@ load_dotenv()
 
 
 def create_market_maker_workflow():
-    """Create the stateful market maker workflow (13 steps) with database logging"""
+    """Create the stateful market maker workflow (14 steps) with Bayesian recalibration and database logging"""
     workflow = StateGraph(MarketState)
 
     # Wrap each node with database logging
-    # Add nodes (13 steps)
+    # Add nodes (14 steps)
     workflow.add_node("step_1_analyze_rules", with_db_logging("step_1_analyze_rules", 1)(analyze_market_rules))
     workflow.add_node("step_2_generate_queries", with_db_logging("step_2_generate_queries", 2)(generate_search_queries))
     workflow.add_node("step_3_search_popular_tweets", with_db_logging("step_3_search_popular_tweets", 3)(search_popular_tweets))
@@ -66,6 +75,7 @@ def create_market_maker_workflow():
     workflow.add_node("step_5_score_baseline", with_db_logging("step_5_score_baseline", 5)(score_baseline_sources))
     workflow.add_node("step_6_baseline_price", with_db_logging("step_6_baseline_price", 6)(calculate_baseline_fair_price))
     workflow.add_node("step_6.5_fetch_external_prices", with_db_logging("step_6.5_fetch_external_prices", 6.5)(fetch_external_prices))
+    workflow.add_node("step_6.75_recalibrate", with_db_logging("step_6.75_recalibrate", 6.75)(recalibrate_baseline))
     workflow.add_node("step_7_analyze_orderbook", with_db_logging("step_7_analyze_orderbook", 7)(analyze_orderbook))
     workflow.add_node("step_8_search_recent_tweets", with_db_logging("step_8_search_recent_tweets", 8)(search_recent_tweets))
     workflow.add_node("step_9_score_delta", with_db_logging("step_9_score_delta", 9)(score_delta_sources))
@@ -74,6 +84,7 @@ def create_market_maker_workflow():
     workflow.add_node("step_12_generate_orders", with_db_logging("step_12_generate_orders", 12)(generate_final_orders))
 
     # Add edges (sequential flow)
+    # Note: Recalibration (6.75) now runs AFTER orderbook analysis (7) so it has correct orderbook data
     workflow.add_edge(START, "step_1_analyze_rules")
     workflow.add_edge("step_1_analyze_rules", "step_2_generate_queries")
     workflow.add_edge("step_2_generate_queries", "step_3_search_popular_tweets")
@@ -82,7 +93,8 @@ def create_market_maker_workflow():
     workflow.add_edge("step_5_score_baseline", "step_6_baseline_price")
     workflow.add_edge("step_6_baseline_price", "step_6.5_fetch_external_prices")
     workflow.add_edge("step_6.5_fetch_external_prices", "step_7_analyze_orderbook")
-    workflow.add_edge("step_7_analyze_orderbook", "step_8_search_recent_tweets")
+    workflow.add_edge("step_7_analyze_orderbook", "step_6.75_recalibrate")  # Moved AFTER orderbook analysis
+    workflow.add_edge("step_6.75_recalibrate", "step_8_search_recent_tweets")
     workflow.add_edge("step_8_search_recent_tweets", "step_9_score_delta")
     workflow.add_edge("step_9_score_delta", "step_10_calculate_delta")
     workflow.add_edge("step_10_calculate_delta", "step_11_final_adjustment")
@@ -142,7 +154,7 @@ def analyze_market_stateful(market_ticker: str):
     # Create workflow
     workflow = create_market_maker_workflow()
 
-    # Initialize state (13-step workflow)
+    # Initialize state (14-step workflow with Bayesian recalibration)
     initial_state = {
         # Database tracking
         "run_id": run_id,
@@ -171,13 +183,21 @@ def analyze_market_stateful(market_ticker: str):
         "baseline_summary": {},
         "baseline_scores": [],
 
-        # Step 6: Baseline fair price
+        # Step 6: Baseline fair price (news-only)
         "baseline_fair_price": 0.0,
         "baseline_spread": 0.0,
         "baseline_reasoning": "",
 
         # Step 6.5: External price data
         "pyth_prices": {},
+
+        # Step 6.75: Bayesian recalibration
+        "recalibrated_price": 0.0,
+        "recalibrated_spread": 0.0,
+        "orderbook_weight": 0.0,
+        "baseline_weight": 0.0,
+        "recalibration_reasoning": "",
+        "confidence_adjustment": "",
 
         # Step 7: Orderbook analysis
         "orderbook_mid_price": 0.0,
@@ -214,9 +234,9 @@ def analyze_market_stateful(market_ticker: str):
 
     # Print summary
     print("\n" + "="*80)
-    print("FINAL SUMMARY (13-STEP WORKFLOW)")
+    print("FINAL SUMMARY (14-STEP WORKFLOW WITH BAYESIAN RECALIBRATION)")
     print("="*80)
-    print(f"\nBASELINE ANALYSIS:")
+    print(f"\nBASELINE ANALYSIS (News-Only):")
     print(f"  Baseline Fair Price: {result['baseline_fair_price']:.2f}¢")
     print(f"  Baseline Spread: {result['baseline_spread']:.2f}¢")
     print(f"  Sources: {len(result.get('popular_tweets', []))} tweets, {len(result.get('web_news', []))} news articles")
@@ -229,6 +249,12 @@ def analyze_market_stateful(market_ticker: str):
             print(f"    {symbol}: ${data['price']:,.2f}")
     else:
         print(f"  No external price data (market not crypto-related)")
+
+    print(f"\n📊 BAYESIAN RECALIBRATION:")
+    print(f"  Prior (Orderbook): {result['orderbook_mid_price']:.2f}¢")
+    print(f"  Evidence (Baseline): {result['baseline_fair_price']:.2f}¢")
+    print(f"  → Posterior (Recalibrated): {result['recalibrated_price']:.2f}¢")
+    print(f"  Weights: {result['orderbook_weight']:.0f}% orderbook, {result['baseline_weight']:.0f}% baseline")
 
     print(f"\nDELTA ADJUSTMENT:")
     print(f"  Delta Adjustment: {result['delta_price_adjustment']:+.2f}¢")

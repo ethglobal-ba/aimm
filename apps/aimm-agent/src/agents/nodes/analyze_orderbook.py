@@ -36,7 +36,18 @@ def analyze_orderbook(state: MarketState) -> Dict:
         enable_web_search=False
     )
 
-    # Format orderbook
+    # Calculate mid prices and spreads programmatically (don't trust LLM arithmetic!)
+    yes_bid = market.get('yes_bid', 0)
+    yes_ask = market.get('yes_ask', 0)
+    no_bid = market.get('no_bid', 0)
+    no_ask = market.get('no_ask', 0)
+
+    yes_mid = (yes_bid + yes_ask) / 2 if yes_ask > 0 else yes_bid
+    yes_spread = yes_ask - yes_bid if yes_ask > yes_bid else 0
+    no_mid = (no_bid + no_ask) / 2 if no_ask > 0 else no_bid
+    no_spread = no_ask - no_bid if no_ask > no_bid else 0
+
+    # Format orderbook for depth analysis
     yes_orders = orderbook.get('yes', [])[:10]
     no_orders = orderbook.get('no', [])[:10]
 
@@ -85,6 +96,12 @@ Return a JSON object with the orderbook analysis.
     structured_llm = llm.with_structured_output(OrderbookAnalysis, method="function_calling")
     result = structured_llm.invoke(prompt)
 
+    # Override LLM's arithmetic with our calculated values (LLMs are bad at math!)
+    result.yes_mid_price = yes_mid
+    result.yes_spread = yes_spread
+    result.no_mid_price = no_mid
+    result.no_spread = no_spread
+
     print("\n" + "-"*80)
     print("RAW OUTPUT:")
     print("-"*80)
@@ -98,15 +115,15 @@ Return a JSON object with the orderbook analysis.
     print(json.dumps(output, indent=2))
     print("-"*80)
 
-    print(f"\nOrderbook YES Mid: {result.yes_mid_price:.2f}¢")
-    print(f"Orderbook YES Spread: {result.yes_spread:.2f}¢")
-    print(f"Orderbook NO Mid: {result.no_mid_price:.2f}¢")
-    print(f"Orderbook NO Spread: {result.no_spread:.2f}¢")
+    print(f"\nOrderbook YES Mid: {yes_mid:.2f}¢")
+    print(f"Orderbook YES Spread: {yes_spread:.2f}¢")
+    print(f"Orderbook NO Mid: {no_mid:.2f}¢")
+    print(f"Orderbook NO Spread: {no_spread:.2f}¢")
 
     return {
-        "orderbook_mid_price": result.yes_mid_price,
-        "orderbook_spread": result.yes_spread,
-        "orderbook_no_mid_price": result.no_mid_price,
-        "orderbook_no_spread": result.no_spread,
+        "orderbook_mid_price": yes_mid,
+        "orderbook_spread": yes_spread,
+        "orderbook_no_mid_price": no_mid,
+        "orderbook_no_spread": no_spread,
         "orderbook_liquidity": result.model_dump()
     }
